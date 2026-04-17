@@ -1,0 +1,26 @@
+name: "Weekly Team Pulse"
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Every Monday at 9am UTC
+  workflow_dispatch:
+    inputs:
+      time_range:
+        description: "How far back to look (e.g. 24h, 7d, 2w, 1m)"
+        default: "7d"
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history needed for git log
+
+      - name: Generate Team Pulse
+        uses: ./
+        with:
+          time_range: ${{ github.event.inputs.time_range || '7d' }}
+          ai_provider: ${{ vars.AI_PROVIDER }}
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
