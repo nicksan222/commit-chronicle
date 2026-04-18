@@ -47,4 +47,9 @@ describe("parseTimeRange", () => {
   it("throws on empty string", () => {
     expect(() => parseTimeRange("")).toThrow('Invalid time range ""');
   });
+
+  it("throws on zero amount", () => {
+    expect(() => parseTimeRange("0d")).toThrow("Amount must be greater than 0");
+    expect(() => parseTimeRange("0h")).toThrow("Amount must be greater than 0");
+  });
 });

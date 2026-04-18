@@ -7,6 +7,11 @@ export function parseTimeRange(range: string): Date {
   }
 
   const amount = parseInt(match[1]!, 10);
+  if (amount === 0) {
+    throw new Error(
+      `Invalid time range "${range}". Amount must be greater than 0.`
+    );
+  }
   const unit = match[2]!;
   const now = new Date();
 
