@@ -16928,747 +16928,31 @@ var require_eventsource = __commonJS((exports, module) => {
   };
 });
 
-// node_modules/ms/index.js
-var require_ms = __commonJS((exports, module) => {
-  var s = 1000;
-  var m = s * 60;
-  var h = m * 60;
-  var d = h * 24;
-  var w = d * 7;
-  var y = d * 365.25;
-  module.exports = function(val, options) {
-    options = options || {};
-    var type = typeof val;
-    if (type === "string" && val.length > 0) {
-      return parse(val);
-    } else if (type === "number" && isFinite(val)) {
-      return options.long ? fmtLong(val) : fmtShort(val);
-    }
-    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
-  };
-  function parse(str) {
-    str = String(str);
-    if (str.length > 100) {
-      return;
-    }
-    var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
-    if (!match) {
-      return;
-    }
-    var n = parseFloat(match[1]);
-    var type = (match[2] || "ms").toLowerCase();
-    switch (type) {
-      case "years":
-      case "year":
-      case "yrs":
-      case "yr":
-      case "y":
-        return n * y;
-      case "weeks":
-      case "week":
-      case "w":
-        return n * w;
-      case "days":
-      case "day":
-      case "d":
-        return n * d;
-      case "hours":
-      case "hour":
-      case "hrs":
-      case "hr":
-      case "h":
-        return n * h;
-      case "minutes":
-      case "minute":
-      case "mins":
-      case "min":
-      case "m":
-        return n * m;
-      case "seconds":
-      case "second":
-      case "secs":
-      case "sec":
-      case "s":
-        return n * s;
-      case "milliseconds":
-      case "millisecond":
-      case "msecs":
-      case "msec":
-      case "ms":
-        return n;
-      default:
-        return;
-    }
-  }
-  function fmtShort(ms) {
-    var msAbs = Math.abs(ms);
-    if (msAbs >= d) {
-      return Math.round(ms / d) + "d";
-    }
-    if (msAbs >= h) {
-      return Math.round(ms / h) + "h";
-    }
-    if (msAbs >= m) {
-      return Math.round(ms / m) + "m";
-    }
-    if (msAbs >= s) {
-      return Math.round(ms / s) + "s";
-    }
-    return ms + "ms";
-  }
-  function fmtLong(ms) {
-    var msAbs = Math.abs(ms);
-    if (msAbs >= d) {
-      return plural(ms, msAbs, d, "day");
-    }
-    if (msAbs >= h) {
-      return plural(ms, msAbs, h, "hour");
-    }
-    if (msAbs >= m) {
-      return plural(ms, msAbs, m, "minute");
-    }
-    if (msAbs >= s) {
-      return plural(ms, msAbs, s, "second");
-    }
-    return ms + " ms";
-  }
-  function plural(ms, msAbs, n, name) {
-    var isPlural = msAbs >= n * 1.5;
-    return Math.round(ms / n) + " " + name + (isPlural ? "s" : "");
-  }
-});
-
-// node_modules/debug/src/common.js
-var require_common = __commonJS((exports, module) => {
-  function setup(env) {
-    createDebug.debug = createDebug;
-    createDebug.default = createDebug;
-    createDebug.coerce = coerce;
-    createDebug.disable = disable;
-    createDebug.enable = enable;
-    createDebug.enabled = enabled;
-    createDebug.humanize = require_ms();
-    createDebug.destroy = destroy;
-    Object.keys(env).forEach((key) => {
-      createDebug[key] = env[key];
-    });
-    createDebug.names = [];
-    createDebug.skips = [];
-    createDebug.formatters = {};
-    function selectColor(namespace) {
-      let hash = 0;
-      for (let i = 0;i < namespace.length; i++) {
-        hash = (hash << 5) - hash + namespace.charCodeAt(i);
-        hash |= 0;
-      }
-      return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
-    }
-    createDebug.selectColor = selectColor;
-    function createDebug(namespace) {
-      let prevTime;
-      let enableOverride = null;
-      let namespacesCache;
-      let enabledCache;
-      function debug3(...args) {
-        if (!debug3.enabled) {
-          return;
-        }
-        const self = debug3;
-        const curr = Number(new Date);
-        const ms = curr - (prevTime || curr);
-        self.diff = ms;
-        self.prev = prevTime;
-        self.curr = curr;
-        prevTime = curr;
-        args[0] = createDebug.coerce(args[0]);
-        if (typeof args[0] !== "string") {
-          args.unshift("%O");
-        }
-        let index = 0;
-        args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
-          if (match === "%%") {
-            return "%";
-          }
-          index++;
-          const formatter = createDebug.formatters[format];
-          if (typeof formatter === "function") {
-            const val = args[index];
-            match = formatter.call(self, val);
-            args.splice(index, 1);
-            index--;
-          }
-          return match;
-        });
-        createDebug.formatArgs.call(self, args);
-        const logFn = self.log || createDebug.log;
-        logFn.apply(self, args);
-      }
-      debug3.namespace = namespace;
-      debug3.useColors = createDebug.useColors();
-      debug3.color = createDebug.selectColor(namespace);
-      debug3.extend = extend;
-      debug3.destroy = createDebug.destroy;
-      Object.defineProperty(debug3, "enabled", {
-        enumerable: true,
-        configurable: false,
-        get: () => {
-          if (enableOverride !== null) {
-            return enableOverride;
-          }
-          if (namespacesCache !== createDebug.namespaces) {
-            namespacesCache = createDebug.namespaces;
-            enabledCache = createDebug.enabled(namespace);
-          }
-          return enabledCache;
-        },
-        set: (v) => {
-          enableOverride = v;
-        }
-      });
-      if (typeof createDebug.init === "function") {
-        createDebug.init(debug3);
-      }
-      return debug3;
-    }
-    function extend(namespace, delimiter) {
-      const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
-      newDebug.log = this.log;
-      return newDebug;
-    }
-    function enable(namespaces) {
-      createDebug.save(namespaces);
-      createDebug.namespaces = namespaces;
-      createDebug.names = [];
-      createDebug.skips = [];
-      const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
-      for (const ns of split) {
-        if (ns[0] === "-") {
-          createDebug.skips.push(ns.slice(1));
-        } else {
-          createDebug.names.push(ns);
-        }
-      }
-    }
-    function matchesTemplate(search, template) {
-      let searchIndex = 0;
-      let templateIndex = 0;
-      let starIndex = -1;
-      let matchIndex = 0;
-      while (searchIndex < search.length) {
-        if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
-          if (template[templateIndex] === "*") {
-            starIndex = templateIndex;
-            matchIndex = searchIndex;
-            templateIndex++;
-          } else {
-            searchIndex++;
-            templateIndex++;
-          }
-        } else if (starIndex !== -1) {
-          templateIndex = starIndex + 1;
-          matchIndex++;
-          searchIndex = matchIndex;
-        } else {
-          return false;
-        }
-      }
-      while (templateIndex < template.length && template[templateIndex] === "*") {
-        templateIndex++;
-      }
-      return templateIndex === template.length;
-    }
-    function disable() {
-      const namespaces = [
-        ...createDebug.names,
-        ...createDebug.skips.map((namespace) => "-" + namespace)
-      ].join(",");
-      createDebug.enable("");
-      return namespaces;
-    }
-    function enabled(name) {
-      for (const skip of createDebug.skips) {
-        if (matchesTemplate(name, skip)) {
-          return false;
-        }
-      }
-      for (const ns of createDebug.names) {
-        if (matchesTemplate(name, ns)) {
-          return true;
-        }
-      }
-      return false;
-    }
-    function coerce(val) {
-      if (val instanceof Error) {
-        return val.stack || val.message;
-      }
-      return val;
-    }
-    function destroy() {
-      console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-    }
-    createDebug.enable(createDebug.load());
-    return createDebug;
-  }
-  module.exports = setup;
-});
-
-// node_modules/debug/src/browser.js
-var require_browser = __commonJS((exports, module) => {
-  exports.formatArgs = formatArgs;
-  exports.save = save;
-  exports.load = load;
-  exports.useColors = useColors;
-  exports.storage = localstorage();
-  exports.destroy = (() => {
-    let warned = false;
-    return () => {
-      if (!warned) {
-        warned = true;
-        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-      }
-    };
-  })();
-  exports.colors = [
-    "#0000CC",
-    "#0000FF",
-    "#0033CC",
-    "#0033FF",
-    "#0066CC",
-    "#0066FF",
-    "#0099CC",
-    "#0099FF",
-    "#00CC00",
-    "#00CC33",
-    "#00CC66",
-    "#00CC99",
-    "#00CCCC",
-    "#00CCFF",
-    "#3300CC",
-    "#3300FF",
-    "#3333CC",
-    "#3333FF",
-    "#3366CC",
-    "#3366FF",
-    "#3399CC",
-    "#3399FF",
-    "#33CC00",
-    "#33CC33",
-    "#33CC66",
-    "#33CC99",
-    "#33CCCC",
-    "#33CCFF",
-    "#6600CC",
-    "#6600FF",
-    "#6633CC",
-    "#6633FF",
-    "#66CC00",
-    "#66CC33",
-    "#9900CC",
-    "#9900FF",
-    "#9933CC",
-    "#9933FF",
-    "#99CC00",
-    "#99CC33",
-    "#CC0000",
-    "#CC0033",
-    "#CC0066",
-    "#CC0099",
-    "#CC00CC",
-    "#CC00FF",
-    "#CC3300",
-    "#CC3333",
-    "#CC3366",
-    "#CC3399",
-    "#CC33CC",
-    "#CC33FF",
-    "#CC6600",
-    "#CC6633",
-    "#CC9900",
-    "#CC9933",
-    "#CCCC00",
-    "#CCCC33",
-    "#FF0000",
-    "#FF0033",
-    "#FF0066",
-    "#FF0099",
-    "#FF00CC",
-    "#FF00FF",
-    "#FF3300",
-    "#FF3333",
-    "#FF3366",
-    "#FF3399",
-    "#FF33CC",
-    "#FF33FF",
-    "#FF6600",
-    "#FF6633",
-    "#FF9900",
-    "#FF9933",
-    "#FFCC00",
-    "#FFCC33"
-  ];
-  function useColors() {
-    if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
-      return true;
-    }
-    if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
-      return false;
-    }
-    let m;
-    return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
-  }
-  function formatArgs(args) {
-    args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module.exports.humanize(this.diff);
-    if (!this.useColors) {
-      return;
-    }
-    const c = "color: " + this.color;
-    args.splice(1, 0, c, "color: inherit");
-    let index = 0;
-    let lastC = 0;
-    args[0].replace(/%[a-zA-Z%]/g, (match) => {
-      if (match === "%%") {
-        return;
-      }
-      index++;
-      if (match === "%c") {
-        lastC = index;
-      }
-    });
-    args.splice(lastC, 0, c);
-  }
-  exports.log = console.debug || console.log || (() => {});
-  function save(namespaces) {
-    try {
-      if (namespaces) {
-        exports.storage.setItem("debug", namespaces);
-      } else {
-        exports.storage.removeItem("debug");
-      }
-    } catch (error2) {}
-  }
-  function load() {
-    let r;
-    try {
-      r = exports.storage.getItem("debug") || exports.storage.getItem("DEBUG");
-    } catch (error2) {}
-    if (!r && typeof process !== "undefined" && "env" in process) {
-      r = process.env.DEBUG;
-    }
-    return r;
-  }
-  function localstorage() {
-    try {
-      return localStorage;
-    } catch (error2) {}
-  }
-  module.exports = require_common()(exports);
-  var { formatters } = module.exports;
-  formatters.j = function(v) {
-    try {
-      return JSON.stringify(v);
-    } catch (error2) {
-      return "[UnexpectedJSONParseError]: " + error2.message;
-    }
-  };
-});
-
-// node_modules/debug/src/node.js
-var require_node = __commonJS((exports, module) => {
-  var tty = __require("tty");
-  var util3 = __require("util");
-  exports.init = init;
-  exports.log = log;
-  exports.formatArgs = formatArgs;
-  exports.save = save;
-  exports.load = load;
-  exports.useColors = useColors;
-  exports.destroy = util3.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-  exports.colors = [6, 2, 3, 4, 5, 1];
-  try {
-    const supportsColor = (()=>{throw new Error("Cannot require module "+"supports-color");})();
-    if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
-      exports.colors = [
-        20,
-        21,
-        26,
-        27,
-        32,
-        33,
-        38,
-        39,
-        40,
-        41,
-        42,
-        43,
-        44,
-        45,
-        56,
-        57,
-        62,
-        63,
-        68,
-        69,
-        74,
-        75,
-        76,
-        77,
-        78,
-        79,
-        80,
-        81,
-        92,
-        93,
-        98,
-        99,
-        112,
-        113,
-        128,
-        129,
-        134,
-        135,
-        148,
-        149,
-        160,
-        161,
-        162,
-        163,
-        164,
-        165,
-        166,
-        167,
-        168,
-        169,
-        170,
-        171,
-        172,
-        173,
-        178,
-        179,
-        184,
-        185,
-        196,
-        197,
-        198,
-        199,
-        200,
-        201,
-        202,
-        203,
-        204,
-        205,
-        206,
-        207,
-        208,
-        209,
-        214,
-        215,
-        220,
-        221
-      ];
-    }
-  } catch (error2) {}
-  exports.inspectOpts = Object.keys(process.env).filter((key) => {
-    return /^debug_/i.test(key);
-  }).reduce((obj, key) => {
-    const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
-      return k.toUpperCase();
-    });
-    let val = process.env[key];
-    if (/^(yes|on|true|enabled)$/i.test(val)) {
-      val = true;
-    } else if (/^(no|off|false|disabled)$/i.test(val)) {
-      val = false;
-    } else if (val === "null") {
-      val = null;
-    } else {
-      val = Number(val);
-    }
-    obj[prop] = val;
-    return obj;
-  }, {});
-  function useColors() {
-    return "colors" in exports.inspectOpts ? Boolean(exports.inspectOpts.colors) : tty.isatty(process.stderr.fd);
-  }
-  function formatArgs(args) {
-    const { namespace: name, useColors: useColors2 } = this;
-    if (useColors2) {
-      const c = this.color;
-      const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
-      const prefix = `  ${colorCode};1m${name} \x1B[0m`;
-      args[0] = prefix + args[0].split(`
-`).join(`
-` + prefix);
-      args.push(colorCode + "m+" + module.exports.humanize(this.diff) + "\x1B[0m");
-    } else {
-      args[0] = getDate() + name + " " + args[0];
-    }
-  }
-  function getDate() {
-    if (exports.inspectOpts.hideDate) {
-      return "";
-    }
-    return new Date().toISOString() + " ";
-  }
-  function log(...args) {
-    return process.stderr.write(util3.formatWithOptions(exports.inspectOpts, ...args) + `
-`);
-  }
-  function save(namespaces) {
-    if (namespaces) {
-      process.env.DEBUG = namespaces;
-    } else {
-      delete process.env.DEBUG;
-    }
-  }
-  function load() {
-    return process.env.DEBUG;
-  }
-  function init(debug3) {
-    debug3.inspectOpts = {};
-    const keys = Object.keys(exports.inspectOpts);
-    for (let i = 0;i < keys.length; i++) {
-      debug3.inspectOpts[keys[i]] = exports.inspectOpts[keys[i]];
-    }
-  }
-  module.exports = require_common()(exports);
-  var { formatters } = module.exports;
-  formatters.o = function(v) {
-    this.inspectOpts.colors = this.useColors;
-    return util3.inspect(v, this.inspectOpts).split(`
-`).map((str) => str.trim()).join(" ");
-  };
-  formatters.O = function(v) {
-    this.inspectOpts.colors = this.useColors;
-    return util3.inspect(v, this.inspectOpts);
-  };
-});
-
-// node_modules/debug/src/index.js
-var require_src = __commonJS((exports, module) => {
-  if (typeof process === "undefined" || process.type === "renderer" || false || process.__nwjs) {
-    module.exports = require_browser();
-  } else {
-    module.exports = require_node();
-  }
-});
-
-// node_modules/@kwsites/file-exists/dist/src/index.js
-var require_src2 = __commonJS((exports) => {
-  var __importDefault = exports && exports.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { default: mod };
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  var fs_1 = __require("fs");
-  var debug_1 = __importDefault(require_src());
-  var log = debug_1.default("@kwsites/file-exists");
-  function check(path, isFile, isDirectory2) {
-    log(`checking %s`, path);
-    try {
-      const stat2 = fs_1.statSync(path);
-      if (stat2.isFile() && isFile) {
-        log(`[OK] path represents a file`);
-        return true;
-      }
-      if (stat2.isDirectory() && isDirectory2) {
-        log(`[OK] path represents a directory`);
-        return true;
-      }
-      log(`[FAIL] path represents something other than a file or directory`);
-      return false;
-    } catch (e) {
-      if (e.code === "ENOENT") {
-        log(`[FAIL] path is not accessible: %o`, e);
-        return false;
-      }
-      log(`[FATAL] %o`, e);
-      throw e;
-    }
-  }
-  function exists2(path, type = exports.READABLE) {
-    return check(path, (type & exports.FILE) > 0, (type & exports.FOLDER) > 0);
-  }
-  exports.exists = exists2;
-  exports.FILE = 1;
-  exports.FOLDER = 2;
-  exports.READABLE = exports.FILE + exports.FOLDER;
-});
-
-// node_modules/@kwsites/file-exists/dist/index.js
-var require_dist = __commonJS((exports) => {
-  function __export2(m) {
-    for (var p in m)
-      if (!exports.hasOwnProperty(p))
-        exports[p] = m[p];
-  }
-  Object.defineProperty(exports, "__esModule", { value: true });
-  __export2(require_src2());
-});
-
-// node_modules/@kwsites/promise-deferred/dist/index.js
-var require_dist2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createDeferred = exports.deferred = undefined;
-  function deferred() {
-    let done;
-    let fail;
-    let status = "pending";
-    const promise = new Promise((_done, _fail) => {
-      done = _done;
-      fail = _fail;
-    });
-    return {
-      promise,
-      done(result) {
-        if (status === "pending") {
-          status = "resolved";
-          done(result);
-        }
-      },
-      fail(error2) {
-        if (status === "pending") {
-          status = "rejected";
-          fail(error2);
-        }
-      },
-      get fulfilled() {
-        return status !== "pending";
-      },
-      get status() {
-        return status;
-      }
-    };
-  }
-  exports.deferred = deferred;
-  exports.createDeferred = deferred;
-  exports.default = deferred;
-});
-
 // node_modules/@vercel/oidc/dist/get-context.js
 var require_get_context = __commonJS((exports, module) => {
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var get_context_exports = {};
-  __export3(get_context_exports, {
+  __export2(get_context_exports, {
     SYMBOL_FOR_REQ_CONTEXT: () => SYMBOL_FOR_REQ_CONTEXT,
     getContext: () => getContext2
   });
-  module.exports = __toCommonJS2(get_context_exports);
+  module.exports = __toCommonJS(get_context_exports);
   var SYMBOL_FOR_REQ_CONTEXT = Symbol.for("@vercel/request-context");
   function getContext2() {
     const fromSymbol = globalThis;
@@ -17678,28 +16962,28 @@ var require_get_context = __commonJS((exports, module) => {
 
 // node_modules/@vercel/oidc/dist/token-error.js
 var require_token_error = __commonJS((exports, module) => {
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var token_error_exports = {};
-  __export3(token_error_exports, {
+  __export2(token_error_exports, {
     VercelOidcTokenError: () => VercelOidcTokenError
   });
-  module.exports = __toCommonJS2(token_error_exports);
+  module.exports = __toCommonJS(token_error_exports);
 
   class VercelOidcTokenError extends Error {
     constructor(message, cause) {
@@ -17719,31 +17003,31 @@ var require_token_error = __commonJS((exports, module) => {
 // node_modules/@vercel/oidc/dist/token-io.js
 var require_token_io = __commonJS((exports, module) => {
   var __create2 = Object.create;
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
   var __getProtoOf2 = Object.getPrototypeOf;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(isNodeMode || !mod || !mod.__esModule ? __defProp3(target, "default", { value: mod, enumerable: true }) : target, mod));
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target, mod));
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var token_io_exports = {};
-  __export3(token_io_exports, {
+  __export2(token_io_exports, {
     findRootDir: () => findRootDir,
     getUserDataDir: () => getUserDataDir
   });
-  module.exports = __toCommonJS2(token_io_exports);
+  module.exports = __toCommonJS(token_io_exports);
   var import_path = __toESM2(__require("path"));
   var import_fs2 = __toESM2(__require("fs"));
   var import_os3 = __toESM2(__require("os"));
@@ -17786,32 +17070,32 @@ var require_token_io = __commonJS((exports, module) => {
 // node_modules/@vercel/oidc/dist/auth-config.js
 var require_auth_config = __commonJS((exports, module) => {
   var __create2 = Object.create;
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
   var __getProtoOf2 = Object.getPrototypeOf;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(isNodeMode || !mod || !mod.__esModule ? __defProp3(target, "default", { value: mod, enumerable: true }) : target, mod));
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target, mod));
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var auth_config_exports = {};
-  __export3(auth_config_exports, {
+  __export2(auth_config_exports, {
     isValidAccessToken: () => isValidAccessToken,
     readAuthConfig: () => readAuthConfig,
     writeAuthConfig: () => writeAuthConfig
   });
-  module.exports = __toCommonJS2(auth_config_exports);
+  module.exports = __toCommonJS(auth_config_exports);
   var fs3 = __toESM2(__require("fs"));
   var path = __toESM2(__require("path"));
   var import_token_util = require_token_util();
@@ -17858,29 +17142,29 @@ var require_auth_config = __commonJS((exports, module) => {
 
 // node_modules/@vercel/oidc/dist/oauth.js
 var require_oauth = __commonJS((exports, module) => {
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var oauth_exports = {};
-  __export3(oauth_exports, {
+  __export2(oauth_exports, {
     processTokenResponse: () => processTokenResponse,
     refreshTokenRequest: () => refreshTokenRequest
   });
-  module.exports = __toCommonJS2(oauth_exports);
+  module.exports = __toCommonJS(oauth_exports);
   var import_os3 = __require("os");
   var VERCEL_ISSUER = "https://vercel.com";
   var VERCEL_CLI_CLIENT_ID = "cl_HYyOPBNtFMfHhaUn9L4QPfTZz6TP47bp";
@@ -17944,29 +17228,29 @@ var require_oauth = __commonJS((exports, module) => {
 
 // node_modules/@vercel/oidc/dist/auth-errors.js
 var require_auth_errors = __commonJS((exports, module) => {
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var auth_errors_exports = {};
-  __export3(auth_errors_exports, {
+  __export2(auth_errors_exports, {
     AccessTokenMissingError: () => AccessTokenMissingError2,
     RefreshAccessTokenFailedError: () => RefreshAccessTokenFailedError2
   });
-  module.exports = __toCommonJS2(auth_errors_exports);
+  module.exports = __toCommonJS(auth_errors_exports);
 
   class AccessTokenMissingError2 extends Error {
     constructor() {
@@ -17986,27 +17270,27 @@ var require_auth_errors = __commonJS((exports, module) => {
 // node_modules/@vercel/oidc/dist/token-util.js
 var require_token_util = __commonJS((exports, module) => {
   var __create2 = Object.create;
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
   var __getProtoOf2 = Object.getPrototypeOf;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(isNodeMode || !mod || !mod.__esModule ? __defProp3(target, "default", { value: mod, enumerable: true }) : target, mod));
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target, mod));
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var token_util_exports = {};
-  __export3(token_util_exports, {
+  __export2(token_util_exports, {
     assertVercelOidcTokenResponse: () => assertVercelOidcTokenResponse,
     findProjectInfo: () => findProjectInfo,
     getTokenPayload: () => getTokenPayload,
@@ -18017,7 +17301,7 @@ var require_token_util = __commonJS((exports, module) => {
     loadToken: () => loadToken,
     saveToken: () => saveToken
   });
-  module.exports = __toCommonJS2(token_util_exports);
+  module.exports = __toCommonJS(token_util_exports);
   var path = __toESM2(__require("path"));
   var fs3 = __toESM2(__require("fs"));
   var import_token_error = require_token_error();
@@ -18150,28 +17434,28 @@ var require_token_util = __commonJS((exports, module) => {
 
 // node_modules/@vercel/oidc/dist/token.js
 var require_token = __commonJS((exports, module) => {
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var token_exports = {};
-  __export3(token_exports, {
+  __export2(token_exports, {
     refreshToken: () => refreshToken
   });
-  module.exports = __toCommonJS2(token_exports);
+  module.exports = __toCommonJS(token_exports);
   var import_token_error = require_token_error();
   var import_token_util = require_token_util();
   async function refreshToken(options) {
@@ -18207,29 +17491,29 @@ var require_token = __commonJS((exports, module) => {
 
 // node_modules/@vercel/oidc/dist/get-vercel-oidc-token.js
 var require_get_vercel_oidc_token = __commonJS((exports, module) => {
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var get_vercel_oidc_token_exports = {};
-  __export3(get_vercel_oidc_token_exports, {
+  __export2(get_vercel_oidc_token_exports, {
     getVercelOidcToken: () => getVercelOidcToken2,
     getVercelOidcTokenSync: () => getVercelOidcTokenSync2
   });
-  module.exports = __toCommonJS2(get_vercel_oidc_token_exports);
+  module.exports = __toCommonJS(get_vercel_oidc_token_exports);
   var import_get_context = require_get_context();
   var import_token_error = require_token_error();
   async function getVercelOidcToken2(options) {
@@ -18272,26 +17556,26 @@ ${error49.message}`;
 });
 
 // node_modules/@vercel/oidc/dist/index.js
-var require_dist3 = __commonJS((exports, module) => {
-  var __defProp3 = Object.defineProperty;
-  var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames3 = Object.getOwnPropertyNames;
-  var __hasOwnProp3 = Object.prototype.hasOwnProperty;
-  var __export3 = (target, all) => {
+var require_dist = __commonJS((exports, module) => {
+  var __defProp2 = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames2 = Object.getOwnPropertyNames;
+  var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+  var __export2 = (target, all) => {
     for (var name15 in all)
-      __defProp3(target, name15, { get: all[name15], enumerable: true });
+      __defProp2(target, name15, { get: all[name15], enumerable: true });
   };
-  var __copyProps2 = (to, from, except, desc) => {
+  var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames3(from))
-        if (!__hasOwnProp3.call(to, key) && key !== except)
-          __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      for (let key of __getOwnPropNames2(from))
+        if (!__hasOwnProp2.call(to, key) && key !== except)
+          __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
     return to;
   };
-  var __toCommonJS2 = (mod) => __copyProps2(__defProp3({}, "__esModule", { value: true }), mod);
+  var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
   var src_exports = {};
-  __export3(src_exports, {
+  __export2(src_exports, {
     AccessTokenMissingError: () => import_auth_errors.AccessTokenMissingError,
     RefreshAccessTokenFailedError: () => import_auth_errors.RefreshAccessTokenFailedError,
     getContext: () => import_get_context.getContext,
@@ -18299,7 +17583,7 @@ var require_dist3 = __commonJS((exports, module) => {
     getVercelOidcTokenSync: () => import_get_vercel_oidc_token.getVercelOidcTokenSync,
     getVercelToken: () => import_token_util.getVercelToken
   });
-  module.exports = __toCommonJS2(src_exports);
+  module.exports = __toCommonJS(src_exports);
   var import_get_vercel_oidc_token = require_get_vercel_oidc_token();
   var import_get_context = require_get_context();
   var import_auth_errors = require_auth_errors();
@@ -18314,22 +17598,22 @@ var require_globalThis = __commonJS((exports) => {
 });
 
 // node_modules/@opentelemetry/api/build/src/platform/node/index.js
-var require_node2 = __commonJS((exports) => {
-  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o2, m, k2, k22) {
-    if (k22 === undefined)
-      k22 = k2;
-    Object.defineProperty(o2, k22, { enumerable: true, get: function() {
-      return m[k2];
+var require_node = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() {
+      return m[k];
     } });
-  } : function(o2, m, k2, k22) {
-    if (k22 === undefined)
-      k22 = k2;
-    o2[k22] = m[k2];
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
   });
   var __exportStar = exports && exports.__exportStar || function(m, exports2) {
-    for (var p2 in m)
-      if (p2 !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p2))
-        __createBinding(exports2, m, p2);
+    for (var p in m)
+      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p))
+        __createBinding(exports2, m, p);
   };
   Object.defineProperty(exports, "__esModule", { value: true });
   __exportStar(require_globalThis(), exports);
@@ -18337,24 +17621,24 @@ var require_node2 = __commonJS((exports) => {
 
 // node_modules/@opentelemetry/api/build/src/platform/index.js
 var require_platform = __commonJS((exports) => {
-  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o2, m, k2, k22) {
-    if (k22 === undefined)
-      k22 = k2;
-    Object.defineProperty(o2, k22, { enumerable: true, get: function() {
-      return m[k2];
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() {
+      return m[k];
     } });
-  } : function(o2, m, k2, k22) {
-    if (k22 === undefined)
-      k22 = k2;
-    o2[k22] = m[k2];
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
   });
   var __exportStar = exports && exports.__exportStar || function(m, exports2) {
-    for (var p2 in m)
-      if (p2 !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p2))
-        __createBinding(exports2, m, p2);
+    for (var p in m)
+      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p))
+        __createBinding(exports2, m, p);
   };
   Object.defineProperty(exports, "__esModule", { value: true });
-  __exportStar(require_node2(), exports);
+  __exportStar(require_node(), exports);
 });
 
 // node_modules/@opentelemetry/api/build/src/version.js
@@ -18649,7 +17933,7 @@ var require_baggage_impl = __commonJS((exports) => {
       return Object.assign({}, entry);
     }
     getAllEntries() {
-      return Array.from(this._entries.entries()).map(([k2, v]) => [k2, v]);
+      return Array.from(this._entries.entries()).map(([k, v]) => [k, v]);
     }
     setEntry(key, entry) {
       const newBaggage = new BaggageImpl(this._entries);
@@ -18765,8 +18049,8 @@ var require_consoleLogger = __commonJS((exports) => {
           }
         };
       }
-      for (let i2 = 0;i2 < consoleMap.length; i2++) {
-        this[consoleMap[i2].n] = _consoleFunc(consoleMap[i2].c);
+      for (let i = 0;i < consoleMap.length; i++) {
+        this[consoleMap[i].n] = _consoleFunc(consoleMap[i].c);
       }
     }
   }
@@ -19326,10 +18610,10 @@ var require_tracestate_impl = __commonJS((exports) => {
         return;
       this._internalState = rawTraceState.split(LIST_MEMBERS_SEPARATOR).reverse().reduce((agg, part) => {
         const listMember = part.trim();
-        const i2 = listMember.indexOf(LIST_MEMBER_KEY_VALUE_SPLITTER);
-        if (i2 !== -1) {
-          const key = listMember.slice(0, i2);
-          const value = listMember.slice(i2 + 1, part.length);
+        const i = listMember.indexOf(LIST_MEMBER_KEY_VALUE_SPLITTER);
+        if (i !== -1) {
+          const key = listMember.slice(0, i);
+          const value = listMember.slice(i + 1, part.length);
           if ((0, tracestate_validators_1.validateKey)(key) && (0, tracestate_validators_1.validateValue)(value)) {
             agg.set(key, value);
           } else {}
@@ -19593,7 +18877,7 @@ var require_trace_api = __commonJS((exports) => {
 });
 
 // node_modules/@opentelemetry/api/build/src/index.js
-var require_src3 = __commonJS((exports) => {
+var require_src = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.trace = exports.propagation = exports.metrics = exports.diag = exports.context = exports.INVALID_SPAN_CONTEXT = exports.INVALID_TRACEID = exports.INVALID_SPANID = exports.isValidSpanId = exports.isValidTraceId = exports.isSpanContextValid = exports.createTraceState = exports.TraceFlags = exports.SpanStatusCode = exports.SpanKind = exports.SamplingDecision = exports.ProxyTracerProvider = exports.ProxyTracer = exports.defaultTextMapSetter = exports.defaultTextMapGetter = exports.ValueType = exports.createNoopMeter = exports.DiagLogLevel = exports.DiagConsoleLogger = exports.ROOT_CONTEXT = exports.createContextKey = exports.baggageEntryMetadataFromString = undefined;
   var utils_1 = require_utils2();
@@ -19705,6 +18989,722 @@ var require_src3 = __commonJS((exports) => {
     propagation: propagation_api_1.propagation,
     trace: trace_api_1.trace
   };
+});
+
+// node_modules/ms/index.js
+var require_ms = __commonJS((exports, module) => {
+  var s = 1000;
+  var m = s * 60;
+  var h = m * 60;
+  var d = h * 24;
+  var w = d * 7;
+  var y = d * 365.25;
+  module.exports = function(val, options) {
+    options = options || {};
+    var type = typeof val;
+    if (type === "string" && val.length > 0) {
+      return parse5(val);
+    } else if (type === "number" && isFinite(val)) {
+      return options.long ? fmtLong(val) : fmtShort(val);
+    }
+    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
+  };
+  function parse5(str) {
+    str = String(str);
+    if (str.length > 100) {
+      return;
+    }
+    var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
+    if (!match) {
+      return;
+    }
+    var n = parseFloat(match[1]);
+    var type = (match[2] || "ms").toLowerCase();
+    switch (type) {
+      case "years":
+      case "year":
+      case "yrs":
+      case "yr":
+      case "y":
+        return n * y;
+      case "weeks":
+      case "week":
+      case "w":
+        return n * w;
+      case "days":
+      case "day":
+      case "d":
+        return n * d;
+      case "hours":
+      case "hour":
+      case "hrs":
+      case "hr":
+      case "h":
+        return n * h;
+      case "minutes":
+      case "minute":
+      case "mins":
+      case "min":
+      case "m":
+        return n * m;
+      case "seconds":
+      case "second":
+      case "secs":
+      case "sec":
+      case "s":
+        return n * s;
+      case "milliseconds":
+      case "millisecond":
+      case "msecs":
+      case "msec":
+      case "ms":
+        return n;
+      default:
+        return;
+    }
+  }
+  function fmtShort(ms) {
+    var msAbs = Math.abs(ms);
+    if (msAbs >= d) {
+      return Math.round(ms / d) + "d";
+    }
+    if (msAbs >= h) {
+      return Math.round(ms / h) + "h";
+    }
+    if (msAbs >= m) {
+      return Math.round(ms / m) + "m";
+    }
+    if (msAbs >= s) {
+      return Math.round(ms / s) + "s";
+    }
+    return ms + "ms";
+  }
+  function fmtLong(ms) {
+    var msAbs = Math.abs(ms);
+    if (msAbs >= d) {
+      return plural(ms, msAbs, d, "day");
+    }
+    if (msAbs >= h) {
+      return plural(ms, msAbs, h, "hour");
+    }
+    if (msAbs >= m) {
+      return plural(ms, msAbs, m, "minute");
+    }
+    if (msAbs >= s) {
+      return plural(ms, msAbs, s, "second");
+    }
+    return ms + " ms";
+  }
+  function plural(ms, msAbs, n, name21) {
+    var isPlural = msAbs >= n * 1.5;
+    return Math.round(ms / n) + " " + name21 + (isPlural ? "s" : "");
+  }
+});
+
+// node_modules/debug/src/common.js
+var require_common = __commonJS((exports, module) => {
+  function setup(env) {
+    createDebug.debug = createDebug;
+    createDebug.default = createDebug;
+    createDebug.coerce = coerce;
+    createDebug.disable = disable;
+    createDebug.enable = enable;
+    createDebug.enabled = enabled;
+    createDebug.humanize = require_ms();
+    createDebug.destroy = destroy;
+    Object.keys(env).forEach((key) => {
+      createDebug[key] = env[key];
+    });
+    createDebug.names = [];
+    createDebug.skips = [];
+    createDebug.formatters = {};
+    function selectColor(namespace) {
+      let hash2 = 0;
+      for (let i = 0;i < namespace.length; i++) {
+        hash2 = (hash2 << 5) - hash2 + namespace.charCodeAt(i);
+        hash2 |= 0;
+      }
+      return createDebug.colors[Math.abs(hash2) % createDebug.colors.length];
+    }
+    createDebug.selectColor = selectColor;
+    function createDebug(namespace) {
+      let prevTime;
+      let enableOverride = null;
+      let namespacesCache;
+      let enabledCache;
+      function debug3(...args) {
+        if (!debug3.enabled) {
+          return;
+        }
+        const self = debug3;
+        const curr = Number(new Date);
+        const ms = curr - (prevTime || curr);
+        self.diff = ms;
+        self.prev = prevTime;
+        self.curr = curr;
+        prevTime = curr;
+        args[0] = createDebug.coerce(args[0]);
+        if (typeof args[0] !== "string") {
+          args.unshift("%O");
+        }
+        let index = 0;
+        args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
+          if (match === "%%") {
+            return "%";
+          }
+          index++;
+          const formatter = createDebug.formatters[format];
+          if (typeof formatter === "function") {
+            const val = args[index];
+            match = formatter.call(self, val);
+            args.splice(index, 1);
+            index--;
+          }
+          return match;
+        });
+        createDebug.formatArgs.call(self, args);
+        const logFn = self.log || createDebug.log;
+        logFn.apply(self, args);
+      }
+      debug3.namespace = namespace;
+      debug3.useColors = createDebug.useColors();
+      debug3.color = createDebug.selectColor(namespace);
+      debug3.extend = extend2;
+      debug3.destroy = createDebug.destroy;
+      Object.defineProperty(debug3, "enabled", {
+        enumerable: true,
+        configurable: false,
+        get: () => {
+          if (enableOverride !== null) {
+            return enableOverride;
+          }
+          if (namespacesCache !== createDebug.namespaces) {
+            namespacesCache = createDebug.namespaces;
+            enabledCache = createDebug.enabled(namespace);
+          }
+          return enabledCache;
+        },
+        set: (v) => {
+          enableOverride = v;
+        }
+      });
+      if (typeof createDebug.init === "function") {
+        createDebug.init(debug3);
+      }
+      return debug3;
+    }
+    function extend2(namespace, delimiter) {
+      const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
+      newDebug.log = this.log;
+      return newDebug;
+    }
+    function enable(namespaces) {
+      createDebug.save(namespaces);
+      createDebug.namespaces = namespaces;
+      createDebug.names = [];
+      createDebug.skips = [];
+      const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
+      for (const ns of split) {
+        if (ns[0] === "-") {
+          createDebug.skips.push(ns.slice(1));
+        } else {
+          createDebug.names.push(ns);
+        }
+      }
+    }
+    function matchesTemplate(search, template) {
+      let searchIndex = 0;
+      let templateIndex = 0;
+      let starIndex = -1;
+      let matchIndex = 0;
+      while (searchIndex < search.length) {
+        if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
+          if (template[templateIndex] === "*") {
+            starIndex = templateIndex;
+            matchIndex = searchIndex;
+            templateIndex++;
+          } else {
+            searchIndex++;
+            templateIndex++;
+          }
+        } else if (starIndex !== -1) {
+          templateIndex = starIndex + 1;
+          matchIndex++;
+          searchIndex = matchIndex;
+        } else {
+          return false;
+        }
+      }
+      while (templateIndex < template.length && template[templateIndex] === "*") {
+        templateIndex++;
+      }
+      return templateIndex === template.length;
+    }
+    function disable() {
+      const namespaces = [
+        ...createDebug.names,
+        ...createDebug.skips.map((namespace) => "-" + namespace)
+      ].join(",");
+      createDebug.enable("");
+      return namespaces;
+    }
+    function enabled(name21) {
+      for (const skip of createDebug.skips) {
+        if (matchesTemplate(name21, skip)) {
+          return false;
+        }
+      }
+      for (const ns of createDebug.names) {
+        if (matchesTemplate(name21, ns)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    function coerce(val) {
+      if (val instanceof Error) {
+        return val.stack || val.message;
+      }
+      return val;
+    }
+    function destroy() {
+      console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+    }
+    createDebug.enable(createDebug.load());
+    return createDebug;
+  }
+  module.exports = setup;
+});
+
+// node_modules/debug/src/browser.js
+var require_browser = __commonJS((exports, module) => {
+  exports.formatArgs = formatArgs;
+  exports.save = save;
+  exports.load = load;
+  exports.useColors = useColors;
+  exports.storage = localstorage();
+  exports.destroy = (() => {
+    let warned = false;
+    return () => {
+      if (!warned) {
+        warned = true;
+        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+      }
+    };
+  })();
+  exports.colors = [
+    "#0000CC",
+    "#0000FF",
+    "#0033CC",
+    "#0033FF",
+    "#0066CC",
+    "#0066FF",
+    "#0099CC",
+    "#0099FF",
+    "#00CC00",
+    "#00CC33",
+    "#00CC66",
+    "#00CC99",
+    "#00CCCC",
+    "#00CCFF",
+    "#3300CC",
+    "#3300FF",
+    "#3333CC",
+    "#3333FF",
+    "#3366CC",
+    "#3366FF",
+    "#3399CC",
+    "#3399FF",
+    "#33CC00",
+    "#33CC33",
+    "#33CC66",
+    "#33CC99",
+    "#33CCCC",
+    "#33CCFF",
+    "#6600CC",
+    "#6600FF",
+    "#6633CC",
+    "#6633FF",
+    "#66CC00",
+    "#66CC33",
+    "#9900CC",
+    "#9900FF",
+    "#9933CC",
+    "#9933FF",
+    "#99CC00",
+    "#99CC33",
+    "#CC0000",
+    "#CC0033",
+    "#CC0066",
+    "#CC0099",
+    "#CC00CC",
+    "#CC00FF",
+    "#CC3300",
+    "#CC3333",
+    "#CC3366",
+    "#CC3399",
+    "#CC33CC",
+    "#CC33FF",
+    "#CC6600",
+    "#CC6633",
+    "#CC9900",
+    "#CC9933",
+    "#CCCC00",
+    "#CCCC33",
+    "#FF0000",
+    "#FF0033",
+    "#FF0066",
+    "#FF0099",
+    "#FF00CC",
+    "#FF00FF",
+    "#FF3300",
+    "#FF3333",
+    "#FF3366",
+    "#FF3399",
+    "#FF33CC",
+    "#FF33FF",
+    "#FF6600",
+    "#FF6633",
+    "#FF9900",
+    "#FF9933",
+    "#FFCC00",
+    "#FFCC33"
+  ];
+  function useColors() {
+    if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
+      return true;
+    }
+    if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+      return false;
+    }
+    let m;
+    return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+  }
+  function formatArgs(args) {
+    args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module.exports.humanize(this.diff);
+    if (!this.useColors) {
+      return;
+    }
+    const c = "color: " + this.color;
+    args.splice(1, 0, c, "color: inherit");
+    let index = 0;
+    let lastC = 0;
+    args[0].replace(/%[a-zA-Z%]/g, (match) => {
+      if (match === "%%") {
+        return;
+      }
+      index++;
+      if (match === "%c") {
+        lastC = index;
+      }
+    });
+    args.splice(lastC, 0, c);
+  }
+  exports.log = console.debug || console.log || (() => {});
+  function save(namespaces) {
+    try {
+      if (namespaces) {
+        exports.storage.setItem("debug", namespaces);
+      } else {
+        exports.storage.removeItem("debug");
+      }
+    } catch (error49) {}
+  }
+  function load() {
+    let r;
+    try {
+      r = exports.storage.getItem("debug") || exports.storage.getItem("DEBUG");
+    } catch (error49) {}
+    if (!r && typeof process !== "undefined" && "env" in process) {
+      r = process.env.DEBUG;
+    }
+    return r;
+  }
+  function localstorage() {
+    try {
+      return localStorage;
+    } catch (error49) {}
+  }
+  module.exports = require_common()(exports);
+  var { formatters } = module.exports;
+  formatters.j = function(v) {
+    try {
+      return JSON.stringify(v);
+    } catch (error49) {
+      return "[UnexpectedJSONParseError]: " + error49.message;
+    }
+  };
+});
+
+// node_modules/debug/src/node.js
+var require_node2 = __commonJS((exports, module) => {
+  var tty = __require("tty");
+  var util4 = __require("util");
+  exports.init = init;
+  exports.log = log;
+  exports.formatArgs = formatArgs;
+  exports.save = save;
+  exports.load = load;
+  exports.useColors = useColors;
+  exports.destroy = util4.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+  exports.colors = [6, 2, 3, 4, 5, 1];
+  try {
+    const supportsColor = (()=>{throw new Error("Cannot require module "+"supports-color");})();
+    if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
+      exports.colors = [
+        20,
+        21,
+        26,
+        27,
+        32,
+        33,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        56,
+        57,
+        62,
+        63,
+        68,
+        69,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        92,
+        93,
+        98,
+        99,
+        112,
+        113,
+        128,
+        129,
+        134,
+        135,
+        148,
+        149,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        178,
+        179,
+        184,
+        185,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        214,
+        215,
+        220,
+        221
+      ];
+    }
+  } catch (error49) {}
+  exports.inspectOpts = Object.keys(process.env).filter((key) => {
+    return /^debug_/i.test(key);
+  }).reduce((obj, key) => {
+    const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
+      return k.toUpperCase();
+    });
+    let val = process.env[key];
+    if (/^(yes|on|true|enabled)$/i.test(val)) {
+      val = true;
+    } else if (/^(no|off|false|disabled)$/i.test(val)) {
+      val = false;
+    } else if (val === "null") {
+      val = null;
+    } else {
+      val = Number(val);
+    }
+    obj[prop] = val;
+    return obj;
+  }, {});
+  function useColors() {
+    return "colors" in exports.inspectOpts ? Boolean(exports.inspectOpts.colors) : tty.isatty(process.stderr.fd);
+  }
+  function formatArgs(args) {
+    const { namespace: name21, useColors: useColors2 } = this;
+    if (useColors2) {
+      const c = this.color;
+      const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
+      const prefix = `  ${colorCode};1m${name21} \x1B[0m`;
+      args[0] = prefix + args[0].split(`
+`).join(`
+` + prefix);
+      args.push(colorCode + "m+" + module.exports.humanize(this.diff) + "\x1B[0m");
+    } else {
+      args[0] = getDate() + name21 + " " + args[0];
+    }
+  }
+  function getDate() {
+    if (exports.inspectOpts.hideDate) {
+      return "";
+    }
+    return new Date().toISOString() + " ";
+  }
+  function log(...args) {
+    return process.stderr.write(util4.formatWithOptions(exports.inspectOpts, ...args) + `
+`);
+  }
+  function save(namespaces) {
+    if (namespaces) {
+      process.env.DEBUG = namespaces;
+    } else {
+      delete process.env.DEBUG;
+    }
+  }
+  function load() {
+    return process.env.DEBUG;
+  }
+  function init(debug3) {
+    debug3.inspectOpts = {};
+    const keys = Object.keys(exports.inspectOpts);
+    for (let i = 0;i < keys.length; i++) {
+      debug3.inspectOpts[keys[i]] = exports.inspectOpts[keys[i]];
+    }
+  }
+  module.exports = require_common()(exports);
+  var { formatters } = module.exports;
+  formatters.o = function(v) {
+    this.inspectOpts.colors = this.useColors;
+    return util4.inspect(v, this.inspectOpts).split(`
+`).map((str) => str.trim()).join(" ");
+  };
+  formatters.O = function(v) {
+    this.inspectOpts.colors = this.useColors;
+    return util4.inspect(v, this.inspectOpts);
+  };
+});
+
+// node_modules/debug/src/index.js
+var require_src2 = __commonJS((exports, module) => {
+  if (typeof process === "undefined" || process.type === "renderer" || false || process.__nwjs) {
+    module.exports = require_browser();
+  } else {
+    module.exports = require_node2();
+  }
+});
+
+// node_modules/@kwsites/file-exists/dist/src/index.js
+var require_src3 = __commonJS((exports) => {
+  var __importDefault = exports && exports.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  var fs_1 = __require("fs");
+  var debug_1 = __importDefault(require_src2());
+  var log = debug_1.default("@kwsites/file-exists");
+  function check2(path, isFile, isDirectory2) {
+    log(`checking %s`, path);
+    try {
+      const stat2 = fs_1.statSync(path);
+      if (stat2.isFile() && isFile) {
+        log(`[OK] path represents a file`);
+        return true;
+      }
+      if (stat2.isDirectory() && isDirectory2) {
+        log(`[OK] path represents a directory`);
+        return true;
+      }
+      log(`[FAIL] path represents something other than a file or directory`);
+      return false;
+    } catch (e) {
+      if (e.code === "ENOENT") {
+        log(`[FAIL] path is not accessible: %o`, e);
+        return false;
+      }
+      log(`[FATAL] %o`, e);
+      throw e;
+    }
+  }
+  function exists2(path, type = exports.READABLE) {
+    return check2(path, (type & exports.FILE) > 0, (type & exports.FOLDER) > 0);
+  }
+  exports.exists = exists2;
+  exports.FILE = 1;
+  exports.FOLDER = 2;
+  exports.READABLE = exports.FILE + exports.FOLDER;
+});
+
+// node_modules/@kwsites/file-exists/dist/index.js
+var require_dist2 = __commonJS((exports) => {
+  function __export3(m) {
+    for (var p in m)
+      if (!exports.hasOwnProperty(p))
+        exports[p] = m[p];
+  }
+  Object.defineProperty(exports, "__esModule", { value: true });
+  __export3(require_src3());
+});
+
+// node_modules/@kwsites/promise-deferred/dist/index.js
+var require_dist3 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createDeferred = exports.deferred = undefined;
+  function deferred() {
+    let done;
+    let fail;
+    let status = "pending";
+    const promise2 = new Promise((_done, _fail) => {
+      done = _done;
+      fail = _fail;
+    });
+    return {
+      promise: promise2,
+      done(result) {
+        if (status === "pending") {
+          status = "resolved";
+          done(result);
+        }
+      },
+      fail(error49) {
+        if (status === "pending") {
+          status = "rejected";
+          fail(error49);
+        }
+      },
+      get fulfilled() {
+        return status !== "pending";
+      },
+      get status() {
+        return status;
+      }
+    };
+  }
+  exports.deferred = deferred;
+  exports.createDeferred = deferred;
+  exports.default = deferred;
 });
 
 // node_modules/@actions/core/lib/command.js
@@ -20343,4513 +20343,19 @@ function info(message) {
   process.stdout.write(message + os4.EOL);
 }
 
-// node_modules/simple-git/dist/esm/index.js
-var import_file_exists = __toESM(require_dist(), 1);
-
-// node_modules/@simple-git/args-pathspec/dist/index.mjs
-var t = /* @__PURE__ */ new WeakMap;
-function c(...n) {
-  const e = new String(n);
-  return t.set(e, n), e;
-}
-function r(n) {
-  return n instanceof String && t.has(n);
-}
-function o(n) {
-  return t.get(n) ?? [];
-}
-
-// node_modules/simple-git/dist/esm/index.js
-var import_debug = __toESM(require_src(), 1);
-import { spawn } from "child_process";
-var import_promise_deferred = __toESM(require_dist2(), 1);
-import { normalize } from "node:path";
-
-// node_modules/@simple-git/argv-parser/dist/index.mjs
-function* U(e, t2) {
-  const n = t2 === "global";
-  for (const o2 of e)
-    o2.isGlobal === n && (yield o2);
-}
-var k = /* @__PURE__ */ new Set([
-  "--add",
-  "--edit",
-  "--remove-section",
-  "--rename-section",
-  "--replace-all",
-  "--unset",
-  "--unset-all",
-  "-e"
-]);
-var S = /* @__PURE__ */ new Set([
-  "--get",
-  "--get-all",
-  "--get-color",
-  "--get-colorbool",
-  "--get-regexp",
-  "--get-urlmatch",
-  "--list",
-  "-l"
-]);
-var P = /* @__PURE__ */ new Set([
-  "edit",
-  "remove-section",
-  "rename-section",
-  "set",
-  "unset"
-]);
-var E = /* @__PURE__ */ new Set(["get", "get-color", "get-colorbool", "list"]);
-function F(e, t2) {
-  for (const { name: o2 } of U(e, "task")) {
-    if (k.has(o2))
-      return p(true, t2);
-    if (S.has(o2))
-      return p(false, t2);
-  }
-  const n = t2.at(0)?.toLowerCase();
-  return n === undefined ? null : P.has(n) ? p(true, t2.slice(1)) : E.has(n) ? p(false, t2.slice(1)) : t2.length === 1 ? p(false, t2) : p(true, t2);
-}
-function p(e = false, t2 = []) {
-  const n = t2.at(0)?.toLowerCase();
-  return n === undefined ? null : {
-    isWrite: e,
-    isRead: !e,
-    key: n,
-    value: t2.at(1)
-  };
-}
-function A(e, t2) {
-  return t2.isWrite && t2.value !== undefined ? { key: t2.key, value: t2.value, scope: e } : { key: t2.key, scope: e };
-}
-function M(e) {
-  const t2 = e?.indexOf("=") || -1;
-  return !e || t2 < 0 ? null : {
-    key: e.slice(0, t2).trim().toLowerCase(),
-    value: e.slice(t2 + 1)
-  };
-}
-function N(e) {
-  for (const { name: t2 } of U(e, "task"))
-    switch (t2) {
-      case "--global":
-        return "global";
-      case "--system":
-        return "system";
-      case "--worktree":
-        return "worktree";
-      case "--local":
-        return "local";
-      case "--file":
-      case "-f":
-        return "file";
-    }
-  return "local";
-}
-function G({ name: e }) {
-  if (e === "-c" || e === "--config")
-    return "inline";
-  if (e === "--config-env")
-    return "env";
-}
-function* O(e) {
-  for (const t2 of e) {
-    const n = G(t2), o2 = n && M(t2.value);
-    o2 && (yield {
-      ...o2,
-      scope: n
-    });
-  }
-}
-function L(e, t2, n) {
-  const o2 = {
-    read: [],
-    write: [...O(t2)]
-  };
-  return e === "config" && $(o2, N(t2), F(t2, n)), o2;
-}
-function $(e, t2, n) {
-  if (n === null)
-    return;
-  const o2 = A(t2, n);
-  n.isWrite ? e.write.push(o2) : e.read.push(o2);
-}
-var x = {
-  short: /* @__PURE__ */ new Map([
-    ["c", true]
-  ])
-};
-var D = {
-  short: new Map([
-    ["C", true],
-    ["P", false],
-    ["h", false],
-    ["p", false],
-    ["v", false],
-    ...x.short.entries()
-  ]),
-  long: /* @__PURE__ */ new Set([
-    "attr-source",
-    "config-env",
-    "exec-path",
-    "git-dir",
-    "list-cmds",
-    "namespace",
-    "super-prefix",
-    "work-tree"
-  ])
-};
-var R = {
-  clone: {
-    short: /* @__PURE__ */ new Map([
-      ["b", true],
-      ["j", true],
-      ["l", false],
-      ["n", false],
-      ["o", true],
-      ["q", false],
-      ["s", false],
-      ["u", true]
-    ]),
-    long: /* @__PURE__ */ new Set(["branch", "config", "jobs", "origin", "upload-pack", "u", "template"])
-  },
-  commit: {
-    short: /* @__PURE__ */ new Map([
-      ["C", true],
-      ["F", true],
-      ["c", true],
-      ["m", true],
-      ["t", true]
-    ]),
-    long: /* @__PURE__ */ new Set(["file", "message", "reedit-message", "reuse-message", "template"])
-  },
-  config: {
-    short: /* @__PURE__ */ new Map([
-      ["e", false],
-      ["f", true],
-      ["l", false]
-    ]),
-    long: /* @__PURE__ */ new Set(["blob", "comment", "default", "file", "type", "value"])
-  },
-  fetch: {
-    short: /* @__PURE__ */ new Map,
-    long: /* @__PURE__ */ new Set(["upload-pack"])
-  },
-  init: {
-    short: /* @__PURE__ */ new Map,
-    long: /* @__PURE__ */ new Set(["template"])
-  },
-  pull: {
-    short: /* @__PURE__ */ new Map,
-    long: /* @__PURE__ */ new Set(["upload-pack"])
-  },
-  push: {
-    short: /* @__PURE__ */ new Map,
-    long: /* @__PURE__ */ new Set(["exec", "receive-pack"])
-  }
-};
-var T = { short: /* @__PURE__ */ new Map, long: /* @__PURE__ */ new Set };
-function I(e) {
-  const t2 = R[e ?? ""] ?? T;
-  return {
-    short: new Map([...x.short.entries(), ...t2.short.entries()]),
-    long: t2.long
-  };
-}
-function b(e, t2 = D) {
-  if (e.startsWith("--")) {
-    const n = e.indexOf("=");
-    if (n > 2)
-      return [{ name: e.slice(0, n), value: e.slice(n + 1), needsNext: false }];
-    const o2 = e.slice(2);
-    return [{ name: e, needsNext: t2.long.has(o2) }];
-  }
-  if (e.length === 2) {
-    const n = e.charAt(1), o2 = t2.short.get(n);
-    return [{ name: e, needsNext: o2 === true }];
-  }
-  return W(e, t2.short);
-}
-function W(e, t2) {
-  const n = e.slice(1).split(""), o2 = [];
-  for (let s = 0;s < n.length; s++) {
-    const r2 = n[s], l = t2.get(r2);
-    if (l === undefined)
-      return [{ name: e, needsNext: false }];
-    if (l) {
-      const a = n.slice(s + 1).join("");
-      if (a && ![...a].every((w) => t2.has(w)))
-        return o2.push({ name: `-${r2}`, value: a, needsNext: false }), o2;
-    }
-    o2.push({ name: `-${r2}`, needsNext: l });
-  }
-  return o2;
-}
-function j(e, t2 = []) {
-  let n = 0;
-  for (;n < e.length; ) {
-    const o2 = String(e[n]);
-    if (!o2.startsWith("-") || o2.length < 2)
-      break;
-    const s = b(o2);
-    let r2 = n + 1;
-    for (const l of s) {
-      const a = {
-        name: l.name,
-        value: l.value,
-        absorbedNext: false,
-        isGlobal: true
-      };
-      l.needsNext && a.value === undefined && r2 < e.length && (a.value = String(e[r2]), a.absorbedNext = true, r2++), t2.push(a);
-    }
-    n = r2;
-  }
-  return { flags: t2, taskIndex: n };
-}
-function B(e, t2, n = []) {
-  const o2 = I(t2), s = [], r2 = [];
-  let l = 0;
-  for (;l < e.length; ) {
-    const a = e[l];
-    if (r(a)) {
-      r2.push(...o(a)), l++;
-      continue;
-    }
-    const f = String(a);
-    if (f === "--") {
-      for (let g = l + 1;g < e.length; g++) {
-        const u = e[g];
-        r(u) ? r2.push(...o(u)) : r2.push(String(u));
-      }
-      break;
-    }
-    if (!f.startsWith("-") || f.length < 2) {
-      s.push(f), l++;
-      continue;
-    }
-    const w = b(f, o2);
-    let d = l + 1;
-    for (const g of w) {
-      const u = {
-        name: g.name,
-        value: g.value,
-        absorbedNext: false,
-        isGlobal: false
-      };
-      g.needsNext && u.value === undefined && d < e.length && !r(e[d]) && (u.value = String(e[d]), u.absorbedNext = true, d++), n.push(u);
-    }
-    l = d;
-  }
-  return { flags: n, positionals: s, pathspecs: r2 };
-}
-function* V({
-  write: e
-}) {
-  for (const t2 of e)
-    for (const n of q) {
-      const o2 = n(t2.key);
-      o2 && (yield o2);
-    }
-}
-function c2(e, t2, n = String(e)) {
-  const o2 = typeof e == "string" ? new RegExp(`\\s*${e.toLowerCase()}`) : e;
-  return function(r2) {
-    if (o2.test(r2))
-      return {
-        category: t2,
-        message: `Configuring ${n} is not permitted without enabling ${t2}`
-      };
-  };
-}
-function i(e, t2) {
-  const n = new RegExp(`\\s*${e.toLowerCase().replace(/\./g, "(..+)?.")}`);
-  return c2(n, t2, e);
-}
-var q = [
-  c2("alias", "allowUnsafeAlias"),
-  c2("core.askPass", "allowUnsafeAskPass"),
-  c2("core.editor", "allowUnsafeEditor"),
-  c2("core.fsmonitor", "allowUnsafeFsMonitor"),
-  c2("core.gitProxy", "allowUnsafeGitProxy"),
-  c2("core.hooksPath", "allowUnsafeHooksPath"),
-  c2("core.pager", "allowUnsafePager"),
-  c2("core.sshCommand", "allowUnsafeSshCommand"),
-  i("credential.helper", "allowUnsafeCredentialHelper"),
-  i("diff.command", "allowUnsafeDiffExternal"),
-  c2("diff.external", "allowUnsafeDiffExternal"),
-  i("diff.textconv", "allowUnsafeDiffTextConv"),
-  i("filter.clean", "allowUnsafeFilter"),
-  i("filter.smudge", "allowUnsafeFilter"),
-  i("gpg.program", "allowUnsafeGpgProgram"),
-  c2("init.templateDir", "allowUnsafeTemplateDir"),
-  i("merge.driver", "allowUnsafeMergeDriver"),
-  i("mergetool.path", "allowUnsafeMergeDriver"),
-  i("mergetool.cmd", "allowUnsafeMergeDriver"),
-  i("protocol.allow", "allowUnsafeProtocolOverride"),
-  i("remote.receivepack", "allowUnsafePack"),
-  i("remote.uploadpack", "allowUnsafePack"),
-  c2("sequence.editor", "allowUnsafeEditor")
-];
-function* K(e, t2) {
-  for (const n of t2)
-    for (const o2 of H) {
-      const s = o2(e, n.name);
-      s && (yield s);
-    }
-}
-function h(e, t2, n, o2 = String(t2)) {
-  const s = typeof t2 == "string" ? new RegExp(`\\s*${t2.toLowerCase()}`) : t2, r2 = `Use of ${e ? `${e} with option ` : ""}${o2} is not permitted without enabling ${n}`;
-  return function(a, f) {
-    if ((!e || a === e) && s.test(f))
-      return {
-        category: n,
-        message: r2
-      };
-  };
-}
-var H = [
-  h(null, /--(upload|receive)-pack/, "allowUnsafePack", "--upload-pack or --receive-pack"),
-  h("clone", /^-\w*u/, "allowUnsafePack"),
-  h("clone", "--u", "allowUnsafePack"),
-  h("push", "--exec", "allowUnsafePack"),
-  h(null, "--template", "allowUnsafeTemplateDir")
-];
-function C(e, t2, n) {
-  return [...K(e, t2), ...V(n)];
-}
-function Y(...e) {
-  const { flags: t2, taskIndex: n } = j(e), o2 = n < e.length ? String(e[n]).toLowerCase() : null, s = o2 !== null ? e.slice(n + 1) : [], { positionals: r2, pathspecs: l } = B(s, o2, t2), a = L(o2, t2, r2);
-  return {
-    task: o2,
-    flags: t2.map(J),
-    paths: l,
-    config: a,
-    vulnerabilities: z(C(o2, t2, a))
-  };
-}
-function z(e) {
-  return Object.defineProperty(e, "vulnerabilities", {
-    value: e
-  });
-}
-function J({ value: e, name: t2 }) {
-  return e !== undefined ? { name: t2, value: e } : { name: t2 };
-}
-var y = {
-  editor: "allowUnsafeEditor",
-  git_askpass: "allowUnsafeAskPass",
-  git_config_global: "allowUnsafeConfigPaths",
-  git_config_system: "allowUnsafeConfigPaths",
-  git_config_count: "allowUnsafeConfigEnvCount",
-  git_config: "allowUnsafeConfigPaths",
-  git_editor: "allowUnsafeEditor",
-  git_exec_path: "allowUnsafeConfigPaths",
-  git_external_diff: "allowUnsafeDiffExternal",
-  git_pager: "allowUnsafePager",
-  git_proxy_command: "allowUnsafeGitProxy",
-  git_template_dir: "allowUnsafeTemplateDir",
-  git_sequence_editor: "allowUnsafeEditor",
-  git_ssh: "allowUnsafeSshCommand",
-  git_ssh_command: "allowUnsafeSshCommand",
-  pager: "allowUnsafePager",
-  prefix: "allowUnsafeConfigPaths",
-  ssh_askpass: "allowUnsafeAskPass"
-};
-function* Q(e) {
-  const t2 = parseInt(e.git_config_count ?? "0", 10);
-  for (let n = 0;n < t2; n++) {
-    const o2 = e[`git_config_key_${n}`], s = e[`git_config_value_${n}`];
-    o2 !== undefined && (yield { key: o2.toLowerCase().trim(), value: s, scope: "env" });
-  }
-}
-function* X(e) {
-  for (const t2 of Object.keys(e))
-    if (_(t2)) {
-      const n = y[t2];
-      yield {
-        category: n,
-        message: `Use of "${t2.toUpperCase()}" is not permitted without enabling ${n}`
-      };
-    }
-}
-function _(e) {
-  return Object.hasOwn(y, e);
-}
-function Z(e) {
-  const t2 = {};
-  for (const [n, o2] of Object.entries(e)) {
-    const s = n.toLowerCase().trim();
-    (_(s) || s.startsWith("git")) && (t2[s] = String(o2));
-  }
-  return t2;
-}
-function ee(e) {
-  const t2 = Z(e), n = {
-    read: [],
-    write: [...Q(t2)]
-  }, o2 = [
-    ...X(t2),
-    ...C(null, [], n)
-  ];
-  return {
-    config: n,
-    vulnerabilities: o2
-  };
-}
-function ne(e, t2) {
-  return [...Y(...e).vulnerabilities, ...ee(t2).vulnerabilities];
-}
-
-// node_modules/simple-git/dist/esm/index.js
-var import_promise_deferred2 = __toESM(require_dist2(), 1);
-import { EventEmitter } from "node:events";
-var __defProp2 = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames2 = Object.getOwnPropertyNames;
-var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames2(fn)[0]])(fn = 0)), res;
-};
-var __commonJS2 = (cb, mod) => function __require2() {
-  return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
-var __export2 = (target, all) => {
-  for (var name in all)
-    __defProp2(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames2(from))
-      if (!__hasOwnProp2.call(to, key) && key !== except)
-        __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
-var GitError;
-var init_git_error = __esm({
-  "src/lib/errors/git-error.ts"() {
-    GitError = class extends Error {
-      constructor(task, message) {
-        super(message);
-        this.task = task;
-        Object.setPrototypeOf(this, new.target.prototype);
-      }
-    };
-  }
-});
-var GitResponseError;
-var init_git_response_error = __esm({
-  "src/lib/errors/git-response-error.ts"() {
-    init_git_error();
-    GitResponseError = class extends GitError {
-      constructor(git, message) {
-        super(undefined, message || String(git));
-        this.git = git;
-      }
-    };
-  }
-});
-var TaskConfigurationError;
-var init_task_configuration_error = __esm({
-  "src/lib/errors/task-configuration-error.ts"() {
-    init_git_error();
-    TaskConfigurationError = class extends GitError {
-      constructor(message) {
-        super(undefined, message);
-      }
-    };
-  }
-});
-function asFunction(source) {
-  if (typeof source !== "function") {
-    return NOOP;
-  }
-  return source;
-}
-function isUserFunction(source) {
-  return typeof source === "function" && source !== NOOP;
-}
-function splitOn(input, char) {
-  const index = input.indexOf(char);
-  if (index <= 0) {
-    return [input, ""];
-  }
-  return [input.substr(0, index), input.substr(index + 1)];
-}
-function first(input, offset = 0) {
-  return isArrayLike(input) && input.length > offset ? input[offset] : undefined;
-}
-function last(input, offset = 0) {
-  if (isArrayLike(input) && input.length > offset) {
-    return input[input.length - 1 - offset];
-  }
-}
-function isArrayLike(input) {
-  return filterHasLength(input);
-}
-function toLinesWithContent(input = "", trimmed2 = true, separator = `
-`) {
-  return input.split(separator).reduce((output, line) => {
-    const lineContent = trimmed2 ? line.trim() : line;
-    if (lineContent) {
-      output.push(lineContent);
-    }
-    return output;
-  }, []);
-}
-function forEachLineWithContent(input, callback) {
-  return toLinesWithContent(input, true).map((line) => callback(line));
-}
-function folderExists(path) {
-  return import_file_exists.exists(path, import_file_exists.FOLDER);
-}
-function append(target, item) {
-  if (Array.isArray(target)) {
-    if (!target.includes(item)) {
-      target.push(item);
-    }
-  } else {
-    target.add(item);
-  }
-  return item;
-}
-function including(target, item) {
-  if (Array.isArray(target) && !target.includes(item)) {
-    target.push(item);
-  }
-  return target;
-}
-function remove(target, item) {
-  if (Array.isArray(target)) {
-    const index = target.indexOf(item);
-    if (index >= 0) {
-      target.splice(index, 1);
-    }
-  } else {
-    target.delete(item);
-  }
-  return item;
-}
-function asArray(source) {
-  return Array.isArray(source) ? source : [source];
-}
-function asCamelCase(str) {
-  return str.replace(/[\s-]+(.)/g, (_all, chr) => {
-    return chr.toUpperCase();
-  });
-}
-function asStringArray(source) {
-  return asArray(source).map((item) => {
-    return item instanceof String ? item : String(item);
-  });
-}
-function asNumber(source, onNaN = 0) {
-  if (source == null) {
-    return onNaN;
-  }
-  const num = parseInt(source, 10);
-  return Number.isNaN(num) ? onNaN : num;
-}
-function prefixedArray(input, prefix) {
-  const output = [];
-  for (let i2 = 0, max = input.length;i2 < max; i2++) {
-    output.push(prefix, input[i2]);
-  }
-  return output;
-}
-function bufferToString(input) {
-  return (Array.isArray(input) ? Buffer.concat(input) : input).toString("utf-8");
-}
-function pick(source, properties) {
-  const out = {};
-  properties.forEach((key) => {
-    if (source[key] !== undefined) {
-      out[key] = source[key];
-    }
-  });
-  return out;
-}
-function delay(duration = 0) {
-  return new Promise((done) => setTimeout(done, duration));
-}
-function orVoid(input) {
-  if (input === false) {
-    return;
-  }
-  return input;
-}
-var NULL;
-var NOOP;
-var objectToString;
-var init_util = __esm({
-  "src/lib/utils/util.ts"() {
-    init_argument_filters();
-    NULL = "\x00";
-    NOOP = () => {};
-    objectToString = Object.prototype.toString.call.bind(Object.prototype.toString);
-  }
-});
-function filterType(input, filter, def) {
-  if (filter(input)) {
-    return input;
-  }
-  return arguments.length > 2 ? def : undefined;
-}
-function filterPrimitives(input, omit) {
-  const type = r(input) ? "string" : typeof input;
-  return /number|string|boolean/.test(type) && (!omit || !omit.includes(type));
-}
-function filterPlainObject(input) {
-  return !!input && objectToString(input) === "[object Object]";
-}
-function filterFunction(input) {
-  return typeof input === "function";
-}
-var filterArray;
-var filterNumber;
-var filterString;
-var filterStringOrStringArray;
-var filterHasLength;
-var init_argument_filters = __esm({
-  "src/lib/utils/argument-filters.ts"() {
-    init_util();
-    filterArray = (input) => {
-      return Array.isArray(input);
-    };
-    filterNumber = (input) => {
-      return typeof input === "number";
-    };
-    filterString = (input) => {
-      return typeof input === "string" || r(input);
-    };
-    filterStringOrStringArray = (input) => {
-      return filterString(input) || Array.isArray(input) && input.every(filterString);
-    };
-    filterHasLength = (input) => {
-      if (input == null || "number|boolean|function".includes(typeof input)) {
-        return false;
-      }
-      return typeof input.length === "number";
-    };
-  }
-});
-var ExitCodes;
-var init_exit_codes = __esm({
-  "src/lib/utils/exit-codes.ts"() {
-    ExitCodes = /* @__PURE__ */ ((ExitCodes2) => {
-      ExitCodes2[ExitCodes2["SUCCESS"] = 0] = "SUCCESS";
-      ExitCodes2[ExitCodes2["ERROR"] = 1] = "ERROR";
-      ExitCodes2[ExitCodes2["NOT_FOUND"] = -2] = "NOT_FOUND";
-      ExitCodes2[ExitCodes2["UNCLEAN"] = 128] = "UNCLEAN";
-      return ExitCodes2;
-    })(ExitCodes || {});
-  }
-});
-var GitOutputStreams;
-var init_git_output_streams = __esm({
-  "src/lib/utils/git-output-streams.ts"() {
-    GitOutputStreams = class _GitOutputStreams {
-      constructor(stdOut, stdErr) {
-        this.stdOut = stdOut;
-        this.stdErr = stdErr;
-      }
-      asStrings() {
-        return new _GitOutputStreams(this.stdOut.toString("utf8"), this.stdErr.toString("utf8"));
-      }
-    };
-  }
-});
-function useMatchesDefault() {
-  throw new Error(`LineParser:useMatches not implemented`);
-}
-var LineParser;
-var RemoteLineParser;
-var init_line_parser = __esm({
-  "src/lib/utils/line-parser.ts"() {
-    LineParser = class {
-      constructor(regExp, useMatches) {
-        this.matches = [];
-        this.useMatches = useMatchesDefault;
-        this.parse = (line, target) => {
-          this.resetMatches();
-          if (!this._regExp.every((reg, index) => this.addMatch(reg, index, line(index)))) {
-            return false;
-          }
-          return this.useMatches(target, this.prepareMatches()) !== false;
-        };
-        this._regExp = Array.isArray(regExp) ? regExp : [regExp];
-        if (useMatches) {
-          this.useMatches = useMatches;
-        }
-      }
-      resetMatches() {
-        this.matches.length = 0;
-      }
-      prepareMatches() {
-        return this.matches;
-      }
-      addMatch(reg, index, line) {
-        const matched = line && reg.exec(line);
-        if (matched) {
-          this.pushMatch(index, matched);
-        }
-        return !!matched;
-      }
-      pushMatch(_index, matched) {
-        this.matches.push(...matched.slice(1));
-      }
-    };
-    RemoteLineParser = class extends LineParser {
-      addMatch(reg, index, line) {
-        return /^remote:\s/.test(String(line)) && super.addMatch(reg, index, line);
-      }
-      pushMatch(index, matched) {
-        if (index > 0 || matched.length > 1) {
-          super.pushMatch(index, matched);
-        }
-      }
-    };
-  }
-});
-function createInstanceConfig(...options) {
-  const baseDir = process.cwd();
-  const config = Object.assign({ baseDir, ...defaultOptions }, ...options.filter((o2) => typeof o2 === "object" && o2));
-  config.baseDir = config.baseDir || baseDir;
-  config.trimmed = config.trimmed === true;
-  return config;
-}
-var defaultOptions;
-var init_simple_git_options = __esm({
-  "src/lib/utils/simple-git-options.ts"() {
-    defaultOptions = {
-      binary: "git",
-      maxConcurrentProcesses: 5,
-      config: [],
-      trimmed: false
-    };
-  }
-});
-function appendTaskOptions(options, commands = []) {
-  if (!filterPlainObject(options)) {
-    return commands;
-  }
-  return Object.keys(options).reduce((commands2, key) => {
-    const value = options[key];
-    if (r(value)) {
-      commands2.push(value);
-    } else if (filterPrimitives(value, ["boolean"])) {
-      commands2.push(key + "=" + value);
-    } else if (Array.isArray(value)) {
-      for (const v of value) {
-        if (!filterPrimitives(v, ["string", "number"])) {
-          commands2.push(key + "=" + v);
-        }
-      }
-    } else {
-      commands2.push(key);
-    }
-    return commands2;
-  }, commands);
-}
-function getTrailingOptions(args, initialPrimitive = 0, objectOnly = false) {
-  const command = [];
-  for (let i2 = 0, max = initialPrimitive < 0 ? args.length : initialPrimitive;i2 < max; i2++) {
-    if ("string|number".includes(typeof args[i2])) {
-      command.push(String(args[i2]));
-    }
-  }
-  appendTaskOptions(trailingOptionsArgument(args), command);
-  if (!objectOnly) {
-    command.push(...trailingArrayArgument(args));
-  }
-  return command;
-}
-function trailingArrayArgument(args) {
-  const hasTrailingCallback = typeof last(args) === "function";
-  return asStringArray(filterType(last(args, hasTrailingCallback ? 1 : 0), filterArray, []));
-}
-function trailingOptionsArgument(args) {
-  const hasTrailingCallback = filterFunction(last(args));
-  return filterType(last(args, hasTrailingCallback ? 1 : 0), filterPlainObject);
-}
-function trailingFunctionArgument(args, includeNoop = true) {
-  const callback = asFunction(last(args));
-  return includeNoop || isUserFunction(callback) ? callback : undefined;
-}
-var init_task_options = __esm({
-  "src/lib/utils/task-options.ts"() {
-    init_argument_filters();
-    init_util();
-  }
-});
-function callTaskParser(parser4, streams) {
-  return parser4(streams.stdOut, streams.stdErr);
-}
-function parseStringResponse(result, parsers12, texts, trim = true) {
-  asArray(texts).forEach((text) => {
-    for (let lines = toLinesWithContent(text, trim), i2 = 0, max = lines.length;i2 < max; i2++) {
-      const line = (offset = 0) => {
-        if (i2 + offset >= max) {
-          return;
-        }
-        return lines[i2 + offset];
-      };
-      parsers12.some(({ parse }) => parse(line, result));
-    }
-  });
-  return result;
-}
-var init_task_parser = __esm({
-  "src/lib/utils/task-parser.ts"() {
-    init_util();
-  }
-});
-var utils_exports = {};
-__export2(utils_exports, {
-  ExitCodes: () => ExitCodes,
-  GitOutputStreams: () => GitOutputStreams,
-  LineParser: () => LineParser,
-  NOOP: () => NOOP,
-  NULL: () => NULL,
-  RemoteLineParser: () => RemoteLineParser,
-  append: () => append,
-  appendTaskOptions: () => appendTaskOptions,
-  asArray: () => asArray,
-  asCamelCase: () => asCamelCase,
-  asFunction: () => asFunction,
-  asNumber: () => asNumber,
-  asStringArray: () => asStringArray,
-  bufferToString: () => bufferToString,
-  callTaskParser: () => callTaskParser,
-  createInstanceConfig: () => createInstanceConfig,
-  delay: () => delay,
-  filterArray: () => filterArray,
-  filterFunction: () => filterFunction,
-  filterHasLength: () => filterHasLength,
-  filterNumber: () => filterNumber,
-  filterPlainObject: () => filterPlainObject,
-  filterPrimitives: () => filterPrimitives,
-  filterString: () => filterString,
-  filterStringOrStringArray: () => filterStringOrStringArray,
-  filterType: () => filterType,
-  first: () => first,
-  folderExists: () => folderExists,
-  forEachLineWithContent: () => forEachLineWithContent,
-  getTrailingOptions: () => getTrailingOptions,
-  including: () => including,
-  isUserFunction: () => isUserFunction,
-  last: () => last,
-  objectToString: () => objectToString,
-  orVoid: () => orVoid,
-  parseStringResponse: () => parseStringResponse,
-  pick: () => pick,
-  prefixedArray: () => prefixedArray,
-  remove: () => remove,
-  splitOn: () => splitOn,
-  toLinesWithContent: () => toLinesWithContent,
-  trailingFunctionArgument: () => trailingFunctionArgument,
-  trailingOptionsArgument: () => trailingOptionsArgument
-});
-var init_utils = __esm({
-  "src/lib/utils/index.ts"() {
-    init_argument_filters();
-    init_exit_codes();
-    init_git_output_streams();
-    init_line_parser();
-    init_simple_git_options();
-    init_task_options();
-    init_task_parser();
-    init_util();
-  }
-});
-var check_is_repo_exports = {};
-__export2(check_is_repo_exports, {
-  CheckRepoActions: () => CheckRepoActions,
-  checkIsBareRepoTask: () => checkIsBareRepoTask,
-  checkIsRepoRootTask: () => checkIsRepoRootTask,
-  checkIsRepoTask: () => checkIsRepoTask
-});
-function checkIsRepoTask(action) {
-  switch (action) {
-    case "bare":
-      return checkIsBareRepoTask();
-    case "root":
-      return checkIsRepoRootTask();
-  }
-  const commands = ["rev-parse", "--is-inside-work-tree"];
-  return {
-    commands,
-    format: "utf-8",
-    onError,
-    parser
-  };
-}
-function checkIsRepoRootTask() {
-  const commands = ["rev-parse", "--git-dir"];
-  return {
-    commands,
-    format: "utf-8",
-    onError,
-    parser(path) {
-      return /^\.(git)?$/.test(path.trim());
-    }
-  };
-}
-function checkIsBareRepoTask() {
-  const commands = ["rev-parse", "--is-bare-repository"];
-  return {
-    commands,
-    format: "utf-8",
-    onError,
-    parser
-  };
-}
-function isNotRepoMessage(error2) {
-  return /(Not a git repository|Kein Git-Repository)/i.test(String(error2));
-}
-var CheckRepoActions;
-var onError;
-var parser;
-var init_check_is_repo = __esm({
-  "src/lib/tasks/check-is-repo.ts"() {
-    init_utils();
-    CheckRepoActions = /* @__PURE__ */ ((CheckRepoActions2) => {
-      CheckRepoActions2["BARE"] = "bare";
-      CheckRepoActions2["IN_TREE"] = "tree";
-      CheckRepoActions2["IS_REPO_ROOT"] = "root";
-      return CheckRepoActions2;
-    })(CheckRepoActions || {});
-    onError = ({ exitCode }, error2, done, fail) => {
-      if (exitCode === 128 && isNotRepoMessage(error2)) {
-        return done(Buffer.from("false"));
-      }
-      fail(error2);
-    };
-    parser = (text) => {
-      return text.trim() === "true";
-    };
-  }
-});
-function cleanSummaryParser(dryRun, text) {
-  const summary2 = new CleanResponse(dryRun);
-  const regexp = dryRun ? dryRunRemovalRegexp : removalRegexp;
-  toLinesWithContent(text).forEach((line) => {
-    const removed = line.replace(regexp, "");
-    summary2.paths.push(removed);
-    (isFolderRegexp.test(removed) ? summary2.folders : summary2.files).push(removed);
-  });
-  return summary2;
-}
-var CleanResponse;
-var removalRegexp;
-var dryRunRemovalRegexp;
-var isFolderRegexp;
-var init_CleanSummary = __esm({
-  "src/lib/responses/CleanSummary.ts"() {
-    init_utils();
-    CleanResponse = class {
-      constructor(dryRun) {
-        this.dryRun = dryRun;
-        this.paths = [];
-        this.files = [];
-        this.folders = [];
-      }
-    };
-    removalRegexp = /^[a-z]+\s*/i;
-    dryRunRemovalRegexp = /^[a-z]+\s+[a-z]+\s*/i;
-    isFolderRegexp = /\/$/;
-  }
-});
-var task_exports = {};
-__export2(task_exports, {
-  EMPTY_COMMANDS: () => EMPTY_COMMANDS,
-  adhocExecTask: () => adhocExecTask,
-  configurationErrorTask: () => configurationErrorTask,
-  isBufferTask: () => isBufferTask,
-  isEmptyTask: () => isEmptyTask,
-  straightThroughBufferTask: () => straightThroughBufferTask,
-  straightThroughStringTask: () => straightThroughStringTask
-});
-function adhocExecTask(parser4) {
-  return {
-    commands: EMPTY_COMMANDS,
-    format: "empty",
-    parser: parser4
-  };
-}
-function configurationErrorTask(error2) {
-  return {
-    commands: EMPTY_COMMANDS,
-    format: "empty",
-    parser() {
-      throw typeof error2 === "string" ? new TaskConfigurationError(error2) : error2;
-    }
-  };
-}
-function straightThroughStringTask(commands, trimmed2 = false) {
-  return {
-    commands,
-    format: "utf-8",
-    parser(text) {
-      return trimmed2 ? String(text).trim() : text;
-    }
-  };
-}
-function straightThroughBufferTask(commands) {
-  return {
-    commands,
-    format: "buffer",
-    parser(buffer) {
-      return buffer;
-    }
-  };
-}
-function isBufferTask(task) {
-  return task.format === "buffer";
-}
-function isEmptyTask(task) {
-  return task.format === "empty" || !task.commands.length;
-}
-var EMPTY_COMMANDS;
-var init_task = __esm({
-  "src/lib/tasks/task.ts"() {
-    init_task_configuration_error();
-    EMPTY_COMMANDS = [];
-  }
-});
-var clean_exports = {};
-__export2(clean_exports, {
-  CONFIG_ERROR_INTERACTIVE_MODE: () => CONFIG_ERROR_INTERACTIVE_MODE,
-  CONFIG_ERROR_MODE_REQUIRED: () => CONFIG_ERROR_MODE_REQUIRED,
-  CONFIG_ERROR_UNKNOWN_OPTION: () => CONFIG_ERROR_UNKNOWN_OPTION,
-  CleanOptions: () => CleanOptions,
-  cleanTask: () => cleanTask,
-  cleanWithOptionsTask: () => cleanWithOptionsTask,
-  isCleanOptionsArray: () => isCleanOptionsArray
-});
-function cleanWithOptionsTask(mode, customArgs) {
-  const { cleanMode, options, valid } = getCleanOptions(mode);
-  if (!cleanMode) {
-    return configurationErrorTask(CONFIG_ERROR_MODE_REQUIRED);
-  }
-  if (!valid.options) {
-    return configurationErrorTask(CONFIG_ERROR_UNKNOWN_OPTION + JSON.stringify(mode));
-  }
-  options.push(...customArgs);
-  if (options.some(isInteractiveMode)) {
-    return configurationErrorTask(CONFIG_ERROR_INTERACTIVE_MODE);
-  }
-  return cleanTask(cleanMode, options);
-}
-function cleanTask(mode, customArgs) {
-  const commands = ["clean", `-${mode}`, ...customArgs];
-  return {
-    commands,
-    format: "utf-8",
-    parser(text) {
-      return cleanSummaryParser(mode === "n", text);
-    }
-  };
-}
-function isCleanOptionsArray(input) {
-  return Array.isArray(input) && input.every((test) => CleanOptionValues.has(test));
-}
-function getCleanOptions(input) {
-  let cleanMode;
-  let options = [];
-  let valid = { cleanMode: false, options: true };
-  input.replace(/[^a-z]i/g, "").split("").forEach((char) => {
-    if (isCleanMode(char)) {
-      cleanMode = char;
-      valid.cleanMode = true;
-    } else {
-      valid.options = valid.options && isKnownOption(options[options.length] = `-${char}`);
-    }
-  });
-  return {
-    cleanMode,
-    options,
-    valid
-  };
-}
-function isCleanMode(cleanMode) {
-  return cleanMode === "f" || cleanMode === "n";
-}
-function isKnownOption(option) {
-  return /^-[a-z]$/i.test(option) && CleanOptionValues.has(option.charAt(1));
-}
-function isInteractiveMode(option) {
-  if (/^-[^\-]/.test(option)) {
-    return option.indexOf("i") > 0;
-  }
-  return option === "--interactive";
-}
-var CONFIG_ERROR_INTERACTIVE_MODE;
-var CONFIG_ERROR_MODE_REQUIRED;
-var CONFIG_ERROR_UNKNOWN_OPTION;
-var CleanOptions;
-var CleanOptionValues;
-var init_clean = __esm({
-  "src/lib/tasks/clean.ts"() {
-    init_CleanSummary();
-    init_utils();
-    init_task();
-    CONFIG_ERROR_INTERACTIVE_MODE = "Git clean interactive mode is not supported";
-    CONFIG_ERROR_MODE_REQUIRED = 'Git clean mode parameter ("n" or "f") is required';
-    CONFIG_ERROR_UNKNOWN_OPTION = "Git clean unknown option found in: ";
-    CleanOptions = /* @__PURE__ */ ((CleanOptions2) => {
-      CleanOptions2["DRY_RUN"] = "n";
-      CleanOptions2["FORCE"] = "f";
-      CleanOptions2["IGNORED_INCLUDED"] = "x";
-      CleanOptions2["IGNORED_ONLY"] = "X";
-      CleanOptions2["EXCLUDING"] = "e";
-      CleanOptions2["QUIET"] = "q";
-      CleanOptions2["RECURSIVE"] = "d";
-      return CleanOptions2;
-    })(CleanOptions || {});
-    CleanOptionValues = /* @__PURE__ */ new Set([
-      "i",
-      ...asStringArray(Object.values(CleanOptions))
-    ]);
-  }
-});
-function configListParser(text) {
-  const config = new ConfigList;
-  for (const item of configParser(text)) {
-    config.addValue(item.file, String(item.key), item.value);
-  }
-  return config;
-}
-function configGetParser(text, key) {
-  let value = null;
-  const values = [];
-  const scopes = /* @__PURE__ */ new Map;
-  for (const item of configParser(text, key)) {
-    if (item.key !== key) {
-      continue;
-    }
-    values.push(value = item.value);
-    if (!scopes.has(item.file)) {
-      scopes.set(item.file, []);
-    }
-    scopes.get(item.file).push(value);
-  }
-  return {
-    key,
-    paths: Array.from(scopes.keys()),
-    scopes,
-    value,
-    values
-  };
-}
-function configFilePath(filePath) {
-  return filePath.replace(/^(file):/, "");
-}
-function* configParser(text, requestedKey = null) {
-  const lines = text.split("\x00");
-  for (let i2 = 0, max = lines.length - 1;i2 < max; ) {
-    const file = configFilePath(lines[i2++]);
-    let value = lines[i2++];
-    let key = requestedKey;
-    if (value.includes(`
-`)) {
-      const line = splitOn(value, `
-`);
-      key = line[0];
-      value = line[1];
-    }
-    yield { file, key, value };
-  }
-}
-var ConfigList;
-var init_ConfigList = __esm({
-  "src/lib/responses/ConfigList.ts"() {
-    init_utils();
-    ConfigList = class {
-      constructor() {
-        this.files = [];
-        this.values = /* @__PURE__ */ Object.create(null);
-      }
-      get all() {
-        if (!this._all) {
-          this._all = this.files.reduce((all, file) => {
-            return Object.assign(all, this.values[file]);
-          }, {});
-        }
-        return this._all;
-      }
-      addFile(file) {
-        if (!(file in this.values)) {
-          const latest = last(this.files);
-          this.values[file] = latest ? Object.create(this.values[latest]) : {};
-          this.files.push(file);
-        }
-        return this.values[file];
-      }
-      addValue(file, key, value) {
-        const values = this.addFile(file);
-        if (!Object.hasOwn(values, key)) {
-          values[key] = value;
-        } else if (Array.isArray(values[key])) {
-          values[key].push(value);
-        } else {
-          values[key] = [values[key], value];
-        }
-        this._all = undefined;
-      }
-    };
-  }
-});
-function asConfigScope(scope, fallback) {
-  if (typeof scope === "string" && Object.hasOwn(GitConfigScope, scope)) {
-    return scope;
-  }
-  return fallback;
-}
-function addConfigTask(key, value, append2, scope) {
-  const commands = ["config", `--${scope}`];
-  if (append2) {
-    commands.push("--add");
-  }
-  commands.push(key, value);
-  return {
-    commands,
-    format: "utf-8",
-    parser(text) {
-      return text;
-    }
-  };
-}
-function getConfigTask(key, scope) {
-  const commands = ["config", "--null", "--show-origin", "--get-all", key];
-  if (scope) {
-    commands.splice(1, 0, `--${scope}`);
-  }
-  return {
-    commands,
-    format: "utf-8",
-    parser(text) {
-      return configGetParser(text, key);
-    }
-  };
-}
-function listConfigTask(scope) {
-  const commands = ["config", "--list", "--show-origin", "--null"];
-  if (scope) {
-    commands.push(`--${scope}`);
-  }
-  return {
-    commands,
-    format: "utf-8",
-    parser(text) {
-      return configListParser(text);
-    }
-  };
-}
-function config_default() {
-  return {
-    addConfig(key, value, ...rest) {
-      return this._runTask(addConfigTask(key, value, rest[0] === true, asConfigScope(rest[1], "local")), trailingFunctionArgument(arguments));
-    },
-    getConfig(key, scope) {
-      return this._runTask(getConfigTask(key, asConfigScope(scope, undefined)), trailingFunctionArgument(arguments));
-    },
-    listConfig(...rest) {
-      return this._runTask(listConfigTask(asConfigScope(rest[0], undefined)), trailingFunctionArgument(arguments));
-    }
-  };
-}
-var GitConfigScope;
-var init_config = __esm({
-  "src/lib/tasks/config.ts"() {
-    init_ConfigList();
-    init_utils();
-    GitConfigScope = /* @__PURE__ */ ((GitConfigScope2) => {
-      GitConfigScope2["system"] = "system";
-      GitConfigScope2["global"] = "global";
-      GitConfigScope2["local"] = "local";
-      GitConfigScope2["worktree"] = "worktree";
-      return GitConfigScope2;
-    })(GitConfigScope || {});
-  }
-});
-function isDiffNameStatus(input) {
-  return diffNameStatus.has(input);
-}
-var DiffNameStatus;
-var diffNameStatus;
-var init_diff_name_status = __esm({
-  "src/lib/tasks/diff-name-status.ts"() {
-    DiffNameStatus = /* @__PURE__ */ ((DiffNameStatus2) => {
-      DiffNameStatus2["ADDED"] = "A";
-      DiffNameStatus2["COPIED"] = "C";
-      DiffNameStatus2["DELETED"] = "D";
-      DiffNameStatus2["MODIFIED"] = "M";
-      DiffNameStatus2["RENAMED"] = "R";
-      DiffNameStatus2["CHANGED"] = "T";
-      DiffNameStatus2["UNMERGED"] = "U";
-      DiffNameStatus2["UNKNOWN"] = "X";
-      DiffNameStatus2["BROKEN"] = "B";
-      return DiffNameStatus2;
-    })(DiffNameStatus || {});
-    diffNameStatus = new Set(Object.values(DiffNameStatus));
-  }
-});
-function grepQueryBuilder(...params) {
-  return new GrepQuery().param(...params);
-}
-function parseGrep(grep) {
-  const paths = /* @__PURE__ */ new Set;
-  const results = {};
-  forEachLineWithContent(grep, (input) => {
-    const [path, line, preview] = input.split(NULL);
-    paths.add(path);
-    (results[path] = results[path] || []).push({
-      line: asNumber(line),
-      path,
-      preview
-    });
-  });
-  return {
-    paths,
-    results
-  };
-}
-function grep_default() {
-  return {
-    grep(searchTerm) {
-      const then = trailingFunctionArgument(arguments);
-      const options = getTrailingOptions(arguments);
-      for (const option of disallowedOptions) {
-        if (options.includes(option)) {
-          return this._runTask(configurationErrorTask(`git.grep: use of "${option}" is not supported.`), then);
-        }
-      }
-      if (typeof searchTerm === "string") {
-        searchTerm = grepQueryBuilder().param(searchTerm);
-      }
-      const commands = ["grep", "--null", "-n", "--full-name", ...options, ...searchTerm];
-      return this._runTask({
-        commands,
-        format: "utf-8",
-        parser(stdOut) {
-          return parseGrep(stdOut);
-        }
-      }, then);
-    }
-  };
-}
-var disallowedOptions;
-var Query;
-var _a;
-var GrepQuery;
-var init_grep = __esm({
-  "src/lib/tasks/grep.ts"() {
-    init_utils();
-    init_task();
-    disallowedOptions = ["-h"];
-    Query = Symbol("grepQuery");
-    GrepQuery = class {
-      constructor() {
-        this[_a] = [];
-      }
-      *[(_a = Query, Symbol.iterator)]() {
-        for (const query of this[Query]) {
-          yield query;
-        }
-      }
-      and(...and) {
-        and.length && this[Query].push("--and", "(", ...prefixedArray(and, "-e"), ")");
-        return this;
-      }
-      param(...param) {
-        this[Query].push(...prefixedArray(param, "-e"));
-        return this;
-      }
-    };
-  }
-});
-var reset_exports = {};
-__export2(reset_exports, {
-  ResetMode: () => ResetMode,
-  getResetMode: () => getResetMode,
-  resetTask: () => resetTask
-});
-function resetTask(mode, customArgs) {
-  const commands = ["reset"];
-  if (isValidResetMode(mode)) {
-    commands.push(`--${mode}`);
-  }
-  commands.push(...customArgs);
-  return straightThroughStringTask(commands);
-}
-function getResetMode(mode) {
-  if (isValidResetMode(mode)) {
-    return mode;
-  }
-  switch (typeof mode) {
-    case "string":
-    case "undefined":
-      return "soft";
-  }
-  return;
-}
-function isValidResetMode(mode) {
-  return typeof mode === "string" && validResetModes.includes(mode);
-}
-var ResetMode;
-var validResetModes;
-var init_reset = __esm({
-  "src/lib/tasks/reset.ts"() {
-    init_utils();
-    init_task();
-    ResetMode = /* @__PURE__ */ ((ResetMode2) => {
-      ResetMode2["MIXED"] = "mixed";
-      ResetMode2["SOFT"] = "soft";
-      ResetMode2["HARD"] = "hard";
-      ResetMode2["MERGE"] = "merge";
-      ResetMode2["KEEP"] = "keep";
-      return ResetMode2;
-    })(ResetMode || {});
-    validResetModes = asStringArray(Object.values(ResetMode));
-  }
-});
-function createLog() {
-  return import_debug.default("simple-git");
-}
-function prefixedLogger(to, prefix, forward) {
-  if (!prefix || !String(prefix).replace(/\s*/, "")) {
-    return !forward ? to : (message, ...args) => {
-      to(message, ...args);
-      forward(message, ...args);
-    };
-  }
-  return (message, ...args) => {
-    to(`%s ${message}`, prefix, ...args);
-    if (forward) {
-      forward(message, ...args);
-    }
-  };
-}
-function childLoggerName(name, childDebugger, { namespace: parentNamespace }) {
-  if (typeof name === "string") {
-    return name;
-  }
-  const childNamespace = childDebugger && childDebugger.namespace || "";
-  if (childNamespace.startsWith(parentNamespace)) {
-    return childNamespace.substr(parentNamespace.length + 1);
-  }
-  return childNamespace || parentNamespace;
-}
-function createLogger(label, verbose, initialStep, infoDebugger = createLog()) {
-  const labelPrefix = label && `[${label}]` || "";
-  const spawned = [];
-  const debugDebugger = typeof verbose === "string" ? infoDebugger.extend(verbose) : verbose;
-  const key = childLoggerName(filterType(verbose, filterString), debugDebugger, infoDebugger);
-  return step(initialStep);
-  function sibling(name, initial) {
-    return append(spawned, createLogger(label, key.replace(/^[^:]+/, name), initial, infoDebugger));
-  }
-  function step(phase) {
-    const stepPrefix = phase && `[${phase}]` || "";
-    const debug22 = debugDebugger && prefixedLogger(debugDebugger, stepPrefix) || NOOP;
-    const info2 = prefixedLogger(infoDebugger, `${labelPrefix} ${stepPrefix}`, debug22);
-    return Object.assign(debugDebugger ? debug22 : info2, {
-      label,
-      sibling,
-      info: info2,
-      step
-    });
-  }
-}
-var init_git_logger = __esm({
-  "src/lib/git-logger.ts"() {
-    init_utils();
-    import_debug.default.formatters.L = (value) => String(filterHasLength(value) ? value.length : "-");
-    import_debug.default.formatters.B = (value) => {
-      if (Buffer.isBuffer(value)) {
-        return value.toString("utf8");
-      }
-      return objectToString(value);
-    };
-  }
-});
-var TasksPendingQueue;
-var init_tasks_pending_queue = __esm({
-  "src/lib/runners/tasks-pending-queue.ts"() {
-    init_git_error();
-    init_git_logger();
-    TasksPendingQueue = class _TasksPendingQueue {
-      constructor(logLabel = "GitExecutor") {
-        this.logLabel = logLabel;
-        this._queue = /* @__PURE__ */ new Map;
-      }
-      withProgress(task) {
-        return this._queue.get(task);
-      }
-      createProgress(task) {
-        const name = _TasksPendingQueue.getName(task.commands[0]);
-        const logger = createLogger(this.logLabel, name);
-        return {
-          task,
-          logger,
-          name
-        };
-      }
-      push(task) {
-        const progress = this.createProgress(task);
-        progress.logger("Adding task to the queue, commands = %o", task.commands);
-        this._queue.set(task, progress);
-        return progress;
-      }
-      fatal(err) {
-        for (const [task, { logger }] of Array.from(this._queue.entries())) {
-          if (task === err.task) {
-            logger.info(`Failed %o`, err);
-            logger(`Fatal exception, any as-yet un-started tasks run through this executor will not be attempted`);
-          } else {
-            logger.info(`A fatal exception occurred in a previous task, the queue has been purged: %o`, err.message);
-          }
-          this.complete(task);
-        }
-        if (this._queue.size !== 0) {
-          throw new Error(`Queue size should be zero after fatal: ${this._queue.size}`);
-        }
-      }
-      complete(task) {
-        const progress = this.withProgress(task);
-        if (progress) {
-          this._queue.delete(task);
-        }
-      }
-      attempt(task) {
-        const progress = this.withProgress(task);
-        if (!progress) {
-          throw new GitError(undefined, "TasksPendingQueue: attempt called for an unknown task");
-        }
-        progress.logger("Starting task");
-        return progress;
-      }
-      static getName(name = "empty") {
-        return `task:${name}:${++_TasksPendingQueue.counter}`;
-      }
-      static {
-        this.counter = 0;
-      }
-    };
-  }
-});
-function pluginContext(task, commands) {
-  return {
-    method: first(task.commands) || "",
-    commands
-  };
-}
-function onErrorReceived(target, logger) {
-  return (err) => {
-    logger(`[ERROR] child process exception %o`, err);
-    target.push(Buffer.from(String(err.stack), "ascii"));
-  };
-}
-function onDataReceived(target, name, logger, output) {
-  return (buffer) => {
-    logger(`%s received %L bytes`, name, buffer);
-    output(`%B`, buffer);
-    target.push(buffer);
-  };
-}
-var GitExecutorChain;
-var init_git_executor_chain = __esm({
-  "src/lib/runners/git-executor-chain.ts"() {
-    init_git_error();
-    init_task();
-    init_utils();
-    init_tasks_pending_queue();
-    GitExecutorChain = class {
-      constructor(_executor, _scheduler, _plugins) {
-        this._executor = _executor;
-        this._scheduler = _scheduler;
-        this._plugins = _plugins;
-        this._chain = Promise.resolve();
-        this._queue = new TasksPendingQueue;
-      }
-      get cwd() {
-        return this._cwd || this._executor.cwd;
-      }
-      set cwd(cwd) {
-        this._cwd = cwd;
-      }
-      get env() {
-        return this._executor.env;
-      }
-      get outputHandler() {
-        return this._executor.outputHandler;
-      }
-      chain() {
-        return this;
-      }
-      push(task) {
-        this._queue.push(task);
-        return this._chain = this._chain.then(() => this.attemptTask(task));
-      }
-      async attemptTask(task) {
-        const onScheduleComplete = await this._scheduler.next();
-        const onQueueComplete = () => this._queue.complete(task);
-        try {
-          const { logger } = this._queue.attempt(task);
-          return await (isEmptyTask(task) ? this.attemptEmptyTask(task, logger) : this.attemptRemoteTask(task, logger));
-        } catch (e) {
-          throw this.onFatalException(task, e);
-        } finally {
-          onQueueComplete();
-          onScheduleComplete();
-        }
-      }
-      onFatalException(task, e) {
-        const gitError = e instanceof GitError ? Object.assign(e, { task }) : new GitError(task, e && String(e));
-        this._chain = Promise.resolve();
-        this._queue.fatal(gitError);
-        return gitError;
-      }
-      async attemptRemoteTask(task, logger) {
-        const binary = this._plugins.exec("spawn.binary", "", pluginContext(task, task.commands));
-        const args = this._plugins.exec("spawn.args", [...task.commands], {
-          ...pluginContext(task, task.commands),
-          env: { ...this.env }
-        });
-        const raw = await this.gitResponse(task, binary, args, this.outputHandler, logger.step("SPAWN"));
-        const outputStreams = await this.handleTaskData(task, args, raw, logger.step("HANDLE"));
-        logger(`passing response to task's parser as a %s`, task.format);
-        if (isBufferTask(task)) {
-          return callTaskParser(task.parser, outputStreams);
-        }
-        return callTaskParser(task.parser, outputStreams.asStrings());
-      }
-      async attemptEmptyTask(task, logger) {
-        logger(`empty task bypassing child process to call to task's parser`);
-        return task.parser(this);
-      }
-      handleTaskData(task, args, result, logger) {
-        const { exitCode, rejection, stdOut, stdErr } = result;
-        return new Promise((done, fail) => {
-          logger(`Preparing to handle process response exitCode=%d stdOut=`, exitCode);
-          const { error: error2 } = this._plugins.exec("task.error", { error: rejection }, {
-            ...pluginContext(task, args),
-            ...result
-          });
-          if (error2 && task.onError) {
-            logger.info(`exitCode=%s handling with custom error handler`);
-            return task.onError(result, error2, (newStdOut) => {
-              logger.info(`custom error handler treated as success`);
-              logger(`custom error returned a %s`, objectToString(newStdOut));
-              done(new GitOutputStreams(Array.isArray(newStdOut) ? Buffer.concat(newStdOut) : newStdOut, Buffer.concat(stdErr)));
-            }, fail);
-          }
-          if (error2) {
-            logger.info(`handling as error: exitCode=%s stdErr=%s rejection=%o`, exitCode, stdErr.length, rejection);
-            return fail(error2);
-          }
-          logger.info(`retrieving task output complete`);
-          done(new GitOutputStreams(Buffer.concat(stdOut), Buffer.concat(stdErr)));
-        });
-      }
-      async gitResponse(task, command, args, outputHandler, logger) {
-        const outputLogger = logger.sibling("output");
-        const spawnOptions = this._plugins.exec("spawn.options", {
-          cwd: this.cwd,
-          env: this.env,
-          windowsHide: true
-        }, pluginContext(task, task.commands));
-        return new Promise((done) => {
-          const stdOut = [];
-          const stdErr = [];
-          logger.info(`%s %o`, command, args);
-          logger("%O", spawnOptions);
-          let rejection = this._beforeSpawn(task, args);
-          if (rejection) {
-            return done({
-              stdOut,
-              stdErr,
-              exitCode: 9901,
-              rejection
-            });
-          }
-          this._plugins.exec("spawn.before", undefined, {
-            ...pluginContext(task, args),
-            kill(reason) {
-              rejection = reason || rejection;
-            }
-          });
-          const spawned = spawn(command, args, spawnOptions);
-          spawned.stdout.on("data", onDataReceived(stdOut, "stdOut", logger, outputLogger.step("stdOut")));
-          spawned.stderr.on("data", onDataReceived(stdErr, "stdErr", logger, outputLogger.step("stdErr")));
-          spawned.on("error", onErrorReceived(stdErr, logger));
-          if (outputHandler) {
-            logger(`Passing child process stdOut/stdErr to custom outputHandler`);
-            outputHandler(command, spawned.stdout, spawned.stderr, [...args]);
-          }
-          this._plugins.exec("spawn.after", undefined, {
-            ...pluginContext(task, args),
-            spawned,
-            close(exitCode, reason) {
-              done({
-                stdOut,
-                stdErr,
-                exitCode,
-                rejection: rejection || reason
-              });
-            },
-            kill(reason) {
-              if (spawned.killed) {
-                return;
-              }
-              rejection = reason;
-              spawned.kill("SIGINT");
-            }
-          });
-        });
-      }
-      _beforeSpawn(task, args) {
-        let rejection;
-        this._plugins.exec("spawn.before", undefined, {
-          ...pluginContext(task, args),
-          kill(reason) {
-            rejection = reason || rejection;
-          }
-        });
-        return rejection;
-      }
-    };
-  }
-});
-var git_executor_exports = {};
-__export2(git_executor_exports, {
-  GitExecutor: () => GitExecutor
-});
-var GitExecutor;
-var init_git_executor = __esm({
-  "src/lib/runners/git-executor.ts"() {
-    init_git_executor_chain();
-    GitExecutor = class {
-      constructor(cwd, _scheduler, _plugins) {
-        this.cwd = cwd;
-        this._scheduler = _scheduler;
-        this._plugins = _plugins;
-        this._chain = new GitExecutorChain(this, this._scheduler, this._plugins);
-      }
-      chain() {
-        return new GitExecutorChain(this, this._scheduler, this._plugins);
-      }
-      push(task) {
-        return this._chain.push(task);
-      }
-    };
-  }
-});
-function taskCallback(task, response, callback = NOOP) {
-  const onSuccess = (data) => {
-    callback(null, data);
-  };
-  const onError2 = (err) => {
-    if (err?.task === task) {
-      callback(err instanceof GitResponseError ? addDeprecationNoticeToError(err) : err, undefined);
-    }
-  };
-  response.then(onSuccess, onError2);
-}
-function addDeprecationNoticeToError(err) {
-  let log = (name) => {
-    console.warn(`simple-git deprecation notice: accessing GitResponseError.${name} should be GitResponseError.git.${name}, this will no longer be available in version 3`);
-    log = NOOP;
-  };
-  return Object.create(err, Object.getOwnPropertyNames(err.git).reduce(descriptorReducer, {}));
-  function descriptorReducer(all, name) {
-    if (name in err) {
-      return all;
-    }
-    all[name] = {
-      enumerable: false,
-      configurable: false,
-      get() {
-        log(name);
-        return err.git[name];
-      }
-    };
-    return all;
-  }
-}
-var init_task_callback = __esm({
-  "src/lib/task-callback.ts"() {
-    init_git_response_error();
-    init_utils();
-  }
-});
-function changeWorkingDirectoryTask(directory, root) {
-  return adhocExecTask((instance) => {
-    if (!folderExists(directory)) {
-      throw new Error(`Git.cwd: cannot change to non-directory "${directory}"`);
-    }
-    return (root || instance).cwd = directory;
-  });
-}
-var init_change_working_directory = __esm({
-  "src/lib/tasks/change-working-directory.ts"() {
-    init_utils();
-    init_task();
-  }
-});
-function checkoutTask(args) {
-  const commands = ["checkout", ...args];
-  if (commands[1] === "-b" && commands.includes("-B")) {
-    commands[1] = remove(commands, "-B");
-  }
-  return straightThroughStringTask(commands);
-}
-function checkout_default() {
-  return {
-    checkout() {
-      return this._runTask(checkoutTask(getTrailingOptions(arguments, 1)), trailingFunctionArgument(arguments));
-    },
-    checkoutBranch(branchName, startPoint) {
-      return this._runTask(checkoutTask(["-b", branchName, startPoint, ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments));
-    },
-    checkoutLocalBranch(branchName) {
-      return this._runTask(checkoutTask(["-b", branchName, ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments));
-    }
-  };
-}
-var init_checkout = __esm({
-  "src/lib/tasks/checkout.ts"() {
-    init_utils();
-    init_task();
-  }
-});
-function countObjectsResponse() {
-  return {
-    count: 0,
-    garbage: 0,
-    inPack: 0,
-    packs: 0,
-    prunePackable: 0,
-    size: 0,
-    sizeGarbage: 0,
-    sizePack: 0
-  };
-}
-function count_objects_default() {
-  return {
-    countObjects() {
-      return this._runTask({
-        commands: ["count-objects", "--verbose"],
-        format: "utf-8",
-        parser(stdOut) {
-          return parseStringResponse(countObjectsResponse(), [parser2], stdOut);
-        }
-      });
-    }
-  };
-}
-var parser2;
-var init_count_objects = __esm({
-  "src/lib/tasks/count-objects.ts"() {
-    init_utils();
-    parser2 = new LineParser(/([a-z-]+): (\d+)$/, (result, [key, value]) => {
-      const property = asCamelCase(key);
-      if (Object.hasOwn(result, property)) {
-        result[property] = asNumber(value);
-      }
-    });
-  }
-});
-function parseCommitResult(stdOut) {
-  const result = {
-    author: null,
-    branch: "",
-    commit: "",
-    root: false,
-    summary: {
-      changes: 0,
-      insertions: 0,
-      deletions: 0
-    }
-  };
-  return parseStringResponse(result, parsers, stdOut);
-}
-var parsers;
-var init_parse_commit = __esm({
-  "src/lib/parsers/parse-commit.ts"() {
-    init_utils();
-    parsers = [
-      new LineParser(/^\[([^\s]+)( \([^)]+\))? ([^\]]+)/, (result, [branch, root, commit]) => {
-        result.branch = branch;
-        result.commit = commit;
-        result.root = !!root;
-      }),
-      new LineParser(/\s*Author:\s(.+)/i, (result, [author]) => {
-        const parts = author.split("<");
-        const email = parts.pop();
-        if (!email || !email.includes("@")) {
-          return;
-        }
-        result.author = {
-          email: email.substr(0, email.length - 1),
-          name: parts.join("<").trim()
-        };
-      }),
-      new LineParser(/(\d+)[^,]*(?:,\s*(\d+)[^,]*)(?:,\s*(\d+))/g, (result, [changes, insertions, deletions]) => {
-        result.summary.changes = parseInt(changes, 10) || 0;
-        result.summary.insertions = parseInt(insertions, 10) || 0;
-        result.summary.deletions = parseInt(deletions, 10) || 0;
-      }),
-      new LineParser(/^(\d+)[^,]*(?:,\s*(\d+)[^(]+\(([+-]))?/, (result, [changes, lines, direction]) => {
-        result.summary.changes = parseInt(changes, 10) || 0;
-        const count = parseInt(lines, 10) || 0;
-        if (direction === "-") {
-          result.summary.deletions = count;
-        } else if (direction === "+") {
-          result.summary.insertions = count;
-        }
-      })
-    ];
-  }
-});
-function commitTask(message, files, customArgs) {
-  const commands = [
-    "-c",
-    "core.abbrev=40",
-    "commit",
-    ...prefixedArray(message, "-m"),
-    ...files,
-    ...customArgs
-  ];
-  return {
-    commands,
-    format: "utf-8",
-    parser: parseCommitResult
-  };
-}
-function commit_default() {
-  return {
-    commit(message, ...rest) {
-      const next = trailingFunctionArgument(arguments);
-      const task = rejectDeprecatedSignatures(message) || commitTask(asArray(message), asArray(filterType(rest[0], filterStringOrStringArray, [])), [
-        ...asStringArray(filterType(rest[1], filterArray, [])),
-        ...getTrailingOptions(arguments, 0, true)
-      ]);
-      return this._runTask(task, next);
-    }
-  };
-  function rejectDeprecatedSignatures(message) {
-    return !filterStringOrStringArray(message) && configurationErrorTask(`git.commit: requires the commit message to be supplied as a string/string[]`);
-  }
-}
-var init_commit = __esm({
-  "src/lib/tasks/commit.ts"() {
-    init_parse_commit();
-    init_utils();
-    init_task();
-  }
-});
-function first_commit_default() {
-  return {
-    firstCommit() {
-      return this._runTask(straightThroughStringTask(["rev-list", "--max-parents=0", "HEAD"], true), trailingFunctionArgument(arguments));
-    }
-  };
-}
-var init_first_commit = __esm({
-  "src/lib/tasks/first-commit.ts"() {
-    init_utils();
-    init_task();
-  }
-});
-function hashObjectTask(filePath, write) {
-  const commands = ["hash-object", filePath];
-  if (write) {
-    commands.push("-w");
-  }
-  return straightThroughStringTask(commands, true);
-}
-var init_hash_object = __esm({
-  "src/lib/tasks/hash-object.ts"() {
-    init_task();
-  }
-});
-function parseInit(bare, path, text) {
-  const response = String(text).trim();
-  let result;
-  if (result = initResponseRegex.exec(response)) {
-    return new InitSummary(bare, path, false, result[1]);
-  }
-  if (result = reInitResponseRegex.exec(response)) {
-    return new InitSummary(bare, path, true, result[1]);
-  }
-  let gitDir = "";
-  const tokens = response.split(" ");
-  while (tokens.length) {
-    const token = tokens.shift();
-    if (token === "in") {
-      gitDir = tokens.join(" ");
-      break;
-    }
-  }
-  return new InitSummary(bare, path, /^re/i.test(response), gitDir);
-}
-var InitSummary;
-var initResponseRegex;
-var reInitResponseRegex;
-var init_InitSummary = __esm({
-  "src/lib/responses/InitSummary.ts"() {
-    InitSummary = class {
-      constructor(bare, path, existing, gitDir) {
-        this.bare = bare;
-        this.path = path;
-        this.existing = existing;
-        this.gitDir = gitDir;
-      }
-    };
-    initResponseRegex = /^Init.+ repository in (.+)$/;
-    reInitResponseRegex = /^Rein.+ in (.+)$/;
-  }
-});
-function hasBareCommand(command) {
-  return command.includes(bareCommand);
-}
-function initTask(bare = false, path, customArgs) {
-  const commands = ["init", ...customArgs];
-  if (bare && !hasBareCommand(commands)) {
-    commands.splice(1, 0, bareCommand);
-  }
-  return {
-    commands,
-    format: "utf-8",
-    parser(text) {
-      return parseInit(commands.includes("--bare"), path, text);
-    }
-  };
-}
-var bareCommand;
-var init_init = __esm({
-  "src/lib/tasks/init.ts"() {
-    init_InitSummary();
-    bareCommand = "--bare";
-  }
-});
-function logFormatFromCommand(customArgs) {
-  for (let i2 = 0;i2 < customArgs.length; i2++) {
-    const format = logFormatRegex.exec(customArgs[i2]);
-    if (format) {
-      return `--${format[1]}`;
-    }
-  }
-  return "";
-}
-function isLogFormat(customArg) {
-  return logFormatRegex.test(customArg);
-}
-var logFormatRegex;
-var init_log_format = __esm({
-  "src/lib/args/log-format.ts"() {
-    logFormatRegex = /^--(stat|numstat|name-only|name-status)(=|$)/;
-  }
-});
-var DiffSummary;
-var init_DiffSummary = __esm({
-  "src/lib/responses/DiffSummary.ts"() {
-    DiffSummary = class {
-      constructor() {
-        this.changed = 0;
-        this.deletions = 0;
-        this.insertions = 0;
-        this.files = [];
-      }
-    };
-  }
-});
-function getDiffParser(format = "") {
-  const parser4 = diffSummaryParsers[format];
-  return (stdOut) => parseStringResponse(new DiffSummary, parser4, stdOut, false);
-}
-var statParser;
-var numStatParser;
-var nameOnlyParser;
-var nameStatusParser;
-var diffSummaryParsers;
-var init_parse_diff_summary = __esm({
-  "src/lib/parsers/parse-diff-summary.ts"() {
-    init_log_format();
-    init_DiffSummary();
-    init_diff_name_status();
-    init_utils();
-    statParser = [
-      new LineParser(/^(.+)\s+\|\s+(\d+)(\s+[+\-]+)?$/, (result, [file, changes, alterations = ""]) => {
-        result.files.push({
-          file: file.trim(),
-          changes: asNumber(changes),
-          insertions: alterations.replace(/[^+]/g, "").length,
-          deletions: alterations.replace(/[^-]/g, "").length,
-          binary: false
-        });
-      }),
-      new LineParser(/^(.+) \|\s+Bin ([0-9.]+) -> ([0-9.]+) ([a-z]+)/, (result, [file, before, after]) => {
-        result.files.push({
-          file: file.trim(),
-          before: asNumber(before),
-          after: asNumber(after),
-          binary: true
-        });
-      }),
-      new LineParser(/(\d+) files? changed\s*((?:, \d+ [^,]+){0,2})/, (result, [changed, summary2]) => {
-        const inserted = /(\d+) i/.exec(summary2);
-        const deleted = /(\d+) d/.exec(summary2);
-        result.changed = asNumber(changed);
-        result.insertions = asNumber(inserted?.[1]);
-        result.deletions = asNumber(deleted?.[1]);
-      })
-    ];
-    numStatParser = [
-      new LineParser(/(\d+)\t(\d+)\t(.+)$/, (result, [changesInsert, changesDelete, file]) => {
-        const insertions = asNumber(changesInsert);
-        const deletions = asNumber(changesDelete);
-        result.changed++;
-        result.insertions += insertions;
-        result.deletions += deletions;
-        result.files.push({
-          file,
-          changes: insertions + deletions,
-          insertions,
-          deletions,
-          binary: false
-        });
-      }),
-      new LineParser(/-\t-\t(.+)$/, (result, [file]) => {
-        result.changed++;
-        result.files.push({
-          file,
-          after: 0,
-          before: 0,
-          binary: true
-        });
-      })
-    ];
-    nameOnlyParser = [
-      new LineParser(/(.+)$/, (result, [file]) => {
-        result.changed++;
-        result.files.push({
-          file,
-          changes: 0,
-          insertions: 0,
-          deletions: 0,
-          binary: false
-        });
-      })
-    ];
-    nameStatusParser = [
-      new LineParser(/([ACDMRTUXB])([0-9]{0,3})\t(.[^\t]*)(\t(.[^\t]*))?$/, (result, [status, similarity, from, _to, to]) => {
-        result.changed++;
-        result.files.push({
-          file: to ?? from,
-          changes: 0,
-          insertions: 0,
-          deletions: 0,
-          binary: false,
-          status: orVoid(isDiffNameStatus(status) && status),
-          from: orVoid(!!to && from !== to && from),
-          similarity: asNumber(similarity)
-        });
-      })
-    ];
-    diffSummaryParsers = {
-      [""]: statParser,
-      ["--stat"]: statParser,
-      ["--numstat"]: numStatParser,
-      ["--name-status"]: nameStatusParser,
-      ["--name-only"]: nameOnlyParser
-    };
-  }
-});
-function lineBuilder(tokens, fields) {
-  return fields.reduce((line, field, index) => {
-    line[field] = tokens[index] || "";
-    return line;
-  }, /* @__PURE__ */ Object.create({ diff: null }));
-}
-function createListLogSummaryParser(splitter = SPLITTER, fields = defaultFieldNames, logFormat = "") {
-  const parseDiffResult = getDiffParser(logFormat);
-  return function(stdOut) {
-    const all = toLinesWithContent(stdOut.trim(), false, START_BOUNDARY).map(function(item) {
-      const lineDetail = item.split(COMMIT_BOUNDARY);
-      const listLogLine = lineBuilder(lineDetail[0].split(splitter), fields);
-      if (lineDetail.length > 1 && !!lineDetail[1].trim()) {
-        listLogLine.diff = parseDiffResult(lineDetail[1]);
-      }
-      return listLogLine;
-    });
-    return {
-      all,
-      latest: all.length && all[0] || null,
-      total: all.length
-    };
-  };
-}
-var START_BOUNDARY;
-var COMMIT_BOUNDARY;
-var SPLITTER;
-var defaultFieldNames;
-var init_parse_list_log_summary = __esm({
-  "src/lib/parsers/parse-list-log-summary.ts"() {
-    init_utils();
-    init_parse_diff_summary();
-    init_log_format();
-    START_BOUNDARY = "òòòòòò ";
-    COMMIT_BOUNDARY = " òò";
-    SPLITTER = " ò ";
-    defaultFieldNames = ["hash", "date", "message", "refs", "author_name", "author_email"];
-  }
-});
-var diff_exports = {};
-__export2(diff_exports, {
-  diffSummaryTask: () => diffSummaryTask,
-  validateLogFormatConfig: () => validateLogFormatConfig
-});
-function diffSummaryTask(customArgs) {
-  let logFormat = logFormatFromCommand(customArgs);
-  const commands = ["diff"];
-  if (logFormat === "") {
-    logFormat = "--stat";
-    commands.push("--stat=4096");
-  }
-  commands.push(...customArgs);
-  return validateLogFormatConfig(commands) || {
-    commands,
-    format: "utf-8",
-    parser: getDiffParser(logFormat)
-  };
-}
-function validateLogFormatConfig(customArgs) {
-  const flags = customArgs.filter(isLogFormat);
-  if (flags.length > 1) {
-    return configurationErrorTask(`Summary flags are mutually exclusive - pick one of ${flags.join(",")}`);
-  }
-  if (flags.length && customArgs.includes("-z")) {
-    return configurationErrorTask(`Summary flag ${flags} parsing is not compatible with null termination option '-z'`);
-  }
-}
-var init_diff = __esm({
-  "src/lib/tasks/diff.ts"() {
-    init_log_format();
-    init_parse_diff_summary();
-    init_task();
-  }
-});
-function prettyFormat(format, splitter) {
-  const fields = [];
-  const formatStr = [];
-  Object.keys(format).forEach((field) => {
-    fields.push(field);
-    formatStr.push(String(format[field]));
-  });
-  return [fields, formatStr.join(splitter)];
-}
-function userOptions(input) {
-  return Object.keys(input).reduce((out, key) => {
-    if (!(key in excludeOptions)) {
-      out[key] = input[key];
-    }
-    return out;
-  }, {});
-}
-function parseLogOptions(opt = {}, customArgs = []) {
-  const splitter = filterType(opt.splitter, filterString, SPLITTER);
-  const format = filterPlainObject(opt.format) ? opt.format : {
-    hash: "%H",
-    date: opt.strictDate === false ? "%ai" : "%aI",
-    message: "%s",
-    refs: "%D",
-    body: opt.multiLine ? "%B" : "%b",
-    author_name: opt.mailMap !== false ? "%aN" : "%an",
-    author_email: opt.mailMap !== false ? "%aE" : "%ae"
-  };
-  const [fields, formatStr] = prettyFormat(format, splitter);
-  const suffix = [];
-  const command = [
-    `--pretty=format:${START_BOUNDARY}${formatStr}${COMMIT_BOUNDARY}`,
-    ...customArgs
-  ];
-  const maxCount = opt.n || opt["max-count"] || opt.maxCount;
-  if (maxCount) {
-    command.push(`--max-count=${maxCount}`);
-  }
-  if (opt.from || opt.to) {
-    const rangeOperator = opt.symmetric !== false ? "..." : "..";
-    suffix.push(`${opt.from || ""}${rangeOperator}${opt.to || ""}`);
-  }
-  if (filterString(opt.file)) {
-    command.push("--follow", c(opt.file));
-  }
-  appendTaskOptions(userOptions(opt), command);
-  return {
-    fields,
-    splitter,
-    commands: [...command, ...suffix]
-  };
-}
-function logTask(splitter, fields, customArgs) {
-  const parser4 = createListLogSummaryParser(splitter, fields, logFormatFromCommand(customArgs));
-  return {
-    commands: ["log", ...customArgs],
-    format: "utf-8",
-    parser: parser4
-  };
-}
-function log_default() {
-  return {
-    log(...rest) {
-      const next = trailingFunctionArgument(arguments);
-      const options = parseLogOptions(trailingOptionsArgument(arguments), asStringArray(filterType(arguments[0], filterArray, [])));
-      const task = rejectDeprecatedSignatures(...rest) || validateLogFormatConfig(options.commands) || createLogTask(options);
-      return this._runTask(task, next);
-    }
-  };
-  function createLogTask(options) {
-    return logTask(options.splitter, options.fields, options.commands);
-  }
-  function rejectDeprecatedSignatures(from, to) {
-    return filterString(from) && filterString(to) && configurationErrorTask(`git.log(string, string) should be replaced with git.log({ from: string, to: string })`);
-  }
-}
-var excludeOptions;
-var init_log = __esm({
-  "src/lib/tasks/log.ts"() {
-    init_log_format();
-    init_parse_list_log_summary();
-    init_utils();
-    init_task();
-    init_diff();
-    excludeOptions = /* @__PURE__ */ ((excludeOptions2) => {
-      excludeOptions2[excludeOptions2["--pretty"] = 0] = "--pretty";
-      excludeOptions2[excludeOptions2["max-count"] = 1] = "max-count";
-      excludeOptions2[excludeOptions2["maxCount"] = 2] = "maxCount";
-      excludeOptions2[excludeOptions2["n"] = 3] = "n";
-      excludeOptions2[excludeOptions2["file"] = 4] = "file";
-      excludeOptions2[excludeOptions2["format"] = 5] = "format";
-      excludeOptions2[excludeOptions2["from"] = 6] = "from";
-      excludeOptions2[excludeOptions2["to"] = 7] = "to";
-      excludeOptions2[excludeOptions2["splitter"] = 8] = "splitter";
-      excludeOptions2[excludeOptions2["symmetric"] = 9] = "symmetric";
-      excludeOptions2[excludeOptions2["mailMap"] = 10] = "mailMap";
-      excludeOptions2[excludeOptions2["multiLine"] = 11] = "multiLine";
-      excludeOptions2[excludeOptions2["strictDate"] = 12] = "strictDate";
-      return excludeOptions2;
-    })(excludeOptions || {});
-  }
-});
-var MergeSummaryConflict;
-var MergeSummaryDetail;
-var init_MergeSummary = __esm({
-  "src/lib/responses/MergeSummary.ts"() {
-    MergeSummaryConflict = class {
-      constructor(reason, file = null, meta) {
-        this.reason = reason;
-        this.file = file;
-        this.meta = meta;
-      }
-      toString() {
-        return `${this.file}:${this.reason}`;
-      }
-    };
-    MergeSummaryDetail = class {
-      constructor() {
-        this.conflicts = [];
-        this.merges = [];
-        this.result = "success";
-      }
-      get failed() {
-        return this.conflicts.length > 0;
-      }
-      get reason() {
-        return this.result;
-      }
-      toString() {
-        if (this.conflicts.length) {
-          return `CONFLICTS: ${this.conflicts.join(", ")}`;
-        }
-        return "OK";
-      }
-    };
-  }
-});
-var PullSummary;
-var PullFailedSummary;
-var init_PullSummary = __esm({
-  "src/lib/responses/PullSummary.ts"() {
-    PullSummary = class {
-      constructor() {
-        this.remoteMessages = {
-          all: []
-        };
-        this.created = [];
-        this.deleted = [];
-        this.files = [];
-        this.deletions = {};
-        this.insertions = {};
-        this.summary = {
-          changes: 0,
-          deletions: 0,
-          insertions: 0
-        };
-      }
-    };
-    PullFailedSummary = class {
-      constructor() {
-        this.remote = "";
-        this.hash = {
-          local: "",
-          remote: ""
-        };
-        this.branch = {
-          local: "",
-          remote: ""
-        };
-        this.message = "";
-      }
-      toString() {
-        return this.message;
-      }
-    };
-  }
-});
-function objectEnumerationResult(remoteMessages) {
-  return remoteMessages.objects = remoteMessages.objects || {
-    compressing: 0,
-    counting: 0,
-    enumerating: 0,
-    packReused: 0,
-    reused: { count: 0, delta: 0 },
-    total: { count: 0, delta: 0 }
-  };
-}
-function asObjectCount(source) {
-  const count = /^\s*(\d+)/.exec(source);
-  const delta = /delta (\d+)/i.exec(source);
-  return {
-    count: asNumber(count && count[1] || "0"),
-    delta: asNumber(delta && delta[1] || "0")
-  };
-}
-var remoteMessagesObjectParsers;
-var init_parse_remote_objects = __esm({
-  "src/lib/parsers/parse-remote-objects.ts"() {
-    init_utils();
-    remoteMessagesObjectParsers = [
-      new RemoteLineParser(/^remote:\s*(enumerating|counting|compressing) objects: (\d+),/i, (result, [action, count]) => {
-        const key = action.toLowerCase();
-        const enumeration = objectEnumerationResult(result.remoteMessages);
-        Object.assign(enumeration, { [key]: asNumber(count) });
-      }),
-      new RemoteLineParser(/^remote:\s*(enumerating|counting|compressing) objects: \d+% \(\d+\/(\d+)\),/i, (result, [action, count]) => {
-        const key = action.toLowerCase();
-        const enumeration = objectEnumerationResult(result.remoteMessages);
-        Object.assign(enumeration, { [key]: asNumber(count) });
-      }),
-      new RemoteLineParser(/total ([^,]+), reused ([^,]+), pack-reused (\d+)/i, (result, [total, reused, packReused]) => {
-        const objects = objectEnumerationResult(result.remoteMessages);
-        objects.total = asObjectCount(total);
-        objects.reused = asObjectCount(reused);
-        objects.packReused = asNumber(packReused);
-      })
-    ];
-  }
-});
-function parseRemoteMessages(_stdOut, stdErr) {
-  return parseStringResponse({ remoteMessages: new RemoteMessageSummary }, parsers2, stdErr);
-}
-var parsers2;
-var RemoteMessageSummary;
-var init_parse_remote_messages = __esm({
-  "src/lib/parsers/parse-remote-messages.ts"() {
-    init_utils();
-    init_parse_remote_objects();
-    parsers2 = [
-      new RemoteLineParser(/^remote:\s*(.+)$/, (result, [text]) => {
-        result.remoteMessages.all.push(text.trim());
-        return false;
-      }),
-      ...remoteMessagesObjectParsers,
-      new RemoteLineParser([/create a (?:pull|merge) request/i, /\s(https?:\/\/\S+)$/], (result, [pullRequestUrl]) => {
-        result.remoteMessages.pullRequestUrl = pullRequestUrl;
-      }),
-      new RemoteLineParser([/found (\d+) vulnerabilities.+\(([^)]+)\)/i, /\s(https?:\/\/\S+)$/], (result, [count, summary2, url]) => {
-        result.remoteMessages.vulnerabilities = {
-          count: asNumber(count),
-          summary: summary2,
-          url
-        };
-      })
-    ];
-    RemoteMessageSummary = class {
-      constructor() {
-        this.all = [];
-      }
-    };
-  }
-});
-function parsePullErrorResult(stdOut, stdErr) {
-  const pullError = parseStringResponse(new PullFailedSummary, errorParsers, [stdOut, stdErr]);
-  return pullError.message && pullError;
-}
-var FILE_UPDATE_REGEX;
-var SUMMARY_REGEX;
-var ACTION_REGEX;
-var parsers3;
-var errorParsers;
-var parsePullDetail;
-var parsePullResult;
-var init_parse_pull = __esm({
-  "src/lib/parsers/parse-pull.ts"() {
-    init_PullSummary();
-    init_utils();
-    init_parse_remote_messages();
-    FILE_UPDATE_REGEX = /^\s*(.+?)\s+\|\s+\d+\s*(\+*)(-*)/;
-    SUMMARY_REGEX = /(\d+)\D+((\d+)\D+\(\+\))?(\D+(\d+)\D+\(-\))?/;
-    ACTION_REGEX = /^(create|delete) mode \d+ (.+)/;
-    parsers3 = [
-      new LineParser(FILE_UPDATE_REGEX, (result, [file, insertions, deletions]) => {
-        result.files.push(file);
-        if (insertions) {
-          result.insertions[file] = insertions.length;
-        }
-        if (deletions) {
-          result.deletions[file] = deletions.length;
-        }
-      }),
-      new LineParser(SUMMARY_REGEX, (result, [changes, , insertions, , deletions]) => {
-        if (insertions !== undefined || deletions !== undefined) {
-          result.summary.changes = +changes || 0;
-          result.summary.insertions = +insertions || 0;
-          result.summary.deletions = +deletions || 0;
-          return true;
-        }
-        return false;
-      }),
-      new LineParser(ACTION_REGEX, (result, [action, file]) => {
-        append(result.files, file);
-        append(action === "create" ? result.created : result.deleted, file);
-      })
-    ];
-    errorParsers = [
-      new LineParser(/^from\s(.+)$/i, (result, [remote]) => void (result.remote = remote)),
-      new LineParser(/^fatal:\s(.+)$/, (result, [message]) => void (result.message = message)),
-      new LineParser(/([a-z0-9]+)\.\.([a-z0-9]+)\s+(\S+)\s+->\s+(\S+)$/, (result, [hashLocal, hashRemote, branchLocal, branchRemote]) => {
-        result.branch.local = branchLocal;
-        result.hash.local = hashLocal;
-        result.branch.remote = branchRemote;
-        result.hash.remote = hashRemote;
-      })
-    ];
-    parsePullDetail = (stdOut, stdErr) => {
-      return parseStringResponse(new PullSummary, parsers3, [stdOut, stdErr]);
-    };
-    parsePullResult = (stdOut, stdErr) => {
-      return Object.assign(new PullSummary, parsePullDetail(stdOut, stdErr), parseRemoteMessages(stdOut, stdErr));
-    };
-  }
-});
-var parsers4;
-var parseMergeResult;
-var parseMergeDetail;
-var init_parse_merge = __esm({
-  "src/lib/parsers/parse-merge.ts"() {
-    init_MergeSummary();
-    init_utils();
-    init_parse_pull();
-    parsers4 = [
-      new LineParser(/^Auto-merging\s+(.+)$/, (summary2, [autoMerge]) => {
-        summary2.merges.push(autoMerge);
-      }),
-      new LineParser(/^CONFLICT\s+\((.+)\): Merge conflict in (.+)$/, (summary2, [reason, file]) => {
-        summary2.conflicts.push(new MergeSummaryConflict(reason, file));
-      }),
-      new LineParser(/^CONFLICT\s+\((.+\/delete)\): (.+) deleted in (.+) and/, (summary2, [reason, file, deleteRef]) => {
-        summary2.conflicts.push(new MergeSummaryConflict(reason, file, { deleteRef }));
-      }),
-      new LineParser(/^CONFLICT\s+\((.+)\):/, (summary2, [reason]) => {
-        summary2.conflicts.push(new MergeSummaryConflict(reason, null));
-      }),
-      new LineParser(/^Automatic merge failed;\s+(.+)$/, (summary2, [result]) => {
-        summary2.result = result;
-      })
-    ];
-    parseMergeResult = (stdOut, stdErr) => {
-      return Object.assign(parseMergeDetail(stdOut, stdErr), parsePullResult(stdOut, stdErr));
-    };
-    parseMergeDetail = (stdOut) => {
-      return parseStringResponse(new MergeSummaryDetail, parsers4, stdOut);
-    };
-  }
-});
-function mergeTask(customArgs) {
-  if (!customArgs.length) {
-    return configurationErrorTask("Git.merge requires at least one option");
-  }
-  return {
-    commands: ["merge", ...customArgs],
-    format: "utf-8",
-    parser(stdOut, stdErr) {
-      const merge = parseMergeResult(stdOut, stdErr);
-      if (merge.failed) {
-        throw new GitResponseError(merge);
-      }
-      return merge;
-    }
-  };
-}
-var init_merge = __esm({
-  "src/lib/tasks/merge.ts"() {
-    init_git_response_error();
-    init_parse_merge();
-    init_task();
-  }
-});
-function pushResultPushedItem(local, remote, status) {
-  const deleted = status.includes("deleted");
-  const tag = status.includes("tag") || /^refs\/tags/.test(local);
-  const alreadyUpdated = !status.includes("new");
-  return {
-    deleted,
-    tag,
-    branch: !tag,
-    new: !alreadyUpdated,
-    alreadyUpdated,
-    local,
-    remote
-  };
-}
-var parsers5;
-var parsePushResult;
-var parsePushDetail;
-var init_parse_push = __esm({
-  "src/lib/parsers/parse-push.ts"() {
-    init_utils();
-    init_parse_remote_messages();
-    parsers5 = [
-      new LineParser(/^Pushing to (.+)$/, (result, [repo]) => {
-        result.repo = repo;
-      }),
-      new LineParser(/^updating local tracking ref '(.+)'/, (result, [local]) => {
-        result.ref = {
-          ...result.ref || {},
-          local
-        };
-      }),
-      new LineParser(/^[=*-]\s+([^:]+):(\S+)\s+\[(.+)]$/, (result, [local, remote, type]) => {
-        result.pushed.push(pushResultPushedItem(local, remote, type));
-      }),
-      new LineParser(/^Branch '([^']+)' set up to track remote branch '([^']+)' from '([^']+)'/, (result, [local, remote, remoteName]) => {
-        result.branch = {
-          ...result.branch || {},
-          local,
-          remote,
-          remoteName
-        };
-      }),
-      new LineParser(/^([^:]+):(\S+)\s+([a-z0-9]+)\.\.([a-z0-9]+)$/, (result, [local, remote, from, to]) => {
-        result.update = {
-          head: {
-            local,
-            remote
-          },
-          hash: {
-            from,
-            to
-          }
-        };
-      })
-    ];
-    parsePushResult = (stdOut, stdErr) => {
-      const pushDetail = parsePushDetail(stdOut, stdErr);
-      const responseDetail = parseRemoteMessages(stdOut, stdErr);
-      return {
-        ...pushDetail,
-        ...responseDetail
-      };
-    };
-    parsePushDetail = (stdOut, stdErr) => {
-      return parseStringResponse({ pushed: [] }, parsers5, [stdOut, stdErr]);
-    };
-  }
-});
-var push_exports = {};
-__export2(push_exports, {
-  pushTagsTask: () => pushTagsTask,
-  pushTask: () => pushTask
-});
-function pushTagsTask(ref = {}, customArgs) {
-  append(customArgs, "--tags");
-  return pushTask(ref, customArgs);
-}
-function pushTask(ref = {}, customArgs) {
-  const commands = ["push", ...customArgs];
-  if (ref.branch) {
-    commands.splice(1, 0, ref.branch);
-  }
-  if (ref.remote) {
-    commands.splice(1, 0, ref.remote);
-  }
-  remove(commands, "-v");
-  append(commands, "--verbose");
-  append(commands, "--porcelain");
-  return {
-    commands,
-    format: "utf-8",
-    parser: parsePushResult
-  };
-}
-var init_push = __esm({
-  "src/lib/tasks/push.ts"() {
-    init_parse_push();
-    init_utils();
-  }
-});
-function show_default() {
-  return {
-    showBuffer() {
-      const commands = ["show", ...getTrailingOptions(arguments, 1)];
-      if (!commands.includes("--binary")) {
-        commands.splice(1, 0, "--binary");
-      }
-      return this._runTask(straightThroughBufferTask(commands), trailingFunctionArgument(arguments));
-    },
-    show() {
-      const commands = ["show", ...getTrailingOptions(arguments, 1)];
-      return this._runTask(straightThroughStringTask(commands), trailingFunctionArgument(arguments));
-    }
-  };
-}
-var init_show = __esm({
-  "src/lib/tasks/show.ts"() {
-    init_utils();
-    init_task();
-  }
-});
-var fromPathRegex;
-var FileStatusSummary;
-var init_FileStatusSummary = __esm({
-  "src/lib/responses/FileStatusSummary.ts"() {
-    fromPathRegex = /^(.+)\0(.+)$/;
-    FileStatusSummary = class {
-      constructor(path, index, working_dir) {
-        this.path = path;
-        this.index = index;
-        this.working_dir = working_dir;
-        if (index === "R" || working_dir === "R") {
-          const detail = fromPathRegex.exec(path) || [null, path, path];
-          this.from = detail[2] || "";
-          this.path = detail[1] || "";
-        }
-      }
-    };
-  }
-});
-function renamedFile(line) {
-  const [to, from] = line.split(NULL);
-  return {
-    from: from || to,
-    to
-  };
-}
-function parser3(indexX, indexY, handler) {
-  return [`${indexX}${indexY}`, handler];
-}
-function conflicts(indexX, ...indexY) {
-  return indexY.map((y2) => parser3(indexX, y2, (result, file) => result.conflicted.push(file)));
-}
-function splitLine(result, lineStr) {
-  const trimmed2 = lineStr.trim();
-  switch (" ") {
-    case trimmed2.charAt(2):
-      return data(trimmed2.charAt(0), trimmed2.charAt(1), trimmed2.slice(3));
-    case trimmed2.charAt(1):
-      return data(" ", trimmed2.charAt(0), trimmed2.slice(2));
-    default:
-      return;
-  }
-  function data(index, workingDir, path) {
-    const raw = `${index}${workingDir}`;
-    const handler = parsers6.get(raw);
-    if (handler) {
-      handler(result, path);
-    }
-    if (raw !== "##" && raw !== "!!") {
-      result.files.push(new FileStatusSummary(path, index, workingDir));
-    }
-  }
-}
-var StatusSummary;
-var parsers6;
-var parseStatusSummary;
-var init_StatusSummary = __esm({
-  "src/lib/responses/StatusSummary.ts"() {
-    init_utils();
-    init_FileStatusSummary();
-    StatusSummary = class {
-      constructor() {
-        this.not_added = [];
-        this.conflicted = [];
-        this.created = [];
-        this.deleted = [];
-        this.ignored = undefined;
-        this.modified = [];
-        this.renamed = [];
-        this.files = [];
-        this.staged = [];
-        this.ahead = 0;
-        this.behind = 0;
-        this.current = null;
-        this.tracking = null;
-        this.detached = false;
-        this.isClean = () => {
-          return !this.files.length;
-        };
-      }
-    };
-    parsers6 = new Map([
-      parser3(" ", "A", (result, file) => result.created.push(file)),
-      parser3(" ", "D", (result, file) => result.deleted.push(file)),
-      parser3(" ", "M", (result, file) => result.modified.push(file)),
-      parser3("A", " ", (result, file) => {
-        result.created.push(file);
-        result.staged.push(file);
-      }),
-      parser3("A", "M", (result, file) => {
-        result.created.push(file);
-        result.staged.push(file);
-        result.modified.push(file);
-      }),
-      parser3("D", " ", (result, file) => {
-        result.deleted.push(file);
-        result.staged.push(file);
-      }),
-      parser3("M", " ", (result, file) => {
-        result.modified.push(file);
-        result.staged.push(file);
-      }),
-      parser3("M", "M", (result, file) => {
-        result.modified.push(file);
-        result.staged.push(file);
-      }),
-      parser3("R", " ", (result, file) => {
-        result.renamed.push(renamedFile(file));
-      }),
-      parser3("R", "M", (result, file) => {
-        const renamed = renamedFile(file);
-        result.renamed.push(renamed);
-        result.modified.push(renamed.to);
-      }),
-      parser3("!", "!", (_result, _file) => {
-        (_result.ignored = _result.ignored || []).push(_file);
-      }),
-      parser3("?", "?", (result, file) => result.not_added.push(file)),
-      ...conflicts("A", "A", "U"),
-      ...conflicts("D", "D", "U"),
-      ...conflicts("U", "A", "D", "U"),
-      [
-        "##",
-        (result, line) => {
-          const aheadReg = /ahead (\d+)/;
-          const behindReg = /behind (\d+)/;
-          const currentReg = /^(.+?(?=(?:\.{3}|\s|$)))/;
-          const trackingReg = /\.{3}(\S*)/;
-          const onEmptyBranchReg = /\son\s(\S+?)(?=\.{3}|$)/;
-          let regexResult = aheadReg.exec(line);
-          result.ahead = regexResult && +regexResult[1] || 0;
-          regexResult = behindReg.exec(line);
-          result.behind = regexResult && +regexResult[1] || 0;
-          regexResult = currentReg.exec(line);
-          result.current = filterType(regexResult?.[1], filterString, null);
-          regexResult = trackingReg.exec(line);
-          result.tracking = filterType(regexResult?.[1], filterString, null);
-          regexResult = onEmptyBranchReg.exec(line);
-          if (regexResult) {
-            result.current = filterType(regexResult?.[1], filterString, result.current);
-          }
-          result.detached = /\(no branch\)/.test(line);
-        }
-      ]
-    ]);
-    parseStatusSummary = function(text) {
-      const lines = text.split(NULL);
-      const status = new StatusSummary;
-      for (let i2 = 0, l = lines.length;i2 < l; ) {
-        let line = lines[i2++].trim();
-        if (!line) {
-          continue;
-        }
-        if (line.charAt(0) === "R") {
-          line += NULL + (lines[i2++] || "");
-        }
-        splitLine(status, line);
-      }
-      return status;
-    };
-  }
-});
-function statusTask(customArgs) {
-  const commands = [
-    "status",
-    "--porcelain",
-    "-b",
-    "-u",
-    "--null",
-    ...customArgs.filter((arg) => !ignoredOptions.includes(arg))
-  ];
-  return {
-    format: "utf-8",
-    commands,
-    parser(text) {
-      return parseStatusSummary(text);
-    }
-  };
-}
-var ignoredOptions;
-var init_status = __esm({
-  "src/lib/tasks/status.ts"() {
-    init_StatusSummary();
-    ignoredOptions = ["--null", "-z"];
-  }
-});
-function versionResponse(major = 0, minor = 0, patch = 0, agent = "", installed = true) {
-  return Object.defineProperty({
-    major,
-    minor,
-    patch,
-    agent,
-    installed
-  }, "toString", {
-    value() {
-      return `${this.major}.${this.minor}.${this.patch}`;
-    },
-    configurable: false,
-    enumerable: false
-  });
-}
-function notInstalledResponse() {
-  return versionResponse(0, 0, 0, "", false);
-}
-function version_default() {
-  return {
-    version() {
-      return this._runTask({
-        commands: ["--version"],
-        format: "utf-8",
-        parser: versionParser,
-        onError(result, error2, done, fail) {
-          if (result.exitCode === -2) {
-            return done(Buffer.from(NOT_INSTALLED));
-          }
-          fail(error2);
-        }
-      });
-    }
-  };
-}
-function versionParser(stdOut) {
-  if (stdOut === NOT_INSTALLED) {
-    return notInstalledResponse();
-  }
-  return parseStringResponse(versionResponse(0, 0, 0, stdOut), parsers7, stdOut);
-}
-var NOT_INSTALLED;
-var parsers7;
-var init_version = __esm({
-  "src/lib/tasks/version.ts"() {
-    init_utils();
-    NOT_INSTALLED = "installed=false";
-    parsers7 = [
-      new LineParser(/version (\d+)\.(\d+)\.(\d+)(?:\s*\((.+)\))?/, (result, [major, minor, patch, agent = ""]) => {
-        Object.assign(result, versionResponse(asNumber(major), asNumber(minor), asNumber(patch), agent));
-      }),
-      new LineParser(/version (\d+)\.(\d+)\.(\D+)(.+)?$/, (result, [major, minor, patch, agent = ""]) => {
-        Object.assign(result, versionResponse(asNumber(major), asNumber(minor), patch, agent));
-      })
-    ];
-  }
-});
-function createCloneTask(api2, task, repoPath, ...args) {
-  if (!filterString(repoPath)) {
-    return configurationErrorTask(`git.${api2}() requires a string 'repoPath'`);
-  }
-  return task(repoPath, filterType(args[0], filterString), getTrailingOptions(arguments));
-}
-function clone_default() {
-  return {
-    clone(repo, ...rest) {
-      return this._runTask(createCloneTask("clone", cloneTask, filterType(repo, filterString), ...rest), trailingFunctionArgument(arguments));
-    },
-    mirror(repo, ...rest) {
-      return this._runTask(createCloneTask("mirror", cloneMirrorTask, filterType(repo, filterString), ...rest), trailingFunctionArgument(arguments));
-    }
-  };
-}
-var cloneTask;
-var cloneMirrorTask;
-var init_clone = __esm({
-  "src/lib/tasks/clone.ts"() {
-    init_task();
-    init_utils();
-    cloneTask = (repo, directory, customArgs) => {
-      const commands = ["clone", ...customArgs];
-      filterString(repo) && commands.push(c(repo));
-      filterString(directory) && commands.push(c(directory));
-      return straightThroughStringTask(commands);
-    };
-    cloneMirrorTask = (repo, directory, customArgs) => {
-      append(customArgs, "--mirror");
-      return cloneTask(repo, directory, customArgs);
-    };
-  }
-});
-var simple_git_api_exports = {};
-__export2(simple_git_api_exports, {
-  SimpleGitApi: () => SimpleGitApi
-});
-var SimpleGitApi;
-var init_simple_git_api = __esm({
-  "src/lib/simple-git-api.ts"() {
-    init_task_callback();
-    init_change_working_directory();
-    init_checkout();
-    init_count_objects();
-    init_commit();
-    init_config();
-    init_first_commit();
-    init_grep();
-    init_hash_object();
-    init_init();
-    init_log();
-    init_merge();
-    init_push();
-    init_show();
-    init_status();
-    init_task();
-    init_version();
-    init_utils();
-    init_clone();
-    SimpleGitApi = class {
-      constructor(_executor) {
-        this._executor = _executor;
-      }
-      _runTask(task, then) {
-        const chain = this._executor.chain();
-        const promise = chain.push(task);
-        if (then) {
-          taskCallback(task, promise, then);
-        }
-        return Object.create(this, {
-          then: { value: promise.then.bind(promise) },
-          catch: { value: promise.catch.bind(promise) },
-          _executor: { value: chain }
-        });
-      }
-      add(files) {
-        return this._runTask(straightThroughStringTask(["add", ...asArray(files)]), trailingFunctionArgument(arguments));
-      }
-      cwd(directory) {
-        const next = trailingFunctionArgument(arguments);
-        if (typeof directory === "string") {
-          return this._runTask(changeWorkingDirectoryTask(directory, this._executor), next);
-        }
-        if (typeof directory?.path === "string") {
-          return this._runTask(changeWorkingDirectoryTask(directory.path, directory.root && this._executor || undefined), next);
-        }
-        return this._runTask(configurationErrorTask("Git.cwd: workingDirectory must be supplied as a string"), next);
-      }
-      hashObject(path, write) {
-        return this._runTask(hashObjectTask(path, write === true), trailingFunctionArgument(arguments));
-      }
-      init(bare) {
-        return this._runTask(initTask(bare === true, this._executor.cwd, getTrailingOptions(arguments)), trailingFunctionArgument(arguments));
-      }
-      merge() {
-        return this._runTask(mergeTask(getTrailingOptions(arguments)), trailingFunctionArgument(arguments));
-      }
-      mergeFromTo(remote, branch) {
-        if (!(filterString(remote) && filterString(branch))) {
-          return this._runTask(configurationErrorTask(`Git.mergeFromTo requires that the 'remote' and 'branch' arguments are supplied as strings`));
-        }
-        return this._runTask(mergeTask([remote, branch, ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments, false));
-      }
-      outputHandler(handler) {
-        this._executor.outputHandler = handler;
-        return this;
-      }
-      push() {
-        const task = pushTask({
-          remote: filterType(arguments[0], filterString),
-          branch: filterType(arguments[1], filterString)
-        }, getTrailingOptions(arguments));
-        return this._runTask(task, trailingFunctionArgument(arguments));
-      }
-      stash() {
-        return this._runTask(straightThroughStringTask(["stash", ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments));
-      }
-      status() {
-        return this._runTask(statusTask(getTrailingOptions(arguments)), trailingFunctionArgument(arguments));
-      }
-    };
-    Object.assign(SimpleGitApi.prototype, checkout_default(), clone_default(), commit_default(), config_default(), count_objects_default(), first_commit_default(), grep_default(), log_default(), show_default(), version_default());
-  }
-});
-var scheduler_exports = {};
-__export2(scheduler_exports, {
-  Scheduler: () => Scheduler
-});
-var createScheduledTask;
-var Scheduler;
-var init_scheduler = __esm({
-  "src/lib/runners/scheduler.ts"() {
-    init_utils();
-    init_git_logger();
-    createScheduledTask = /* @__PURE__ */ (() => {
-      let id = 0;
-      return () => {
-        id++;
-        const { promise, done } = import_promise_deferred.createDeferred();
-        return {
-          promise,
-          done,
-          id
-        };
-      };
-    })();
-    Scheduler = class {
-      constructor(concurrency = 2) {
-        this.concurrency = concurrency;
-        this.logger = createLogger("", "scheduler");
-        this.pending = [];
-        this.running = [];
-        this.logger(`Constructed, concurrency=%s`, concurrency);
-      }
-      schedule() {
-        if (!this.pending.length || this.running.length >= this.concurrency) {
-          this.logger(`Schedule attempt ignored, pending=%s running=%s concurrency=%s`, this.pending.length, this.running.length, this.concurrency);
-          return;
-        }
-        const task = append(this.running, this.pending.shift());
-        this.logger(`Attempting id=%s`, task.id);
-        task.done(() => {
-          this.logger(`Completing id=`, task.id);
-          remove(this.running, task);
-          this.schedule();
-        });
-      }
-      next() {
-        const { promise, id } = append(this.pending, createScheduledTask());
-        this.logger(`Scheduling id=%s`, id);
-        this.schedule();
-        return promise;
-      }
-    };
-  }
-});
-var apply_patch_exports = {};
-__export2(apply_patch_exports, {
-  applyPatchTask: () => applyPatchTask
-});
-function applyPatchTask(patches, customArgs) {
-  return straightThroughStringTask(["apply", ...customArgs, ...patches]);
-}
-var init_apply_patch = __esm({
-  "src/lib/tasks/apply-patch.ts"() {
-    init_task();
-  }
-});
-function branchDeletionSuccess(branch, hash) {
-  return {
-    branch,
-    hash,
-    success: true
-  };
-}
-function branchDeletionFailure(branch) {
-  return {
-    branch,
-    hash: null,
-    success: false
-  };
-}
-var BranchDeletionBatch;
-var init_BranchDeleteSummary = __esm({
-  "src/lib/responses/BranchDeleteSummary.ts"() {
-    BranchDeletionBatch = class {
-      constructor() {
-        this.all = [];
-        this.branches = {};
-        this.errors = [];
-      }
-      get success() {
-        return !this.errors.length;
-      }
-    };
-  }
-});
-function hasBranchDeletionError(data, processExitCode) {
-  return processExitCode === 1 && deleteErrorRegex.test(data);
-}
-var deleteSuccessRegex;
-var deleteErrorRegex;
-var parsers8;
-var parseBranchDeletions;
-var init_parse_branch_delete = __esm({
-  "src/lib/parsers/parse-branch-delete.ts"() {
-    init_BranchDeleteSummary();
-    init_utils();
-    deleteSuccessRegex = /(\S+)\s+\(\S+\s([^)]+)\)/;
-    deleteErrorRegex = /^error[^']+'([^']+)'/m;
-    parsers8 = [
-      new LineParser(deleteSuccessRegex, (result, [branch, hash]) => {
-        const deletion = branchDeletionSuccess(branch, hash);
-        result.all.push(deletion);
-        result.branches[branch] = deletion;
-      }),
-      new LineParser(deleteErrorRegex, (result, [branch]) => {
-        const deletion = branchDeletionFailure(branch);
-        result.errors.push(deletion);
-        result.all.push(deletion);
-        result.branches[branch] = deletion;
-      })
-    ];
-    parseBranchDeletions = (stdOut, stdErr) => {
-      return parseStringResponse(new BranchDeletionBatch, parsers8, [stdOut, stdErr]);
-    };
-  }
-});
-var BranchSummaryResult;
-var init_BranchSummary = __esm({
-  "src/lib/responses/BranchSummary.ts"() {
-    BranchSummaryResult = class {
-      constructor() {
-        this.all = [];
-        this.branches = {};
-        this.current = "";
-        this.detached = false;
-      }
-      push(status, detached, name, commit, label) {
-        if (status === "*") {
-          this.detached = detached;
-          this.current = name;
-        }
-        this.all.push(name);
-        this.branches[name] = {
-          current: status === "*",
-          linkedWorkTree: status === "+",
-          name,
-          commit,
-          label
-        };
-      }
-    };
-  }
-});
-function branchStatus(input) {
-  return input ? input.charAt(0) : "";
-}
-function parseBranchSummary(stdOut, currentOnly = false) {
-  return parseStringResponse(new BranchSummaryResult, currentOnly ? [currentBranchParser] : parsers9, stdOut);
-}
-var parsers9;
-var currentBranchParser;
-var init_parse_branch = __esm({
-  "src/lib/parsers/parse-branch.ts"() {
-    init_BranchSummary();
-    init_utils();
-    parsers9 = [
-      new LineParser(/^([*+]\s)?\((?:HEAD )?detached (?:from|at) (\S+)\)\s+([a-z0-9]+)\s(.*)$/, (result, [current, name, commit, label]) => {
-        result.push(branchStatus(current), true, name, commit, label);
-      }),
-      new LineParser(/^([*+]\s)?(\S+)\s+([a-z0-9]+)\s?(.*)$/s, (result, [current, name, commit, label]) => {
-        result.push(branchStatus(current), false, name, commit, label);
-      })
-    ];
-    currentBranchParser = new LineParser(/^(\S+)$/s, (result, [name]) => {
-      result.push("*", false, name, "", "");
-    });
-  }
-});
-var branch_exports = {};
-__export2(branch_exports, {
-  branchLocalTask: () => branchLocalTask,
-  branchTask: () => branchTask,
-  containsDeleteBranchCommand: () => containsDeleteBranchCommand,
-  deleteBranchTask: () => deleteBranchTask,
-  deleteBranchesTask: () => deleteBranchesTask
-});
-function containsDeleteBranchCommand(commands) {
-  const deleteCommands = ["-d", "-D", "--delete"];
-  return commands.some((command) => deleteCommands.includes(command));
-}
-function branchTask(customArgs) {
-  const isDelete = containsDeleteBranchCommand(customArgs);
-  const isCurrentOnly = customArgs.includes("--show-current");
-  const commands = ["branch", ...customArgs];
-  if (commands.length === 1) {
-    commands.push("-a");
-  }
-  if (!commands.includes("-v")) {
-    commands.splice(1, 0, "-v");
-  }
-  return {
-    format: "utf-8",
-    commands,
-    parser(stdOut, stdErr) {
-      if (isDelete) {
-        return parseBranchDeletions(stdOut, stdErr).all[0];
-      }
-      return parseBranchSummary(stdOut, isCurrentOnly);
-    }
-  };
-}
-function branchLocalTask() {
-  return {
-    format: "utf-8",
-    commands: ["branch", "-v"],
-    parser(stdOut) {
-      return parseBranchSummary(stdOut);
-    }
-  };
-}
-function deleteBranchesTask(branches, forceDelete = false) {
-  return {
-    format: "utf-8",
-    commands: ["branch", "-v", forceDelete ? "-D" : "-d", ...branches],
-    parser(stdOut, stdErr) {
-      return parseBranchDeletions(stdOut, stdErr);
-    },
-    onError({ exitCode, stdOut }, error2, done, fail) {
-      if (!hasBranchDeletionError(String(error2), exitCode)) {
-        return fail(error2);
-      }
-      done(stdOut);
-    }
-  };
-}
-function deleteBranchTask(branch, forceDelete = false) {
-  const task = {
-    format: "utf-8",
-    commands: ["branch", "-v", forceDelete ? "-D" : "-d", branch],
-    parser(stdOut, stdErr) {
-      return parseBranchDeletions(stdOut, stdErr).branches[branch];
-    },
-    onError({ exitCode, stdErr, stdOut }, error2, _2, fail) {
-      if (!hasBranchDeletionError(String(error2), exitCode)) {
-        return fail(error2);
-      }
-      throw new GitResponseError(task.parser(bufferToString(stdOut), bufferToString(stdErr)), String(error2));
-    }
-  };
-  return task;
-}
-var init_branch = __esm({
-  "src/lib/tasks/branch.ts"() {
-    init_git_response_error();
-    init_parse_branch_delete();
-    init_parse_branch();
-    init_utils();
-  }
-});
-function toPath(input) {
-  const path = input.trim().replace(/^["']|["']$/g, "");
-  return path && normalize(path);
-}
-var parseCheckIgnore;
-var init_CheckIgnore = __esm({
-  "src/lib/responses/CheckIgnore.ts"() {
-    parseCheckIgnore = (text) => {
-      return text.split(/\n/g).map(toPath).filter(Boolean);
-    };
-  }
-});
-var check_ignore_exports = {};
-__export2(check_ignore_exports, {
-  checkIgnoreTask: () => checkIgnoreTask
-});
-function checkIgnoreTask(paths) {
-  return {
-    commands: ["check-ignore", ...paths],
-    format: "utf-8",
-    parser: parseCheckIgnore
-  };
-}
-var init_check_ignore = __esm({
-  "src/lib/tasks/check-ignore.ts"() {
-    init_CheckIgnore();
-  }
-});
-function parseFetchResult(stdOut, stdErr) {
-  const result = {
-    raw: stdOut,
-    remote: null,
-    branches: [],
-    tags: [],
-    updated: [],
-    deleted: []
-  };
-  return parseStringResponse(result, parsers10, [stdOut, stdErr]);
-}
-var parsers10;
-var init_parse_fetch = __esm({
-  "src/lib/parsers/parse-fetch.ts"() {
-    init_utils();
-    parsers10 = [
-      new LineParser(/From (.+)$/, (result, [remote]) => {
-        result.remote = remote;
-      }),
-      new LineParser(/\* \[new branch]\s+(\S+)\s*-> (.+)$/, (result, [name, tracking]) => {
-        result.branches.push({
-          name,
-          tracking
-        });
-      }),
-      new LineParser(/\* \[new tag]\s+(\S+)\s*-> (.+)$/, (result, [name, tracking]) => {
-        result.tags.push({
-          name,
-          tracking
-        });
-      }),
-      new LineParser(/- \[deleted]\s+\S+\s*-> (.+)$/, (result, [tracking]) => {
-        result.deleted.push({
-          tracking
-        });
-      }),
-      new LineParser(/\s*([^.]+)\.\.(\S+)\s+(\S+)\s*-> (.+)$/, (result, [from, to, name, tracking]) => {
-        result.updated.push({
-          name,
-          tracking,
-          to,
-          from
-        });
-      })
-    ];
-  }
-});
-var fetch_exports = {};
-__export2(fetch_exports, {
-  fetchTask: () => fetchTask
-});
-function disallowedCommand(command) {
-  return /^--upload-pack(=|$)/.test(command);
-}
-function fetchTask(remote, branch, customArgs) {
-  const commands = ["fetch", ...customArgs];
-  if (remote && branch) {
-    commands.push(remote, branch);
-  }
-  const banned = commands.find(disallowedCommand);
-  if (banned) {
-    return configurationErrorTask(`git.fetch: potential exploit argument blocked.`);
-  }
-  return {
-    commands,
-    format: "utf-8",
-    parser: parseFetchResult
-  };
-}
-var init_fetch = __esm({
-  "src/lib/tasks/fetch.ts"() {
-    init_parse_fetch();
-    init_task();
-  }
-});
-function parseMoveResult(stdOut) {
-  return parseStringResponse({ moves: [] }, parsers11, stdOut);
-}
-var parsers11;
-var init_parse_move = __esm({
-  "src/lib/parsers/parse-move.ts"() {
-    init_utils();
-    parsers11 = [
-      new LineParser(/^Renaming (.+) to (.+)$/, (result, [from, to]) => {
-        result.moves.push({ from, to });
-      })
-    ];
-  }
-});
-var move_exports = {};
-__export2(move_exports, {
-  moveTask: () => moveTask
-});
-function moveTask(from, to) {
-  return {
-    commands: ["mv", "-v", ...asArray(from), to],
-    format: "utf-8",
-    parser: parseMoveResult
-  };
-}
-var init_move = __esm({
-  "src/lib/tasks/move.ts"() {
-    init_parse_move();
-    init_utils();
-  }
-});
-var pull_exports = {};
-__export2(pull_exports, {
-  pullTask: () => pullTask
-});
-function pullTask(remote, branch, customArgs) {
-  const commands = ["pull", ...customArgs];
-  if (remote && branch) {
-    commands.splice(1, 0, remote, branch);
-  }
-  return {
-    commands,
-    format: "utf-8",
-    parser(stdOut, stdErr) {
-      return parsePullResult(stdOut, stdErr);
-    },
-    onError(result, _error, _done, fail) {
-      const pullError = parsePullErrorResult(bufferToString(result.stdOut), bufferToString(result.stdErr));
-      if (pullError) {
-        return fail(new GitResponseError(pullError));
-      }
-      fail(_error);
-    }
-  };
-}
-var init_pull = __esm({
-  "src/lib/tasks/pull.ts"() {
-    init_git_response_error();
-    init_parse_pull();
-    init_utils();
-  }
-});
-function parseGetRemotes(text) {
-  const remotes = {};
-  forEach(text, ([name]) => remotes[name] = { name });
-  return Object.values(remotes);
-}
-function parseGetRemotesVerbose(text) {
-  const remotes = {};
-  forEach(text, ([name, url, purpose]) => {
-    if (!Object.hasOwn(remotes, name)) {
-      remotes[name] = {
-        name,
-        refs: { fetch: "", push: "" }
-      };
-    }
-    if (purpose && url) {
-      remotes[name].refs[purpose.replace(/[^a-z]/g, "")] = url;
-    }
-  });
-  return Object.values(remotes);
-}
-function forEach(text, handler) {
-  forEachLineWithContent(text, (line) => handler(line.split(/\s+/)));
-}
-var init_GetRemoteSummary = __esm({
-  "src/lib/responses/GetRemoteSummary.ts"() {
-    init_utils();
-  }
-});
-var remote_exports = {};
-__export2(remote_exports, {
-  addRemoteTask: () => addRemoteTask,
-  getRemotesTask: () => getRemotesTask,
-  listRemotesTask: () => listRemotesTask,
-  remoteTask: () => remoteTask,
-  removeRemoteTask: () => removeRemoteTask
-});
-function addRemoteTask(remoteName, remoteRepo, customArgs) {
-  return straightThroughStringTask(["remote", "add", ...customArgs, remoteName, remoteRepo]);
-}
-function getRemotesTask(verbose) {
-  const commands = ["remote"];
-  if (verbose) {
-    commands.push("-v");
-  }
-  return {
-    commands,
-    format: "utf-8",
-    parser: verbose ? parseGetRemotesVerbose : parseGetRemotes
-  };
-}
-function listRemotesTask(customArgs) {
-  const commands = [...customArgs];
-  if (commands[0] !== "ls-remote") {
-    commands.unshift("ls-remote");
-  }
-  return straightThroughStringTask(commands);
-}
-function remoteTask(customArgs) {
-  const commands = [...customArgs];
-  if (commands[0] !== "remote") {
-    commands.unshift("remote");
-  }
-  return straightThroughStringTask(commands);
-}
-function removeRemoteTask(remoteName) {
-  return straightThroughStringTask(["remote", "remove", remoteName]);
-}
-var init_remote = __esm({
-  "src/lib/tasks/remote.ts"() {
-    init_GetRemoteSummary();
-    init_task();
-  }
-});
-var stash_list_exports = {};
-__export2(stash_list_exports, {
-  stashListTask: () => stashListTask
-});
-function stashListTask(opt = {}, customArgs) {
-  const options = parseLogOptions(opt);
-  const commands = ["stash", "list", ...options.commands, ...customArgs];
-  const parser4 = createListLogSummaryParser(options.splitter, options.fields, logFormatFromCommand(commands));
-  return validateLogFormatConfig(commands) || {
-    commands,
-    format: "utf-8",
-    parser: parser4
-  };
-}
-var init_stash_list = __esm({
-  "src/lib/tasks/stash-list.ts"() {
-    init_log_format();
-    init_parse_list_log_summary();
-    init_diff();
-    init_log();
-  }
-});
-var sub_module_exports = {};
-__export2(sub_module_exports, {
-  addSubModuleTask: () => addSubModuleTask,
-  initSubModuleTask: () => initSubModuleTask,
-  subModuleTask: () => subModuleTask,
-  updateSubModuleTask: () => updateSubModuleTask
-});
-function addSubModuleTask(repo, path) {
-  return subModuleTask(["add", repo, path]);
-}
-function initSubModuleTask(customArgs) {
-  return subModuleTask(["init", ...customArgs]);
-}
-function subModuleTask(customArgs) {
-  const commands = [...customArgs];
-  if (commands[0] !== "submodule") {
-    commands.unshift("submodule");
-  }
-  return straightThroughStringTask(commands);
-}
-function updateSubModuleTask(customArgs) {
-  return subModuleTask(["update", ...customArgs]);
-}
-var init_sub_module = __esm({
-  "src/lib/tasks/sub-module.ts"() {
-    init_task();
-  }
-});
-function singleSorted(a, b2) {
-  const aIsNum = Number.isNaN(a);
-  const bIsNum = Number.isNaN(b2);
-  if (aIsNum !== bIsNum) {
-    return aIsNum ? 1 : -1;
-  }
-  return aIsNum ? sorted(a, b2) : 0;
-}
-function sorted(a, b2) {
-  return a === b2 ? 0 : a > b2 ? 1 : -1;
-}
-function trimmed(input) {
-  return input.trim();
-}
-function toNumber(input) {
-  if (typeof input === "string") {
-    return parseInt(input.replace(/^\D+/g, ""), 10) || 0;
-  }
-  return 0;
-}
-var TagList;
-var parseTagList;
-var init_TagList = __esm({
-  "src/lib/responses/TagList.ts"() {
-    TagList = class {
-      constructor(all, latest) {
-        this.all = all;
-        this.latest = latest;
-      }
-    };
-    parseTagList = function(data, customSort = false) {
-      const tags = data.split(`
-`).map(trimmed).filter(Boolean);
-      if (!customSort) {
-        tags.sort(function(tagA, tagB) {
-          const partsA = tagA.split(".");
-          const partsB = tagB.split(".");
-          if (partsA.length === 1 || partsB.length === 1) {
-            return singleSorted(toNumber(partsA[0]), toNumber(partsB[0]));
-          }
-          for (let i2 = 0, l = Math.max(partsA.length, partsB.length);i2 < l; i2++) {
-            const diff = sorted(toNumber(partsA[i2]), toNumber(partsB[i2]));
-            if (diff) {
-              return diff;
-            }
-          }
-          return 0;
-        });
-      }
-      const latest = customSort ? tags[0] : [...tags].reverse().find((tag) => tag.indexOf(".") >= 0);
-      return new TagList(tags, latest);
-    };
-  }
-});
-var tag_exports = {};
-__export2(tag_exports, {
-  addAnnotatedTagTask: () => addAnnotatedTagTask,
-  addTagTask: () => addTagTask,
-  tagListTask: () => tagListTask
-});
-function tagListTask(customArgs = []) {
-  const hasCustomSort = customArgs.some((option) => /^--sort=/.test(option));
-  return {
-    format: "utf-8",
-    commands: ["tag", "-l", ...customArgs],
-    parser(text) {
-      return parseTagList(text, hasCustomSort);
-    }
-  };
-}
-function addTagTask(name) {
-  return {
-    format: "utf-8",
-    commands: ["tag", name],
-    parser() {
-      return { name };
-    }
-  };
-}
-function addAnnotatedTagTask(name, tagMessage) {
-  return {
-    format: "utf-8",
-    commands: ["tag", "-a", "-m", tagMessage, name],
-    parser() {
-      return { name };
-    }
-  };
-}
-var init_tag = __esm({
-  "src/lib/tasks/tag.ts"() {
-    init_TagList();
-  }
-});
-var require_git = __commonJS2({
-  "src/git.js"(exports, module) {
-    var { GitExecutor: GitExecutor2 } = (init_git_executor(), __toCommonJS(git_executor_exports));
-    var { SimpleGitApi: SimpleGitApi2 } = (init_simple_git_api(), __toCommonJS(simple_git_api_exports));
-    var { Scheduler: Scheduler2 } = (init_scheduler(), __toCommonJS(scheduler_exports));
-    var { adhocExecTask: adhocExecTask2, configurationErrorTask: configurationErrorTask2 } = (init_task(), __toCommonJS(task_exports));
-    var {
-      asArray: asArray2,
-      filterArray: filterArray2,
-      filterPrimitives: filterPrimitives2,
-      filterString: filterString2,
-      filterStringOrStringArray: filterStringOrStringArray2,
-      filterType: filterType2,
-      getTrailingOptions: getTrailingOptions2,
-      trailingFunctionArgument: trailingFunctionArgument2,
-      trailingOptionsArgument: trailingOptionsArgument2
-    } = (init_utils(), __toCommonJS(utils_exports));
-    var { applyPatchTask: applyPatchTask2 } = (init_apply_patch(), __toCommonJS(apply_patch_exports));
-    var {
-      branchTask: branchTask2,
-      branchLocalTask: branchLocalTask2,
-      deleteBranchesTask: deleteBranchesTask2,
-      deleteBranchTask: deleteBranchTask2
-    } = (init_branch(), __toCommonJS(branch_exports));
-    var { checkIgnoreTask: checkIgnoreTask2 } = (init_check_ignore(), __toCommonJS(check_ignore_exports));
-    var { checkIsRepoTask: checkIsRepoTask2 } = (init_check_is_repo(), __toCommonJS(check_is_repo_exports));
-    var { cleanWithOptionsTask: cleanWithOptionsTask2, isCleanOptionsArray: isCleanOptionsArray2 } = (init_clean(), __toCommonJS(clean_exports));
-    var { diffSummaryTask: diffSummaryTask2 } = (init_diff(), __toCommonJS(diff_exports));
-    var { fetchTask: fetchTask2 } = (init_fetch(), __toCommonJS(fetch_exports));
-    var { moveTask: moveTask2 } = (init_move(), __toCommonJS(move_exports));
-    var { pullTask: pullTask2 } = (init_pull(), __toCommonJS(pull_exports));
-    var { pushTagsTask: pushTagsTask2 } = (init_push(), __toCommonJS(push_exports));
-    var {
-      addRemoteTask: addRemoteTask2,
-      getRemotesTask: getRemotesTask2,
-      listRemotesTask: listRemotesTask2,
-      remoteTask: remoteTask2,
-      removeRemoteTask: removeRemoteTask2
-    } = (init_remote(), __toCommonJS(remote_exports));
-    var { getResetMode: getResetMode2, resetTask: resetTask2 } = (init_reset(), __toCommonJS(reset_exports));
-    var { stashListTask: stashListTask2 } = (init_stash_list(), __toCommonJS(stash_list_exports));
-    var {
-      addSubModuleTask: addSubModuleTask2,
-      initSubModuleTask: initSubModuleTask2,
-      subModuleTask: subModuleTask2,
-      updateSubModuleTask: updateSubModuleTask2
-    } = (init_sub_module(), __toCommonJS(sub_module_exports));
-    var { addAnnotatedTagTask: addAnnotatedTagTask2, addTagTask: addTagTask2, tagListTask: tagListTask2 } = (init_tag(), __toCommonJS(tag_exports));
-    var { straightThroughBufferTask: straightThroughBufferTask2, straightThroughStringTask: straightThroughStringTask2 } = (init_task(), __toCommonJS(task_exports));
-    function Git2(options, plugins) {
-      this._plugins = plugins;
-      this._executor = new GitExecutor2(options.baseDir, new Scheduler2(options.maxConcurrentProcesses), plugins);
-      this._trimmed = options.trimmed;
-    }
-    (Git2.prototype = Object.create(SimpleGitApi2.prototype)).constructor = Git2;
-    Git2.prototype.customBinary = function(command) {
-      this._plugins.reconfigure("binary", command);
-      return this;
-    };
-    Git2.prototype.env = function(name, value) {
-      if (arguments.length === 1 && typeof name === "object") {
-        this._executor.env = name;
-      } else {
-        (this._executor.env = this._executor.env || {})[name] = value;
-      }
-      return this;
-    };
-    Git2.prototype.stashList = function(options) {
-      return this._runTask(stashListTask2(trailingOptionsArgument2(arguments) || {}, filterArray2(options) && options || []), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.mv = function(from, to) {
-      return this._runTask(moveTask2(from, to), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.checkoutLatestTag = function(then) {
-      var git = this;
-      return this.pull(function() {
-        git.tags(function(err, tags) {
-          git.checkout(tags.latest, then);
-        });
-      });
-    };
-    Git2.prototype.pull = function(remote, branch, options, then) {
-      return this._runTask(pullTask2(filterType2(remote, filterString2), filterType2(branch, filterString2), getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.fetch = function(remote, branch) {
-      return this._runTask(fetchTask2(filterType2(remote, filterString2), filterType2(branch, filterString2), getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.silent = function(silence) {
-      return this._runTask(adhocExecTask2(() => console.warn("simple-git deprecation notice: git.silent: logging should be configured using the `debug` library / `DEBUG` environment variable, this method will be removed.")));
-    };
-    Git2.prototype.tags = function(options, then) {
-      return this._runTask(tagListTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.rebase = function() {
-      return this._runTask(straightThroughStringTask2(["rebase", ...getTrailingOptions2(arguments)]), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.reset = function(mode) {
-      return this._runTask(resetTask2(getResetMode2(mode), getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.revert = function(commit) {
-      const next = trailingFunctionArgument2(arguments);
-      if (typeof commit !== "string") {
-        return this._runTask(configurationErrorTask2("Commit must be a string"), next);
-      }
-      return this._runTask(straightThroughStringTask2(["revert", ...getTrailingOptions2(arguments, 0, true), commit]), next);
-    };
-    Git2.prototype.addTag = function(name) {
-      const task = typeof name === "string" ? addTagTask2(name) : configurationErrorTask2("Git.addTag requires a tag name");
-      return this._runTask(task, trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.addAnnotatedTag = function(tagName, tagMessage) {
-      return this._runTask(addAnnotatedTagTask2(tagName, tagMessage), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.deleteLocalBranch = function(branchName, forceDelete, then) {
-      return this._runTask(deleteBranchTask2(branchName, typeof forceDelete === "boolean" ? forceDelete : false), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.deleteLocalBranches = function(branchNames, forceDelete, then) {
-      return this._runTask(deleteBranchesTask2(branchNames, typeof forceDelete === "boolean" ? forceDelete : false), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.branch = function(options, then) {
-      return this._runTask(branchTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.branchLocal = function(then) {
-      return this._runTask(branchLocalTask2(), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.raw = function(commands) {
-      const createRestCommands = !Array.isArray(commands);
-      const command = [].slice.call(createRestCommands ? arguments : commands, 0);
-      for (let i2 = 0;i2 < command.length && createRestCommands; i2++) {
-        if (!filterPrimitives2(command[i2])) {
-          command.splice(i2, command.length - i2);
-          break;
-        }
-      }
-      command.push(...getTrailingOptions2(arguments, 0, true));
-      var next = trailingFunctionArgument2(arguments);
-      if (!command.length) {
-        return this._runTask(configurationErrorTask2("Raw: must supply one or more command to execute"), next);
-      }
-      return this._runTask(straightThroughStringTask2(command, this._trimmed), next);
-    };
-    Git2.prototype.submoduleAdd = function(repo, path, then) {
-      return this._runTask(addSubModuleTask2(repo, path), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.submoduleUpdate = function(args, then) {
-      return this._runTask(updateSubModuleTask2(getTrailingOptions2(arguments, true)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.submoduleInit = function(args, then) {
-      return this._runTask(initSubModuleTask2(getTrailingOptions2(arguments, true)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.subModule = function(options, then) {
-      return this._runTask(subModuleTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.listRemote = function() {
-      return this._runTask(listRemotesTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.addRemote = function(remoteName, remoteRepo, then) {
-      return this._runTask(addRemoteTask2(remoteName, remoteRepo, getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.removeRemote = function(remoteName, then) {
-      return this._runTask(removeRemoteTask2(remoteName), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.getRemotes = function(verbose, then) {
-      return this._runTask(getRemotesTask2(verbose === true), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.remote = function(options, then) {
-      return this._runTask(remoteTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.tag = function(options, then) {
-      const command = getTrailingOptions2(arguments);
-      if (command[0] !== "tag") {
-        command.unshift("tag");
-      }
-      return this._runTask(straightThroughStringTask2(command), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.updateServerInfo = function(then) {
-      return this._runTask(straightThroughStringTask2(["update-server-info"]), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.pushTags = function(remote, then) {
-      const task = pushTagsTask2({ remote: filterType2(remote, filterString2) }, getTrailingOptions2(arguments));
-      return this._runTask(task, trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.rm = function(files) {
-      return this._runTask(straightThroughStringTask2(["rm", "-f", ...asArray2(files)]), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.rmKeepLocal = function(files) {
-      return this._runTask(straightThroughStringTask2(["rm", "--cached", ...asArray2(files)]), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.catFile = function(options, then) {
-      return this._catFile("utf-8", arguments);
-    };
-    Git2.prototype.binaryCatFile = function() {
-      return this._catFile("buffer", arguments);
-    };
-    Git2.prototype._catFile = function(format, args) {
-      var handler = trailingFunctionArgument2(args);
-      var command = ["cat-file"];
-      var options = args[0];
-      if (typeof options === "string") {
-        return this._runTask(configurationErrorTask2("Git.catFile: options must be supplied as an array of strings"), handler);
-      }
-      if (Array.isArray(options)) {
-        command.push.apply(command, options);
-      }
-      const task = format === "buffer" ? straightThroughBufferTask2(command) : straightThroughStringTask2(command);
-      return this._runTask(task, handler);
-    };
-    Git2.prototype.diff = function(options, then) {
-      const task = filterString2(options) ? configurationErrorTask2("git.diff: supplying options as a single string is no longer supported, switch to an array of strings") : straightThroughStringTask2(["diff", ...getTrailingOptions2(arguments)]);
-      return this._runTask(task, trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.diffSummary = function() {
-      return this._runTask(diffSummaryTask2(getTrailingOptions2(arguments, 1)), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.applyPatch = function(patches) {
-      const task = !filterStringOrStringArray2(patches) ? configurationErrorTask2(`git.applyPatch requires one or more string patches as the first argument`) : applyPatchTask2(asArray2(patches), getTrailingOptions2([].slice.call(arguments, 1)));
-      return this._runTask(task, trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.revparse = function() {
-      const commands = ["rev-parse", ...getTrailingOptions2(arguments, true)];
-      return this._runTask(straightThroughStringTask2(commands, true), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.clean = function(mode, options, then) {
-      const usingCleanOptionsArray = isCleanOptionsArray2(mode);
-      const cleanMode = usingCleanOptionsArray && mode.join("") || filterType2(mode, filterString2) || "";
-      const customArgs = getTrailingOptions2([].slice.call(arguments, usingCleanOptionsArray ? 1 : 0));
-      return this._runTask(cleanWithOptionsTask2(cleanMode, customArgs), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.exec = function(then) {
-      const task = {
-        commands: [],
-        format: "utf-8",
-        parser() {
-          if (typeof then === "function") {
-            then();
-          }
-        }
-      };
-      return this._runTask(task);
-    };
-    Git2.prototype.clearQueue = function() {
-      return this._runTask(adhocExecTask2(() => console.warn("simple-git deprecation notice: clearQueue() is deprecated and will be removed, switch to using the abortPlugin instead.")));
-    };
-    Git2.prototype.checkIgnore = function(pathnames, then) {
-      return this._runTask(checkIgnoreTask2(asArray2(filterType2(pathnames, filterStringOrStringArray2, []))), trailingFunctionArgument2(arguments));
-    };
-    Git2.prototype.checkIsRepo = function(checkType, then) {
-      return this._runTask(checkIsRepoTask2(filterType2(checkType, filterString2)), trailingFunctionArgument2(arguments));
-    };
-    module.exports = Git2;
-  }
-});
-init_git_error();
-var GitConstructError = class extends GitError {
-  constructor(config, message) {
-    super(undefined, message);
-    this.config = config;
-  }
-};
-init_git_error();
-init_git_error();
-var GitPluginError = class extends GitError {
-  constructor(task, plugin, message) {
-    super(task, message);
-    this.task = task;
-    this.plugin = plugin;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-};
-init_git_response_error();
-init_task_configuration_error();
-init_check_is_repo();
-init_clean();
-init_config();
-init_diff_name_status();
-init_grep();
-init_reset();
-function abortPlugin(signal) {
-  if (!signal) {
-    return;
-  }
-  const onSpawnAfter = {
-    type: "spawn.after",
-    action(_data, context) {
-      function kill() {
-        context.kill(new GitPluginError(undefined, "abort", "Abort signal received"));
-      }
-      signal.addEventListener("abort", kill);
-      context.spawned.on("close", () => signal.removeEventListener("abort", kill));
-    }
-  };
-  const onSpawnBefore = {
-    type: "spawn.before",
-    action(_data, context) {
-      if (signal.aborted) {
-        context.kill(new GitPluginError(undefined, "abort", "Abort already signaled"));
-      }
-    }
-  };
-  return [onSpawnBefore, onSpawnAfter];
-}
-function blockUnsafeOperationsPlugin(options = {}) {
-  return {
-    type: "spawn.args",
-    action(args, { env }) {
-      for (const vulnerability of ne(args, env)) {
-        if (options[vulnerability.category] !== true) {
-          throw new GitPluginError(undefined, "unsafe", vulnerability.message);
-        }
-      }
-      return args;
-    }
-  };
-}
-init_utils();
-function commandConfigPrefixingPlugin(configuration) {
-  const prefix = prefixedArray(configuration, "-c");
-  return {
-    type: "spawn.args",
-    action(data) {
-      return [...prefix, ...data];
-    }
-  };
-}
-init_utils();
-var never = import_promise_deferred2.deferred().promise;
-function completionDetectionPlugin({
-  onClose = true,
-  onExit = 50
-} = {}) {
-  function createEvents() {
-    let exitCode = -1;
-    const events2 = {
-      close: import_promise_deferred2.deferred(),
-      closeTimeout: import_promise_deferred2.deferred(),
-      exit: import_promise_deferred2.deferred(),
-      exitTimeout: import_promise_deferred2.deferred()
-    };
-    const result = Promise.race([
-      onClose === false ? never : events2.closeTimeout.promise,
-      onExit === false ? never : events2.exitTimeout.promise
-    ]);
-    configureTimeout(onClose, events2.close, events2.closeTimeout);
-    configureTimeout(onExit, events2.exit, events2.exitTimeout);
-    return {
-      close(code) {
-        exitCode = code;
-        events2.close.done();
-      },
-      exit(code) {
-        exitCode = code;
-        events2.exit.done();
-      },
-      get exitCode() {
-        return exitCode;
-      },
-      result
-    };
-  }
-  function configureTimeout(flag, event, timeout) {
-    if (flag === false) {
-      return;
-    }
-    (flag === true ? event.promise : event.promise.then(() => delay(flag))).then(timeout.done);
-  }
-  return {
-    type: "spawn.after",
-    async action(_data, { spawned, close }) {
-      const events2 = createEvents();
-      let deferClose = true;
-      let quickClose = () => void (deferClose = false);
-      spawned.stdout?.on("data", quickClose);
-      spawned.stderr?.on("data", quickClose);
-      spawned.on("error", quickClose);
-      spawned.on("close", (code) => events2.close(code));
-      spawned.on("exit", (code) => events2.exit(code));
-      try {
-        await events2.result;
-        if (deferClose) {
-          await delay(50);
-        }
-        close(events2.exitCode);
-      } catch (err) {
-        close(events2.exitCode, err);
-      }
-    }
-  };
-}
-init_utils();
-var WRONG_NUMBER_ERR = `Invalid value supplied for custom binary, requires a single string or an array containing either one or two strings`;
-var WRONG_CHARS_ERR = `Invalid value supplied for custom binary, restricted characters must be removed or supply the unsafe.allowUnsafeCustomBinary option`;
-function isBadArgument(arg) {
-  return !arg || !/^([a-z]:)?([a-z0-9/.\\_~-]+)$/i.test(arg);
-}
-function toBinaryConfig(input, allowUnsafe) {
-  if (input.length < 1 || input.length > 2) {
-    throw new GitPluginError(undefined, "binary", WRONG_NUMBER_ERR);
-  }
-  const isBad = input.some(isBadArgument);
-  if (isBad) {
-    if (allowUnsafe) {
-      console.warn(WRONG_CHARS_ERR);
-    } else {
-      throw new GitPluginError(undefined, "binary", WRONG_CHARS_ERR);
-    }
-  }
-  const [binary, prefix] = input;
-  return {
-    binary,
-    prefix
-  };
-}
-function customBinaryPlugin(plugins, input = ["git"], allowUnsafe = false) {
-  let config = toBinaryConfig(asArray(input), allowUnsafe);
-  plugins.on("binary", (input2) => {
-    config = toBinaryConfig(asArray(input2), allowUnsafe);
-  });
-  plugins.append("spawn.binary", () => {
-    return config.binary;
-  });
-  plugins.append("spawn.args", (data) => {
-    return config.prefix ? [config.prefix, ...data] : data;
-  });
-}
-init_git_error();
-function isTaskError(result) {
-  return !!(result.exitCode && result.stdErr.length);
-}
-function getErrorMessage(result) {
-  return Buffer.concat([...result.stdOut, ...result.stdErr]);
-}
-function errorDetectionHandler(overwrite = false, isError = isTaskError, errorMessage = getErrorMessage) {
-  return (error2, result) => {
-    if (!overwrite && error2 || !isError(result)) {
-      return error2;
-    }
-    return errorMessage(result);
-  };
-}
-function errorDetectionPlugin(config) {
-  return {
-    type: "task.error",
-    action(data, context) {
-      const error2 = config(data.error, {
-        stdErr: context.stdErr,
-        stdOut: context.stdOut,
-        exitCode: context.exitCode
-      });
-      if (Buffer.isBuffer(error2)) {
-        return { error: new GitError(undefined, error2.toString("utf-8")) };
-      }
-      return {
-        error: error2
-      };
-    }
-  };
-}
-init_utils();
-var PluginStore = class {
-  constructor() {
-    this.plugins = /* @__PURE__ */ new Set;
-    this.events = new EventEmitter;
-  }
-  on(type, listener) {
-    this.events.on(type, listener);
-  }
-  reconfigure(type, data) {
-    this.events.emit(type, data);
-  }
-  append(type, action) {
-    const plugin = append(this.plugins, { type, action });
-    return () => this.plugins.delete(plugin);
-  }
-  add(plugin) {
-    const plugins = [];
-    asArray(plugin).forEach((plugin2) => plugin2 && this.plugins.add(append(plugins, plugin2)));
-    return () => {
-      plugins.forEach((plugin2) => this.plugins.delete(plugin2));
-    };
-  }
-  exec(type, data, context) {
-    let output = data;
-    const contextual = Object.freeze(Object.create(context));
-    for (const plugin of this.plugins) {
-      if (plugin.type === type) {
-        output = plugin.action(output, contextual);
-      }
-    }
-    return output;
-  }
-};
-init_utils();
-function progressMonitorPlugin(progress) {
-  const progressCommand = "--progress";
-  const progressMethods = ["checkout", "clone", "fetch", "pull", "push"];
-  const onProgress = {
-    type: "spawn.after",
-    action(_data, context) {
-      if (!context.commands.includes(progressCommand)) {
-        return;
-      }
-      context.spawned.stderr?.on("data", (chunk) => {
-        const message = /^([\s\S]+?):\s*(\d+)% \((\d+)\/(\d+)\)/.exec(chunk.toString("utf8"));
-        if (!message) {
-          return;
-        }
-        progress({
-          method: context.method,
-          stage: progressEventStage(message[1]),
-          progress: asNumber(message[2]),
-          processed: asNumber(message[3]),
-          total: asNumber(message[4])
-        });
-      });
-    }
-  };
-  const onArgs = {
-    type: "spawn.args",
-    action(args, context) {
-      if (!progressMethods.includes(context.method)) {
-        return args;
-      }
-      return including(args, progressCommand);
-    }
-  };
-  return [onArgs, onProgress];
-}
-function progressEventStage(input) {
-  return String(input.toLowerCase().split(" ", 1)) || "unknown";
-}
-init_utils();
-function spawnOptionsPlugin(spawnOptions) {
-  const options = pick(spawnOptions, ["uid", "gid"]);
-  return {
-    type: "spawn.options",
-    action(data) {
-      return { ...options, ...data };
-    }
-  };
-}
-function timeoutPlugin({
-  block,
-  stdErr = true,
-  stdOut = true
-}) {
-  if (block > 0) {
-    return {
-      type: "spawn.after",
-      action(_data, context) {
-        let timeout;
-        function wait() {
-          timeout && clearTimeout(timeout);
-          timeout = setTimeout(kill, block);
-        }
-        function stop() {
-          context.spawned.stdout?.off("data", wait);
-          context.spawned.stderr?.off("data", wait);
-          context.spawned.off("exit", stop);
-          context.spawned.off("close", stop);
-          timeout && clearTimeout(timeout);
-        }
-        function kill() {
-          stop();
-          context.kill(new GitPluginError(undefined, "timeout", `block timeout reached`));
-        }
-        stdOut && context.spawned.stdout?.on("data", wait);
-        stdErr && context.spawned.stderr?.on("data", wait);
-        context.spawned.on("exit", stop);
-        context.spawned.on("close", stop);
-        wait();
-      }
-    };
-  }
-}
-function suffixPathsPlugin() {
-  return {
-    type: "spawn.args",
-    action(data) {
-      const prefix = [];
-      let suffix;
-      function append2(args) {
-        (suffix = suffix || []).push(...args);
-      }
-      for (let i2 = 0;i2 < data.length; i2++) {
-        const param = data[i2];
-        if (r(param)) {
-          append2(o(param));
-          continue;
-        }
-        if (param === "--") {
-          append2(data.slice(i2 + 1).flatMap((item) => r(item) && o(item) || item));
-          break;
-        }
-        prefix.push(param);
-      }
-      return !suffix ? prefix : [...prefix, "--", ...suffix.map(String)];
-    }
-  };
-}
-init_utils();
-var Git = require_git();
-function gitInstanceFactory(baseDir, options) {
-  const plugins = new PluginStore;
-  const config = createInstanceConfig(baseDir && (typeof baseDir === "string" ? { baseDir } : baseDir) || {}, options);
-  if (!folderExists(config.baseDir)) {
-    throw new GitConstructError(config, `Cannot use simple-git on a directory that does not exist`);
-  }
-  if (Array.isArray(config.config)) {
-    plugins.add(commandConfigPrefixingPlugin(config.config));
-  }
-  plugins.add(blockUnsafeOperationsPlugin(config.unsafe));
-  plugins.add(completionDetectionPlugin(config.completion));
-  config.abort && plugins.add(abortPlugin(config.abort));
-  config.progress && plugins.add(progressMonitorPlugin(config.progress));
-  config.timeout && plugins.add(timeoutPlugin(config.timeout));
-  config.spawnOptions && plugins.add(spawnOptionsPlugin(config.spawnOptions));
-  plugins.add(suffixPathsPlugin());
-  plugins.add(errorDetectionPlugin(errorDetectionHandler(true)));
-  config.errors && plugins.add(errorDetectionPlugin(config.errors));
-  customBinaryPlugin(plugins, config.binary, config.unsafe?.allowUnsafeCustomBinary);
-  return new Git(config, plugins);
-}
-init_git_response_error();
-var esm_default = gitInstanceFactory;
-
-// src/git/time-range.ts
-function parseTimeRange(range) {
-  const match = range.match(/^(\d+)(h|d|w|m)$/);
-  if (!match) {
-    throw new Error(`Invalid time range "${range}". Expected format: <number><unit> where unit is h (hours), d (days), w (weeks), or m (months). Examples: 24h, 7d, 2w, 1m`);
-  }
-  const amount = parseInt(match[1], 10);
-  if (amount === 0) {
-    throw new Error(`Invalid time range "${range}". Amount must be greater than 0.`);
-  }
-  const unit = match[2];
-  const now = new Date;
-  switch (unit) {
-    case "h":
-      now.setHours(now.getHours() - amount);
-      break;
-    case "d":
-      now.setDate(now.getDate() - amount);
-      break;
-    case "w":
-      now.setDate(now.getDate() - amount * 7);
-      break;
-    case "m":
-      now.setDate(now.getDate() - amount * 30);
-      break;
-  }
-  return now;
-}
-
-// src/git/log.ts
-var git = null;
-function getGit() {
-  if (!git) {
-    const repoPath = process.env.GITHUB_WORKSPACE ?? process.cwd();
-    git = esm_default(repoPath);
-  }
-  return git;
-}
-async function getCommitsSince(timeRange) {
-  const since = parseTimeRange(timeRange);
-  const log = await getGit().log({
-    "--since": since.toISOString(),
-    "--all": null
-  });
-  return log.all.map((entry) => ({
-    hash: entry.hash,
-    author: entry.author_name,
-    email: entry.author_email,
-    date: new Date(entry.date),
-    message: entry.message
-  }));
-}
-function groupByContributor(commits) {
-  const grouped = new Map;
-  for (const commit of commits) {
-    const key = commit.email;
-    const existing = grouped.get(key);
-    if (existing) {
-      existing.commits.push(commit);
-      if (commit.date > existing.latestDate) {
-        existing.latestDate = commit.date;
-        existing.author = commit.author;
-      }
-    } else {
-      grouped.set(key, {
-        author: commit.author,
-        email: commit.email,
-        commits: [commit],
-        latestDate: commit.date
-      });
-    }
-  }
-  return Array.from(grouped.values()).map(({ author, email, commits: commits2 }) => ({ author, email, commits: commits2 })).sort((a, b2) => b2.commits.length - a.commits.length);
-}
 // node_modules/@ai-sdk/provider/dist/index.mjs
 var marker = "vercel.ai.error";
 var symbol = Symbol.for(marker);
-var _a2;
+var _a;
 var _b;
-var AISDKError = class _AISDKError extends (_b = Error, _a2 = symbol, _b) {
+var AISDKError = class _AISDKError extends (_b = Error, _a = symbol, _b) {
   constructor({
     name: name14,
     message,
     cause
   }) {
     super(message);
-    this[_a2] = true;
+    this[_a] = true;
     this.name = name14;
     this.cause = cause;
   }
@@ -24864,9 +20370,9 @@ var AISDKError = class _AISDKError extends (_b = Error, _a2 = symbol, _b) {
 var name = "AI_APICallError";
 var marker2 = `vercel.ai.error.${name}`;
 var symbol2 = Symbol.for(marker2);
-var _a22;
+var _a2;
 var _b2;
-var APICallError = class extends (_b2 = AISDKError, _a22 = symbol2, _b2) {
+var APICallError = class extends (_b2 = AISDKError, _a2 = symbol2, _b2) {
   constructor({
     message,
     url,
@@ -24879,7 +20385,7 @@ var APICallError = class extends (_b2 = AISDKError, _a22 = symbol2, _b2) {
     data
   }) {
     super({ name, message, cause });
-    this[_a22] = true;
+    this[_a2] = true;
     this.url = url;
     this.requestBodyValues = requestBodyValues;
     this.statusCode = statusCode;
@@ -24906,7 +20412,7 @@ var EmptyResponseBodyError = class extends (_b3 = AISDKError, _a3 = symbol3, _b3
     return AISDKError.hasMarker(error2, marker3);
   }
 };
-function getErrorMessage2(error2) {
+function getErrorMessage(error2) {
   if (error2 == null) {
     return "unknown error";
   }
@@ -24984,7 +20490,7 @@ var JSONParseError = class extends (_b7 = AISDKError, _a7 = symbol7, _b7) {
     super({
       name: name6,
       message: `JSON parsing failed: Text: ${text}.
-Error message: ${getErrorMessage2(cause)}`,
+Error message: ${getErrorMessage(cause)}`,
       cause
     });
     this[_a7] = true;
@@ -25110,7 +20616,7 @@ var TypeValidationError = class _TypeValidationError extends (_b13 = AISDKError,
     super({
       name: name12,
       message: `${contextPrefix}: Value: ${JSON.stringify(value)}.
-Error message: ${getErrorMessage2(cause)}`,
+Error message: ${getErrorMessage(cause)}`,
       cause
     });
     this[_a13] = true;
@@ -25223,7 +20729,7 @@ __export(exports_external, {
   nonpositive: () => _nonpositive,
   nonoptional: () => nonoptional,
   nonnegative: () => _nonnegative,
-  never: () => never2,
+  never: () => never,
   negative: () => _negative,
   nativeEnum: () => nativeEnum,
   nanoid: () => nanoid2,
@@ -25680,7 +21186,7 @@ function $constructor(name14, initializer, params) {
       Object.defineProperty(inst, "_zod", {
         value: {
           def,
-          constr: _2,
+          constr: _,
           traits: new Set
         },
         enumerable: false
@@ -25691,12 +21197,12 @@ function $constructor(name14, initializer, params) {
     }
     inst._zod.traits.add(name14);
     initializer(inst, def);
-    const proto = _2.prototype;
+    const proto = _.prototype;
     const keys = Object.keys(proto);
-    for (let i2 = 0;i2 < keys.length; i2++) {
-      const k2 = keys[i2];
-      if (!(k2 in inst)) {
-        inst[k2] = proto[k2].bind(inst);
+    for (let i = 0;i < keys.length; i++) {
+      const k = keys[i];
+      if (!(k in inst)) {
+        inst[k] = proto[k].bind(inst);
       }
     }
   }
@@ -25705,7 +21211,7 @@ function $constructor(name14, initializer, params) {
   class Definition extends Parent {
   }
   Object.defineProperty(Definition, "name", { value: name14 });
-  function _2(def) {
+  function _(def) {
     var _a15;
     const inst = params?.Parent ? new Definition : this;
     init(inst, def);
@@ -25715,16 +21221,16 @@ function $constructor(name14, initializer, params) {
     }
     return inst;
   }
-  Object.defineProperty(_2, "init", { value: init });
-  Object.defineProperty(_2, Symbol.hasInstance, {
+  Object.defineProperty(_, "init", { value: init });
+  Object.defineProperty(_, Symbol.hasInstance, {
     value: (inst) => {
       if (params?.Parent && inst instanceof params.Parent)
         return true;
       return inst?._zod?.traits?.has(name14);
     }
   });
-  Object.defineProperty(_2, "name", { value: name14 });
-  return _2;
+  Object.defineProperty(_, "name", { value: name14 });
+  return _;
 }
 var $brand = Symbol("zod_brand");
 
@@ -25763,7 +21269,7 @@ __export(exports_util, {
   promiseAllObject: () => promiseAllObject,
   primitiveTypes: () => primitiveTypes,
   prefixIssues: () => prefixIssues,
-  pick: () => pick2,
+  pick: () => pick,
   partial: () => partial,
   parsedType: () => parsedType,
   optionalKeys: () => optionalKeys,
@@ -25822,16 +21328,16 @@ function assertIs(_arg) {}
 function assertNever(_x) {
   throw new Error("Unexpected value in exhaustive check");
 }
-function assert2(_2) {}
+function assert2(_) {}
 function getEnumValues(entries) {
   const numericValues = Object.values(entries).filter((v) => typeof v === "number");
-  const values = Object.entries(entries).filter(([k2, _2]) => numericValues.indexOf(+k2) === -1).map(([_2, v]) => v);
+  const values = Object.entries(entries).filter(([k, _]) => numericValues.indexOf(+k) === -1).map(([_, v]) => v);
   return values;
 }
 function joinValues(array, separator = "|") {
   return array.map((val) => stringifyPrimitive(val)).join(separator);
 }
-function jsonStringifyReplacer(_2, value) {
+function jsonStringifyReplacer(_, value) {
   if (typeof value === "bigint")
     return value.toString();
   return value;
@@ -25926,8 +21432,8 @@ function promiseAllObject(promisesObj) {
   const promises3 = keys.map((key) => promisesObj[key]);
   return Promise.all(promises3).then((results) => {
     const resolvedObj = {};
-    for (let i2 = 0;i2 < keys.length; i2++) {
-      resolvedObj[keys[i2]] = results[i2];
+    for (let i = 0;i < keys.length; i++) {
+      resolvedObj[keys[i]] = results[i];
     }
     return resolvedObj;
   });
@@ -25935,7 +21441,7 @@ function promiseAllObject(promisesObj) {
 function randomString(length = 10) {
   const chars = "abcdefghijklmnopqrstuvwxyz";
   let str = "";
-  for (let i2 = 0;i2 < length; i2++) {
+  for (let i = 0;i < length; i++) {
     str += chars[Math.floor(Math.random() * chars.length)];
   }
   return str;
@@ -25955,17 +21461,17 @@ var allowsEval = cached(() => {
     return false;
   }
   try {
-    const F2 = Function;
-    new F2("");
+    const F = Function;
+    new F("");
     return true;
-  } catch (_2) {
+  } catch (_) {
     return false;
   }
 });
-function isPlainObject(o2) {
-  if (isObject(o2) === false)
+function isPlainObject(o) {
+  if (isObject(o) === false)
     return false;
-  const ctor = o2.constructor;
+  const ctor = o.constructor;
   if (ctor === undefined)
     return true;
   if (typeof ctor !== "function")
@@ -25978,12 +21484,12 @@ function isPlainObject(o2) {
   }
   return true;
 }
-function shallowClone(o2) {
-  if (isPlainObject(o2))
-    return { ...o2 };
-  if (Array.isArray(o2))
-    return [...o2];
-  return o2;
+function shallowClone(o) {
+  if (isPlainObject(o))
+    return { ...o };
+  if (Array.isArray(o))
+    return [...o];
+  return o;
 }
 function numKeys(data) {
   let keyCount = 0;
@@ -25995,8 +21501,8 @@ function numKeys(data) {
   return keyCount;
 }
 var getParsedType = (data) => {
-  const t2 = typeof data;
-  switch (t2) {
+  const t = typeof data;
+  switch (t) {
     case "undefined":
       return "undefined";
     case "string":
@@ -26035,7 +21541,7 @@ var getParsedType = (data) => {
       }
       return "object";
     default:
-      throw new Error(`Unknown data type: ${t2}`);
+      throw new Error(`Unknown data type: ${t}`);
   }
 };
 var propertyKeyTypes = new Set(["string", "number", "symbol"]);
@@ -26068,31 +21574,31 @@ function normalizeParams(_params) {
 function createTransparentProxy(getter) {
   let target;
   return new Proxy({}, {
-    get(_2, prop, receiver) {
+    get(_, prop, receiver) {
       target ?? (target = getter());
       return Reflect.get(target, prop, receiver);
     },
-    set(_2, prop, value, receiver) {
+    set(_, prop, value, receiver) {
       target ?? (target = getter());
       return Reflect.set(target, prop, value, receiver);
     },
-    has(_2, prop) {
+    has(_, prop) {
       target ?? (target = getter());
       return Reflect.has(target, prop);
     },
-    deleteProperty(_2, prop) {
+    deleteProperty(_, prop) {
       target ?? (target = getter());
       return Reflect.deleteProperty(target, prop);
     },
-    ownKeys(_2) {
+    ownKeys(_) {
       target ?? (target = getter());
       return Reflect.ownKeys(target);
     },
-    getOwnPropertyDescriptor(_2, prop) {
+    getOwnPropertyDescriptor(_, prop) {
       target ?? (target = getter());
       return Reflect.getOwnPropertyDescriptor(target, prop);
     },
-    defineProperty(_2, prop, descriptor) {
+    defineProperty(_, prop, descriptor) {
       target ?? (target = getter());
       return Reflect.defineProperty(target, prop, descriptor);
     }
@@ -26106,8 +21612,8 @@ function stringifyPrimitive(value) {
   return `${value}`;
 }
 function optionalKeys(shape) {
-  return Object.keys(shape).filter((k2) => {
-    return shape[k2]._zod.optin === "optional" && shape[k2]._zod.optout === "optional";
+  return Object.keys(shape).filter((k) => {
+    return shape[k]._zod.optin === "optional" && shape[k]._zod.optout === "optional";
   });
 }
 var NUMBER_FORMAT_RANGES = {
@@ -26121,7 +21627,7 @@ var BIGINT_FORMAT_RANGES = {
   int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
   uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
 };
-function pick2(schema, mask) {
+function pick(schema, mask) {
   const currDef = schema._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
@@ -26207,15 +21713,15 @@ function safeExtend(schema, shape) {
   });
   return clone(schema, def);
 }
-function merge(a, b2) {
+function merge(a, b) {
   const def = mergeDefs(a._zod.def, {
     get shape() {
-      const _shape = { ...a._zod.def.shape, ...b2._zod.def.shape };
+      const _shape = { ...a._zod.def.shape, ...b._zod.def.shape };
       assignProp(this, "shape", _shape);
       return _shape;
     },
     get catchall() {
-      return b2._zod.def.catchall;
+      return b._zod.def.catchall;
     },
     checks: []
   });
@@ -26290,11 +21796,11 @@ function required(Class, schema, mask) {
   });
   return clone(schema, def);
 }
-function aborted(x2, startIndex = 0) {
-  if (x2.aborted === true)
+function aborted(x, startIndex = 0) {
+  if (x.aborted === true)
     return true;
-  for (let i2 = startIndex;i2 < x2.issues.length; i2++) {
-    if (x2.issues[i2]?.continue !== true) {
+  for (let i = startIndex;i < x.issues.length; i++) {
+    if (x.issues[i]?.continue !== true) {
       return true;
     }
   }
@@ -26341,8 +21847,8 @@ function getLengthableOrigin(input) {
   return "unknown";
 }
 function parsedType(data) {
-  const t2 = typeof data;
-  switch (t2) {
+  const t = typeof data;
+  switch (t) {
     case "number": {
       return Number.isNaN(data) ? "nan" : "number";
     }
@@ -26359,7 +21865,7 @@ function parsedType(data) {
       }
     }
   }
-  return t2;
+  return t;
 }
 function issue2(...args) {
   const [iss, input, inst] = args;
@@ -26374,22 +21880,22 @@ function issue2(...args) {
   return { ...iss };
 }
 function cleanEnum(obj) {
-  return Object.entries(obj).filter(([k2, _2]) => {
-    return Number.isNaN(Number.parseInt(k2, 10));
+  return Object.entries(obj).filter(([k, _]) => {
+    return Number.isNaN(Number.parseInt(k, 10));
   }).map((el) => el[1]);
 }
 function base64ToUint8Array(base64) {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
-  for (let i2 = 0;i2 < binaryString.length; i2++) {
-    bytes[i2] = binaryString.charCodeAt(i2);
+  for (let i = 0;i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
 }
 function uint8ArrayToBase64(bytes) {
   let binaryString = "";
-  for (let i2 = 0;i2 < bytes.length; i2++) {
-    binaryString += String.fromCharCode(bytes[i2]);
+  for (let i = 0;i < bytes.length; i++) {
+    binaryString += String.fromCharCode(bytes[i]);
   }
   return btoa(binaryString);
 }
@@ -26407,13 +21913,13 @@ function hexToUint8Array(hex) {
     throw new Error("Invalid hex string length");
   }
   const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let i2 = 0;i2 < cleanHex.length; i2 += 2) {
-    bytes[i2 / 2] = Number.parseInt(cleanHex.slice(i2, i2 + 2), 16);
+  for (let i = 0;i < cleanHex.length; i += 2) {
+    bytes[i / 2] = Number.parseInt(cleanHex.slice(i, i + 2), 16);
   }
   return bytes;
 }
 function uint8ArrayToHex(bytes) {
-  return Array.from(bytes).map((b2) => b2.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 class Class {
@@ -26466,10 +21972,10 @@ function formatError(error2, mapper = (issue3) => issue3.message) {
         fieldErrors._errors.push(mapper(issue3));
       } else {
         let curr = fieldErrors;
-        let i2 = 0;
-        while (i2 < issue3.path.length) {
-          const el = issue3.path[i2];
-          const terminal = i2 === issue3.path.length - 1;
+        let i = 0;
+        while (i < issue3.path.length) {
+          const el = issue3.path[i];
+          const terminal = i === issue3.path.length - 1;
           if (!terminal) {
             curr[el] = curr[el] || { _errors: [] };
           } else {
@@ -26477,7 +21983,7 @@ function formatError(error2, mapper = (issue3) => issue3.message) {
             curr[el]._errors.push(mapper(issue3));
           }
           curr = curr[el];
-          i2++;
+          i++;
         }
       }
     }
@@ -26503,10 +22009,10 @@ function treeifyError(error2, mapper = (issue3) => issue3.message) {
           continue;
         }
         let curr = result;
-        let i2 = 0;
-        while (i2 < fullpath.length) {
-          const el = fullpath[i2];
-          const terminal = i2 === fullpath.length - 1;
+        let i = 0;
+        while (i < fullpath.length) {
+          const el = fullpath[i];
+          const terminal = i === fullpath.length - 1;
           if (typeof el === "string") {
             curr.properties ?? (curr.properties = {});
             (_a15 = curr.properties)[el] ?? (_a15[el] = { errors: [] });
@@ -26519,7 +22025,7 @@ function treeifyError(error2, mapper = (issue3) => issue3.message) {
           if (terminal) {
             curr.errors.push(mapper(issue3));
           }
-          i2++;
+          i++;
         }
       }
     }
@@ -26547,7 +22053,7 @@ function toDotPath(_path) {
 }
 function prettifyError(error2) {
   const lines = [];
-  const issues = [...error2.issues].sort((a, b2) => (a.path ?? []).length - (b2.path ?? []).length);
+  const issues = [...error2.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
   for (const issue3 of issues) {
     lines.push(`✖ ${issue3.message}`);
     if (issue3.path?.length)
@@ -27369,19 +22875,19 @@ class Doc {
     }
     const content = arg;
     const lines = content.split(`
-`).filter((x2) => x2);
-    const minIndent = Math.min(...lines.map((x2) => x2.length - x2.trimStart().length));
-    const dedented = lines.map((x2) => x2.slice(minIndent)).map((x2) => " ".repeat(this.indent * 2) + x2);
+`).filter((x) => x);
+    const minIndent = Math.min(...lines.map((x) => x.length - x.trimStart().length));
+    const dedented = lines.map((x) => x.slice(minIndent)).map((x) => " ".repeat(this.indent * 2) + x);
     for (const line of dedented) {
       this.content.push(line);
     }
   }
   compile() {
-    const F2 = Function;
+    const F = Function;
     const args = this?.args;
     const content = this?.content ?? [``];
-    const lines = [...content.map((x2) => `  ${x2}`)];
-    return new F2(...args, lines.join(`
+    const lines = [...content.map((x) => `  ${x}`)];
+    return new F(...args, lines.join(`
 `));
   }
 }
@@ -27427,13 +22933,13 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
           continue;
         }
         const currLen = payload.issues.length;
-        const _2 = ch._zod.check(payload);
-        if (_2 instanceof Promise && ctx?.async === false) {
+        const _ = ch._zod.check(payload);
+        if (_ instanceof Promise && ctx?.async === false) {
           throw new $ZodAsyncError;
         }
-        if (asyncResult || _2 instanceof Promise) {
+        if (asyncResult || _ instanceof Promise) {
           asyncResult = (asyncResult ?? Promise.resolve()).then(async () => {
-            await _2;
+            await _;
             const nextLen = payload.issues.length;
             if (nextLen === currLen)
               return;
@@ -27493,10 +22999,10 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
   defineLazy(inst, "~standard", () => ({
     validate: (value) => {
       try {
-        const r2 = safeParse(inst, value);
-        return r2.success ? { value: r2.data } : { issues: r2.error?.issues };
-      } catch (_2) {
-        return safeParseAsync(inst, value).then((r2) => r2.success ? { value: r2.data } : { issues: r2.error?.issues });
+        const r = safeParse(inst, value);
+        return r.success ? { value: r.data } : { issues: r.error?.issues };
+      } catch (_) {
+        return safeParseAsync(inst, value).then((r) => r.success ? { value: r.data } : { issues: r.error?.issues });
       }
     },
     vendor: "zod",
@@ -27506,11 +23012,11 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
 var $ZodString = /* @__PURE__ */ $constructor("$ZodString", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.pattern = [...inst?._zod.bag?.patterns ?? []].pop() ?? string(inst._zod.bag);
-  inst._zod.parse = (payload, _2) => {
+  inst._zod.parse = (payload, _) => {
     if (def.coerce)
       try {
         payload.value = String(payload.value);
-      } catch (_3) {}
+      } catch (_2) {}
     if (typeof payload.value === "string")
       return payload;
     payload.issues.push({
@@ -27558,8 +23064,8 @@ var $ZodURL = /* @__PURE__ */ $constructor("$ZodURL", (inst, def) => {
   $ZodStringFormat.init(inst, def);
   inst._zod.check = (payload) => {
     try {
-      const trimmed2 = payload.value.trim();
-      const url = new URL(trimmed2);
+      const trimmed = payload.value.trim();
+      const url = new URL(trimmed);
       if (def.hostname) {
         def.hostname.lastIndex = 0;
         if (!def.hostname.test(url.hostname)) {
@@ -27591,10 +23097,10 @@ var $ZodURL = /* @__PURE__ */ $constructor("$ZodURL", (inst, def) => {
       if (def.normalize) {
         payload.value = url.href;
       } else {
-        payload.value = trimmed2;
+        payload.value = trimmed;
       }
       return;
-    } catch (_2) {
+    } catch (_) {
       payload.issues.push({
         code: "invalid_format",
         format: "url",
@@ -27740,7 +23246,7 @@ var $ZodBase64 = /* @__PURE__ */ $constructor("$ZodBase64", (inst, def) => {
 function isValidBase64URL(data) {
   if (!base64url.test(data))
     return false;
-  const base642 = data.replace(/[-_]/g, (c3) => c3 === "-" ? "+" : "/");
+  const base642 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
   const padded = base642.padEnd(Math.ceil(base642.length / 4) * 4, "=");
   return isValidBase64(padded);
 }
@@ -27819,7 +23325,7 @@ var $ZodNumber = /* @__PURE__ */ $constructor("$ZodNumber", (inst, def) => {
     if (def.coerce)
       try {
         payload.value = Number(payload.value);
-      } catch (_2) {}
+      } catch (_) {}
     const input = payload.value;
     if (typeof input === "number" && !Number.isNaN(input) && Number.isFinite(input)) {
       return payload;
@@ -27846,7 +23352,7 @@ var $ZodBoolean = /* @__PURE__ */ $constructor("$ZodBoolean", (inst, def) => {
     if (def.coerce)
       try {
         payload.value = Boolean(payload.value);
-      } catch (_2) {}
+      } catch (_) {}
     const input = payload.value;
     if (typeof input === "boolean")
       return payload;
@@ -27866,7 +23372,7 @@ var $ZodBigInt = /* @__PURE__ */ $constructor("$ZodBigInt", (inst, def) => {
     if (def.coerce)
       try {
         payload.value = BigInt(payload.value);
-      } catch (_2) {}
+      } catch (_) {}
     if (typeof payload.value === "bigint")
       return payload;
     payload.issues.push({
@@ -28012,16 +23518,16 @@ var $ZodArray = /* @__PURE__ */ $constructor("$ZodArray", (inst, def) => {
     }
     payload.value = Array(input.length);
     const proms = [];
-    for (let i2 = 0;i2 < input.length; i2++) {
-      const item = input[i2];
+    for (let i = 0;i < input.length; i++) {
+      const item = input[i];
       const result = def.element._zod.run({
         value: item,
         issues: []
       }, ctx);
       if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleArrayResult(result2, payload, i2)));
+        proms.push(result.then((result2) => handleArrayResult(result2, payload, i)));
       } else {
-        handleArrayResult(result, payload, i2);
+        handleArrayResult(result, payload, i);
       }
     }
     if (proms.length) {
@@ -28047,9 +23553,9 @@ function handlePropertyResult(result, final, key, input, isOptionalOut) {
 }
 function normalizeDef(def) {
   const keys = Object.keys(def.shape);
-  for (const k2 of keys) {
-    if (!def.shape?.[k2]?._zod?.traits?.has("$ZodType")) {
-      throw new Error(`Invalid element at key "${k2}": expected a Zod schema`);
+  for (const k of keys) {
+    if (!def.shape?.[k]?._zod?.traits?.has("$ZodType")) {
+      throw new Error(`Invalid element at key "${k}": expected a Zod schema`);
     }
   }
   const okeys = optionalKeys(def.shape);
@@ -28065,20 +23571,20 @@ function handleCatchall(proms, input, payload, ctx, def, inst) {
   const unrecognized = [];
   const keySet = def.keySet;
   const _catchall = def.catchall._zod;
-  const t2 = _catchall.def.type;
+  const t = _catchall.def.type;
   const isOptionalOut = _catchall.optout === "optional";
   for (const key in input) {
     if (keySet.has(key))
       continue;
-    if (t2 === "never") {
+    if (t === "never") {
       unrecognized.push(key);
       continue;
     }
-    const r2 = _catchall.run({ value: input[key], issues: [] }, ctx);
-    if (r2 instanceof Promise) {
-      proms.push(r2.then((r3) => handlePropertyResult(r3, payload, key, input, isOptionalOut)));
+    const r = _catchall.run({ value: input[key], issues: [] }, ctx);
+    if (r instanceof Promise) {
+      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input, isOptionalOut)));
     } else {
-      handlePropertyResult(r2, payload, key, input, isOptionalOut);
+      handlePropertyResult(r, payload, key, input, isOptionalOut);
     }
   }
   if (unrecognized.length) {
@@ -28145,11 +23651,11 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     for (const key of value.keys) {
       const el = shape[key];
       const isOptionalOut = el._zod.optout === "optional";
-      const r2 = el._zod.run({ value: input[key], issues: [] }, ctx);
-      if (r2 instanceof Promise) {
-        proms.push(r2.then((r3) => handlePropertyResult(r3, payload, key, input, isOptionalOut)));
+      const r = el._zod.run({ value: input[key], issues: [] }, ctx);
+      if (r instanceof Promise) {
+        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input, isOptionalOut)));
       } else {
-        handlePropertyResult(r2, payload, key, input, isOptionalOut);
+        handlePropertyResult(r, payload, key, input, isOptionalOut);
       }
     }
     if (!catchall) {
@@ -28166,8 +23672,8 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     const doc = new Doc(["shape", "payload", "ctx"]);
     const normalized = _normalized.value;
     const parseStr = (key) => {
-      const k2 = esc(key);
-      return `shape[${k2}]._zod.run({ value: input[${k2}], issues: [] }, ctx)`;
+      const k = esc(key);
+      return `shape[${k}]._zod.run({ value: input[${k}], issues: [] }, ctx)`;
     };
     doc.write(`const input = payload.value;`);
     const ids = Object.create(null);
@@ -28178,27 +23684,27 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     doc.write(`const newResult = {};`);
     for (const key of normalized.keys) {
       const id = ids[key];
-      const k2 = esc(key);
+      const k = esc(key);
       const schema = shape[key];
       const isOptionalOut = schema?._zod?.optout === "optional";
       doc.write(`const ${id} = ${parseStr(key)};`);
       if (isOptionalOut) {
         doc.write(`
         if (${id}.issues.length) {
-          if (${k2} in input) {
+          if (${k} in input) {
             payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
               ...iss,
-              path: iss.path ? [${k2}, ...iss.path] : [${k2}]
+              path: iss.path ? [${k}, ...iss.path] : [${k}]
             })));
           }
         }
         
         if (${id}.value === undefined) {
-          if (${k2} in input) {
-            newResult[${k2}] = undefined;
+          if (${k} in input) {
+            newResult[${k}] = undefined;
           }
         } else {
-          newResult[${k2}] = ${id}.value;
+          newResult[${k}] = ${id}.value;
         }
         
       `);
@@ -28207,16 +23713,16 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
         if (${id}.issues.length) {
           payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
             ...iss,
-            path: iss.path ? [${k2}, ...iss.path] : [${k2}]
+            path: iss.path ? [${k}, ...iss.path] : [${k}]
           })));
         }
         
         if (${id}.value === undefined) {
-          if (${k2} in input) {
-            newResult[${k2}] = undefined;
+          if (${k} in input) {
+            newResult[${k}] = undefined;
           }
         } else {
-          newResult[${k2}] = ${id}.value;
+          newResult[${k}] = ${id}.value;
         }
         
       `);
@@ -28264,7 +23770,7 @@ function handleUnionResults(results, final, inst, ctx) {
       return final;
     }
   }
-  const nonaborted = results.filter((r2) => !aborted(r2));
+  const nonaborted = results.filter((r) => !aborted(r));
   if (nonaborted.length === 1) {
     final.value = nonaborted[0].value;
     return nonaborted[0];
@@ -28279,26 +23785,26 @@ function handleUnionResults(results, final, inst, ctx) {
 }
 var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
   $ZodType.init(inst, def);
-  defineLazy(inst._zod, "optin", () => def.options.some((o2) => o2._zod.optin === "optional") ? "optional" : undefined);
-  defineLazy(inst._zod, "optout", () => def.options.some((o2) => o2._zod.optout === "optional") ? "optional" : undefined);
+  defineLazy(inst._zod, "optin", () => def.options.some((o) => o._zod.optin === "optional") ? "optional" : undefined);
+  defineLazy(inst._zod, "optout", () => def.options.some((o) => o._zod.optout === "optional") ? "optional" : undefined);
   defineLazy(inst._zod, "values", () => {
-    if (def.options.every((o2) => o2._zod.values)) {
+    if (def.options.every((o) => o._zod.values)) {
       return new Set(def.options.flatMap((option) => Array.from(option._zod.values)));
     }
     return;
   });
   defineLazy(inst._zod, "pattern", () => {
-    if (def.options.every((o2) => o2._zod.pattern)) {
-      const patterns = def.options.map((o2) => o2._zod.pattern);
-      return new RegExp(`^(${patterns.map((p2) => cleanRegex(p2.source)).join("|")})$`);
+    if (def.options.every((o) => o._zod.pattern)) {
+      const patterns = def.options.map((o) => o._zod.pattern);
+      return new RegExp(`^(${patterns.map((p) => cleanRegex(p.source)).join("|")})$`);
     }
     return;
   });
   const single = def.options.length === 1;
-  const first2 = def.options[0]._zod.run;
+  const first = def.options[0]._zod.run;
   inst._zod.parse = (payload, ctx) => {
     if (single) {
-      return first2(payload, ctx);
+      return first(payload, ctx);
     }
     let async = false;
     const results = [];
@@ -28324,7 +23830,7 @@ var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
   };
 });
 function handleExclusiveUnionResults(results, final, inst, ctx) {
-  const successes = results.filter((r2) => r2.issues.length === 0);
+  const successes = results.filter((r) => r.issues.length === 0);
   if (successes.length === 1) {
     final.value = successes[0].value;
     return final;
@@ -28351,10 +23857,10 @@ var $ZodXor = /* @__PURE__ */ $constructor("$ZodXor", (inst, def) => {
   $ZodUnion.init(inst, def);
   def.inclusive = false;
   const single = def.options.length === 1;
-  const first2 = def.options[0]._zod.run;
+  const first = def.options[0]._zod.run;
   inst._zod.parse = (payload, ctx) => {
     if (single) {
-      return first2(payload, ctx);
+      return first(payload, ctx);
     }
     let async = false;
     const results = [];
@@ -28387,11 +23893,11 @@ var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnio
       const pv = option._zod.propValues;
       if (!pv || Object.keys(pv).length === 0)
         throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(option)}"`);
-      for (const [k2, v] of Object.entries(pv)) {
-        if (!propValues[k2])
-          propValues[k2] = new Set;
+      for (const [k, v] of Object.entries(pv)) {
+        if (!propValues[k])
+          propValues[k] = new Set;
         for (const val of v) {
-          propValues[k2].add(val);
+          propValues[k].add(val);
         }
       }
     }
@@ -28400,15 +23906,15 @@ var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnio
   const disc = cached(() => {
     const opts = def.options;
     const map = new Map;
-    for (const o2 of opts) {
-      const values = o2._zod.propValues?.[def.discriminator];
+    for (const o of opts) {
+      const values = o._zod.propValues?.[def.discriminator];
       if (!values || values.size === 0)
-        throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(o2)}"`);
+        throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(o)}"`);
       for (const v of values) {
         if (map.has(v)) {
           throw new Error(`Duplicate discriminator value "${String(v)}"`);
         }
-        map.set(v, o2);
+        map.set(v, o);
       }
     }
     return map;
@@ -28458,19 +23964,19 @@ var $ZodIntersection = /* @__PURE__ */ $constructor("$ZodIntersection", (inst, d
     return handleIntersectionResults(payload, left, right);
   };
 });
-function mergeValues(a, b2) {
-  if (a === b2) {
+function mergeValues(a, b) {
+  if (a === b) {
     return { valid: true, data: a };
   }
-  if (a instanceof Date && b2 instanceof Date && +a === +b2) {
+  if (a instanceof Date && b instanceof Date && +a === +b) {
     return { valid: true, data: a };
   }
-  if (isPlainObject(a) && isPlainObject(b2)) {
-    const bKeys = Object.keys(b2);
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const bKeys = Object.keys(b);
     const sharedKeys = Object.keys(a).filter((key) => bKeys.indexOf(key) !== -1);
-    const newObj = { ...a, ...b2 };
+    const newObj = { ...a, ...b };
     for (const key of sharedKeys) {
-      const sharedValue = mergeValues(a[key], b2[key]);
+      const sharedValue = mergeValues(a[key], b[key]);
       if (!sharedValue.valid) {
         return {
           valid: false,
@@ -28481,14 +23987,14 @@ function mergeValues(a, b2) {
     }
     return { valid: true, data: newObj };
   }
-  if (Array.isArray(a) && Array.isArray(b2)) {
-    if (a.length !== b2.length) {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) {
       return { valid: false, mergeErrorPath: [] };
     }
     const newArray = [];
     for (let index = 0;index < a.length; index++) {
       const itemA = a[index];
-      const itemB = b2[index];
+      const itemB = b[index];
       const sharedValue = mergeValues(itemA, itemB);
       if (!sharedValue.valid) {
         return {
@@ -28508,10 +24014,10 @@ function handleIntersectionResults(result, left, right) {
   for (const iss of left.issues) {
     if (iss.code === "unrecognized_keys") {
       unrecIssue ?? (unrecIssue = iss);
-      for (const k2 of iss.keys) {
-        if (!unrecKeys.has(k2))
-          unrecKeys.set(k2, {});
-        unrecKeys.get(k2).l = true;
+      for (const k of iss.keys) {
+        if (!unrecKeys.has(k))
+          unrecKeys.set(k, {});
+        unrecKeys.get(k).l = true;
       }
     } else {
       result.issues.push(iss);
@@ -28519,16 +24025,16 @@ function handleIntersectionResults(result, left, right) {
   }
   for (const iss of right.issues) {
     if (iss.code === "unrecognized_keys") {
-      for (const k2 of iss.keys) {
-        if (!unrecKeys.has(k2))
-          unrecKeys.set(k2, {});
-        unrecKeys.get(k2).r = true;
+      for (const k of iss.keys) {
+        if (!unrecKeys.has(k))
+          unrecKeys.set(k, {});
+        unrecKeys.get(k).r = true;
       }
     } else {
       result.issues.push(iss);
     }
   }
-  const bothKeys = [...unrecKeys].filter(([, f]) => f.l && f.r).map(([k2]) => k2);
+  const bothKeys = [...unrecKeys].filter(([, f]) => f.l && f.r).map(([k]) => k);
   if (bothKeys.length && unrecIssue) {
     result.issues.push({ ...unrecIssue, keys: bothKeys });
   }
@@ -28572,35 +24078,35 @@ var $ZodTuple = /* @__PURE__ */ $constructor("$ZodTuple", (inst, def) => {
         return payload;
       }
     }
-    let i2 = -1;
+    let i = -1;
     for (const item of items) {
-      i2++;
-      if (i2 >= input.length) {
-        if (i2 >= optStart)
+      i++;
+      if (i >= input.length) {
+        if (i >= optStart)
           continue;
       }
       const result = item._zod.run({
-        value: input[i2],
+        value: input[i],
         issues: []
       }, ctx);
       if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleTupleResult(result2, payload, i2)));
+        proms.push(result.then((result2) => handleTupleResult(result2, payload, i)));
       } else {
-        handleTupleResult(result, payload, i2);
+        handleTupleResult(result, payload, i);
       }
     }
     if (def.rest) {
       const rest = input.slice(items.length);
       for (const el of rest) {
-        i2++;
+        i++;
         const result = def.rest._zod.run({
           value: el,
           issues: []
         }, ctx);
         if (result instanceof Promise) {
-          proms.push(result.then((result2) => handleTupleResult(result2, payload, i2)));
+          proms.push(result.then((result2) => handleTupleResult(result2, payload, i)));
         } else {
-          handleTupleResult(result, payload, i2);
+          handleTupleResult(result, payload, i);
         }
       }
     }
@@ -28822,7 +24328,7 @@ var $ZodEnum = /* @__PURE__ */ $constructor("$ZodEnum", (inst, def) => {
   const values = getEnumValues(def.entries);
   const valuesSet = new Set(values);
   inst._zod.values = valuesSet;
-  inst._zod.pattern = new RegExp(`^(${values.filter((k2) => propertyKeyTypes.has(typeof k2)).map((o2) => typeof o2 === "string" ? escapeRegex(o2) : o2.toString()).join("|")})$`);
+  inst._zod.pattern = new RegExp(`^(${values.filter((k) => propertyKeyTypes.has(typeof k)).map((o) => typeof o === "string" ? escapeRegex(o) : o.toString()).join("|")})$`);
   inst._zod.parse = (payload, _ctx) => {
     const input = payload.value;
     if (valuesSet.has(input)) {
@@ -28844,7 +24350,7 @@ var $ZodLiteral = /* @__PURE__ */ $constructor("$ZodLiteral", (inst, def) => {
   }
   const values = new Set(def.values);
   inst._zod.values = values;
-  inst._zod.pattern = new RegExp(`^(${def.values.map((o2) => typeof o2 === "string" ? escapeRegex(o2) : o2 ? escapeRegex(o2.toString()) : String(o2)).join("|")})$`);
+  inst._zod.pattern = new RegExp(`^(${def.values.map((o) => typeof o === "string" ? escapeRegex(o) : o ? escapeRegex(o.toString()) : String(o)).join("|")})$`);
   inst._zod.parse = (payload, _ctx) => {
     const input = payload.value;
     if (values.has(input)) {
@@ -28916,7 +24422,7 @@ var $ZodOptional = /* @__PURE__ */ $constructor("$ZodOptional", (inst, def) => {
     if (def.innerType._zod.optin === "optional") {
       const result = def.innerType._zod.run(payload, ctx);
       if (result instanceof Promise)
-        return result.then((r2) => handleOptionalResult(r2, payload.value));
+        return result.then((r) => handleOptionalResult(r, payload.value));
       return handleOptionalResult(result, payload.value);
     }
     if (payload.value === undefined) {
@@ -28993,7 +24499,7 @@ var $ZodNonOptional = /* @__PURE__ */ $constructor("$ZodNonOptional", (inst, def
   $ZodType.init(inst, def);
   defineLazy(inst._zod, "values", () => {
     const v = def.innerType._zod.values;
-    return v ? new Set([...v].filter((x2) => x2 !== undefined)) : undefined;
+    return v ? new Set([...v].filter((x) => x !== undefined)) : undefined;
   });
   inst._zod.parse = (payload, ctx) => {
     const result = def.innerType._zod.run(payload, ctx);
@@ -29279,9 +24785,9 @@ var $ZodFunction = /* @__PURE__ */ $constructor("$ZodFunction", (inst, def) => {
     return payload;
   };
   inst.input = (...args) => {
-    const F2 = inst.constructor;
+    const F = inst.constructor;
     if (Array.isArray(args[0])) {
-      return new F2({
+      return new F({
         type: "function",
         input: new $ZodTuple({
           type: "tuple",
@@ -29291,15 +24797,15 @@ var $ZodFunction = /* @__PURE__ */ $constructor("$ZodFunction", (inst, def) => {
         output: inst._def.output
       });
     }
-    return new F2({
+    return new F({
       type: "function",
       input: args[0],
       output: inst._def.output
     });
   };
   inst.output = (output) => {
-    const F2 = inst.constructor;
-    return new F2({
+    const F = inst.constructor;
+    return new F({
       type: "function",
       input: inst._def.input,
       output
@@ -29328,16 +24834,16 @@ var $ZodLazy = /* @__PURE__ */ $constructor("$ZodLazy", (inst, def) => {
 var $ZodCustom = /* @__PURE__ */ $constructor("$ZodCustom", (inst, def) => {
   $ZodCheck.init(inst, def);
   $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _2) => {
+  inst._zod.parse = (payload, _) => {
     return payload;
   };
   inst._zod.check = (payload) => {
     const input = payload.value;
-    const r2 = def.fn(input);
-    if (r2 instanceof Promise) {
-      return r2.then((r3) => handleRefineResult(r3, payload, input, inst));
+    const r = def.fn(input);
+    if (r instanceof Promise) {
+      return r.then((r2) => handleRefineResult(r2, payload, input, inst));
     }
-    handleRefineResult(r2, payload, input, inst);
+    handleRefineResult(r, payload, input, inst);
     return;
   };
 });
@@ -31154,16 +26660,16 @@ var error17 = () => {
     set: { unit: "פריטים", shortLabel: "קטן", longLabel: "גדול" },
     number: { unit: "", shortLabel: "קטן", longLabel: "גדול" }
   };
-  const typeEntry = (t2) => t2 ? TypeNames[t2] : undefined;
-  const typeLabel = (t2) => {
-    const e = typeEntry(t2);
+  const typeEntry = (t) => t ? TypeNames[t] : undefined;
+  const typeLabel = (t) => {
+    const e = typeEntry(t);
     if (e)
       return e.label;
-    return t2 ?? TypeNames.unknown.label;
+    return t ?? TypeNames.unknown.label;
   };
-  const withDefinite = (t2) => `ה${typeLabel(t2)}`;
-  const verbFor = (t2) => {
-    const e = typeEntry(t2);
+  const withDefinite = (t) => `ה${typeLabel(t)}`;
+  const verbFor = (t) => {
+    const e = typeEntry(t);
     const gender = e?.gender ?? "m";
     return gender === "f" ? "צריכה להיות" : "צריך להיות";
   };
@@ -32347,11 +27853,11 @@ var capitalizeFirstCharacter = (text) => {
 };
 function getUnitTypeFromNumber(number2) {
   const abs = Math.abs(number2);
-  const last2 = abs % 10;
-  const last22 = abs % 100;
-  if (last22 >= 11 && last22 <= 19 || last2 === 0)
+  const last = abs % 10;
+  const last2 = abs % 100;
+  if (last2 >= 11 && last2 <= 19 || last === 0)
     return "many";
-  if (last2 === 1)
+  if (last === 1)
     return "one";
   return "few";
 }
@@ -34913,9 +30419,9 @@ class $ZodRegistry {
     return this;
   }
   get(schema) {
-    const p2 = schema._zod.parent;
-    if (p2) {
-      const pm = { ...this.get(p2) ?? {} };
+    const p = schema._zod.parent;
+    if (p) {
+      const pm = { ...this.get(p) ?? {} };
       delete pm.id;
       const f = { ...pm, ...this._map.get(schema) };
       return Object.keys(f).length ? f : undefined;
@@ -36484,9 +31990,9 @@ var objectProcessor = (schema, ctx, _json, params) => {
 var unionProcessor = (schema, ctx, json, params) => {
   const def = schema._zod.def;
   const isExclusive = def.inclusive === false;
-  const options = def.options.map((x2, i2) => process2(x2, ctx, {
+  const options = def.options.map((x, i) => process2(x, ctx, {
     ...params,
-    path: [...params.path, isExclusive ? "oneOf" : "anyOf", i2]
+    path: [...params.path, isExclusive ? "oneOf" : "anyOf", i]
   }));
   if (isExclusive) {
     json.oneOf = options;
@@ -36500,14 +32006,14 @@ var intersectionProcessor = (schema, ctx, json, params) => {
     ...params,
     path: [...params.path, "allOf", 0]
   });
-  const b2 = process2(def.right, ctx, {
+  const b = process2(def.right, ctx, {
     ...params,
     path: [...params.path, "allOf", 1]
   });
   const isSimpleIntersection = (val) => ("allOf" in val) && Object.keys(val).length === 1;
   const allOf = [
     ...isSimpleIntersection(a) ? a.allOf : [a],
-    ...isSimpleIntersection(b2) ? b2.allOf : [b2]
+    ...isSimpleIntersection(b) ? b.allOf : [b]
   ];
   json.allOf = allOf;
 };
@@ -36517,9 +32023,9 @@ var tupleProcessor = (schema, ctx, _json, params) => {
   json.type = "array";
   const prefixPath = ctx.target === "draft-2020-12" ? "prefixItems" : "items";
   const restPath = ctx.target === "draft-2020-12" ? "items" : ctx.target === "openapi-3.0" ? "items" : "additionalItems";
-  const prefixItems = def.items.map((x2, i2) => process2(x2, ctx, {
+  const prefixItems = def.items.map((x, i) => process2(x, ctx, {
     ...params,
-    path: [...params.path, prefixPath, i2]
+    path: [...params.path, prefixPath, i]
   }));
   const rest = def.rest ? process2(def.rest, ctx, {
     ...params,
@@ -36713,7 +32219,7 @@ function toJSONSchema(input, params) {
     const ctx2 = initializeContext({ ...params, processors: allProcessors });
     const defs = {};
     for (const entry of registry2._idmap.entries()) {
-      const [_2, schema] = entry;
+      const [_, schema] = entry;
       process2(schema, ctx2);
     }
     const schemas = {};
@@ -36796,7 +32302,7 @@ class JSONSchemaGenerator {
     }
     extractDefs(this.ctx, schema);
     const result = finalize(this.ctx, schema);
-    const { "~standard": _2, ...plainResult } = result;
+    const { "~standard": _, ...plainResult } = result;
     return plainResult;
   }
 }
@@ -36845,7 +32351,7 @@ __export(exports_schemas2, {
   nullable: () => nullable,
   null: () => _null3,
   nonoptional: () => nonoptional,
-  never: () => never2,
+  never: () => never,
   nativeEnum: () => nativeEnum,
   nanoid: () => nanoid2,
   nan: () => nan,
@@ -37554,7 +33060,7 @@ var ZodNever = /* @__PURE__ */ $constructor("ZodNever", (inst, def) => {
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => neverProcessor(inst, ctx, json, params);
 });
-function never2(params) {
+function never(params) {
   return _never(ZodNever, params);
 }
 var ZodVoid = /* @__PURE__ */ $constructor("ZodVoid", (inst, def) => {
@@ -37571,9 +33077,9 @@ var ZodDate = /* @__PURE__ */ $constructor("ZodDate", (inst, def) => {
   inst._zod.processJSONSchema = (ctx, json, params) => dateProcessor(inst, ctx, json, params);
   inst.min = (value, params) => inst.check(_gte(value, params));
   inst.max = (value, params) => inst.check(_lte(value, params));
-  const c3 = inst._zod.bag;
-  inst.minDate = c3.minimum ? new Date(c3.minimum) : null;
-  inst.maxDate = c3.maximum ? new Date(c3.maximum) : null;
+  const c = inst._zod.bag;
+  inst.minDate = c.minimum ? new Date(c.minimum) : null;
+  inst.maxDate = c.maximum ? new Date(c.maximum) : null;
 });
 function date3(params) {
   return _date(ZodDate, params);
@@ -37607,7 +33113,7 @@ var ZodObject = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
   inst.catchall = (catchall) => inst.clone({ ...inst._zod.def, catchall });
   inst.passthrough = () => inst.clone({ ...inst._zod.def, catchall: unknown() });
   inst.loose = () => inst.clone({ ...inst._zod.def, catchall: unknown() });
-  inst.strict = () => inst.clone({ ...inst._zod.def, catchall: never2() });
+  inst.strict = () => inst.clone({ ...inst._zod.def, catchall: never() });
   inst.strip = () => inst.clone({ ...inst._zod.def, catchall: undefined });
   inst.extend = (incoming) => {
     return exports_util.extend(inst, incoming);
@@ -37633,7 +33139,7 @@ function strictObject(shape, params) {
   return new ZodObject({
     type: "object",
     shape,
-    catchall: never2(),
+    catchall: never(),
     ...exports_util.normalizeParams(params)
   });
 }
@@ -37732,11 +33238,11 @@ function record(keyType, valueType, params) {
   });
 }
 function partialRecord(keyType, valueType, params) {
-  const k2 = clone(keyType);
-  k2._zod.values = undefined;
+  const k = clone(keyType);
+  k._zod.values = undefined;
   return new ZodRecord({
     type: "record",
-    keyType: k2,
+    keyType: k,
     valueType,
     ...exports_util.normalizeParams(params)
   });
@@ -38196,7 +33702,7 @@ function getErrorMap() {
 var ZodFirstPartyTypeKind;
 (function(ZodFirstPartyTypeKind2) {})(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
 // node_modules/zod/v4/classic/from-json-schema.js
-var z2 = {
+var z = {
   ...exports_schemas2,
   ...exports_checks2,
   iso: exports_iso
@@ -38294,7 +33800,7 @@ function resolveRef(ref, ctx) {
 function convertBaseSchema(schema, ctx) {
   if (schema.not !== undefined) {
     if (typeof schema.not === "object" && Object.keys(schema.not).length === 0) {
-      return z2.never();
+      return z.never();
     }
     throw new Error("not is not supported in Zod (except { not: {} } for never)");
   }
@@ -38316,7 +33822,7 @@ function convertBaseSchema(schema, ctx) {
       return ctx.refs.get(refPath);
     }
     if (ctx.processing.has(refPath)) {
-      return z2.lazy(() => {
+      return z.lazy(() => {
         if (!ctx.refs.has(refPath)) {
           throw new Error(`Circular reference not resolved: ${refPath}`);
         }
@@ -38333,95 +33839,95 @@ function convertBaseSchema(schema, ctx) {
   if (schema.enum !== undefined) {
     const enumValues = schema.enum;
     if (ctx.version === "openapi-3.0" && schema.nullable === true && enumValues.length === 1 && enumValues[0] === null) {
-      return z2.null();
+      return z.null();
     }
     if (enumValues.length === 0) {
-      return z2.never();
+      return z.never();
     }
     if (enumValues.length === 1) {
-      return z2.literal(enumValues[0]);
+      return z.literal(enumValues[0]);
     }
     if (enumValues.every((v) => typeof v === "string")) {
-      return z2.enum(enumValues);
+      return z.enum(enumValues);
     }
-    const literalSchemas = enumValues.map((v) => z2.literal(v));
+    const literalSchemas = enumValues.map((v) => z.literal(v));
     if (literalSchemas.length < 2) {
       return literalSchemas[0];
     }
-    return z2.union([literalSchemas[0], literalSchemas[1], ...literalSchemas.slice(2)]);
+    return z.union([literalSchemas[0], literalSchemas[1], ...literalSchemas.slice(2)]);
   }
   if (schema.const !== undefined) {
-    return z2.literal(schema.const);
+    return z.literal(schema.const);
   }
   const type = schema.type;
   if (Array.isArray(type)) {
-    const typeSchemas = type.map((t2) => {
-      const typeSchema = { ...schema, type: t2 };
+    const typeSchemas = type.map((t) => {
+      const typeSchema = { ...schema, type: t };
       return convertBaseSchema(typeSchema, ctx);
     });
     if (typeSchemas.length === 0) {
-      return z2.never();
+      return z.never();
     }
     if (typeSchemas.length === 1) {
       return typeSchemas[0];
     }
-    return z2.union(typeSchemas);
+    return z.union(typeSchemas);
   }
   if (!type) {
-    return z2.any();
+    return z.any();
   }
   let zodSchema;
   switch (type) {
     case "string": {
-      let stringSchema = z2.string();
+      let stringSchema = z.string();
       if (schema.format) {
         const format = schema.format;
         if (format === "email") {
-          stringSchema = stringSchema.check(z2.email());
+          stringSchema = stringSchema.check(z.email());
         } else if (format === "uri" || format === "uri-reference") {
-          stringSchema = stringSchema.check(z2.url());
+          stringSchema = stringSchema.check(z.url());
         } else if (format === "uuid" || format === "guid") {
-          stringSchema = stringSchema.check(z2.uuid());
+          stringSchema = stringSchema.check(z.uuid());
         } else if (format === "date-time") {
-          stringSchema = stringSchema.check(z2.iso.datetime());
+          stringSchema = stringSchema.check(z.iso.datetime());
         } else if (format === "date") {
-          stringSchema = stringSchema.check(z2.iso.date());
+          stringSchema = stringSchema.check(z.iso.date());
         } else if (format === "time") {
-          stringSchema = stringSchema.check(z2.iso.time());
+          stringSchema = stringSchema.check(z.iso.time());
         } else if (format === "duration") {
-          stringSchema = stringSchema.check(z2.iso.duration());
+          stringSchema = stringSchema.check(z.iso.duration());
         } else if (format === "ipv4") {
-          stringSchema = stringSchema.check(z2.ipv4());
+          stringSchema = stringSchema.check(z.ipv4());
         } else if (format === "ipv6") {
-          stringSchema = stringSchema.check(z2.ipv6());
+          stringSchema = stringSchema.check(z.ipv6());
         } else if (format === "mac") {
-          stringSchema = stringSchema.check(z2.mac());
+          stringSchema = stringSchema.check(z.mac());
         } else if (format === "cidr") {
-          stringSchema = stringSchema.check(z2.cidrv4());
+          stringSchema = stringSchema.check(z.cidrv4());
         } else if (format === "cidr-v6") {
-          stringSchema = stringSchema.check(z2.cidrv6());
+          stringSchema = stringSchema.check(z.cidrv6());
         } else if (format === "base64") {
-          stringSchema = stringSchema.check(z2.base64());
+          stringSchema = stringSchema.check(z.base64());
         } else if (format === "base64url") {
-          stringSchema = stringSchema.check(z2.base64url());
+          stringSchema = stringSchema.check(z.base64url());
         } else if (format === "e164") {
-          stringSchema = stringSchema.check(z2.e164());
+          stringSchema = stringSchema.check(z.e164());
         } else if (format === "jwt") {
-          stringSchema = stringSchema.check(z2.jwt());
+          stringSchema = stringSchema.check(z.jwt());
         } else if (format === "emoji") {
-          stringSchema = stringSchema.check(z2.emoji());
+          stringSchema = stringSchema.check(z.emoji());
         } else if (format === "nanoid") {
-          stringSchema = stringSchema.check(z2.nanoid());
+          stringSchema = stringSchema.check(z.nanoid());
         } else if (format === "cuid") {
-          stringSchema = stringSchema.check(z2.cuid());
+          stringSchema = stringSchema.check(z.cuid());
         } else if (format === "cuid2") {
-          stringSchema = stringSchema.check(z2.cuid2());
+          stringSchema = stringSchema.check(z.cuid2());
         } else if (format === "ulid") {
-          stringSchema = stringSchema.check(z2.ulid());
+          stringSchema = stringSchema.check(z.ulid());
         } else if (format === "xid") {
-          stringSchema = stringSchema.check(z2.xid());
+          stringSchema = stringSchema.check(z.xid());
         } else if (format === "ksuid") {
-          stringSchema = stringSchema.check(z2.ksuid());
+          stringSchema = stringSchema.check(z.ksuid());
         }
       }
       if (typeof schema.minLength === "number") {
@@ -38438,7 +33944,7 @@ function convertBaseSchema(schema, ctx) {
     }
     case "number":
     case "integer": {
-      let numberSchema = type === "integer" ? z2.number().int() : z2.number();
+      let numberSchema = type === "integer" ? z.number().int() : z.number();
       if (typeof schema.minimum === "number") {
         numberSchema = numberSchema.min(schema.minimum);
       }
@@ -38462,11 +33968,11 @@ function convertBaseSchema(schema, ctx) {
       break;
     }
     case "boolean": {
-      zodSchema = z2.boolean();
+      zodSchema = z.boolean();
       break;
     }
     case "null": {
-      zodSchema = z2.null();
+      zodSchema = z.null();
       break;
     }
     case "object": {
@@ -38479,14 +33985,14 @@ function convertBaseSchema(schema, ctx) {
       }
       if (schema.propertyNames) {
         const keySchema = convertSchema(schema.propertyNames, ctx);
-        const valueSchema = schema.additionalProperties && typeof schema.additionalProperties === "object" ? convertSchema(schema.additionalProperties, ctx) : z2.any();
+        const valueSchema = schema.additionalProperties && typeof schema.additionalProperties === "object" ? convertSchema(schema.additionalProperties, ctx) : z.any();
         if (Object.keys(shape).length === 0) {
-          zodSchema = z2.record(keySchema, valueSchema);
+          zodSchema = z.record(keySchema, valueSchema);
           break;
         }
-        const objectSchema2 = z2.object(shape).passthrough();
-        const recordSchema = z2.looseRecord(keySchema, valueSchema);
-        zodSchema = z2.intersection(objectSchema2, recordSchema);
+        const objectSchema2 = z.object(shape).passthrough();
+        const recordSchema = z.looseRecord(keySchema, valueSchema);
+        zodSchema = z.intersection(objectSchema2, recordSchema);
         break;
       }
       if (schema.patternProperties) {
@@ -38495,28 +34001,28 @@ function convertBaseSchema(schema, ctx) {
         const looseRecords = [];
         for (const pattern of patternKeys) {
           const patternValue = convertSchema(patternProps[pattern], ctx);
-          const keySchema = z2.string().regex(new RegExp(pattern));
-          looseRecords.push(z2.looseRecord(keySchema, patternValue));
+          const keySchema = z.string().regex(new RegExp(pattern));
+          looseRecords.push(z.looseRecord(keySchema, patternValue));
         }
         const schemasToIntersect = [];
         if (Object.keys(shape).length > 0) {
-          schemasToIntersect.push(z2.object(shape).passthrough());
+          schemasToIntersect.push(z.object(shape).passthrough());
         }
         schemasToIntersect.push(...looseRecords);
         if (schemasToIntersect.length === 0) {
-          zodSchema = z2.object({}).passthrough();
+          zodSchema = z.object({}).passthrough();
         } else if (schemasToIntersect.length === 1) {
           zodSchema = schemasToIntersect[0];
         } else {
-          let result = z2.intersection(schemasToIntersect[0], schemasToIntersect[1]);
-          for (let i2 = 2;i2 < schemasToIntersect.length; i2++) {
-            result = z2.intersection(result, schemasToIntersect[i2]);
+          let result = z.intersection(schemasToIntersect[0], schemasToIntersect[1]);
+          for (let i = 2;i < schemasToIntersect.length; i++) {
+            result = z.intersection(result, schemasToIntersect[i]);
           }
           zodSchema = result;
         }
         break;
       }
-      const objectSchema = z2.object(shape);
+      const objectSchema = z.object(shape);
       if (schema.additionalProperties === false) {
         zodSchema = objectSchema.strict();
       } else if (typeof schema.additionalProperties === "object") {
@@ -38533,33 +34039,33 @@ function convertBaseSchema(schema, ctx) {
         const tupleItems = prefixItems.map((item) => convertSchema(item, ctx));
         const rest = items && typeof items === "object" && !Array.isArray(items) ? convertSchema(items, ctx) : undefined;
         if (rest) {
-          zodSchema = z2.tuple(tupleItems).rest(rest);
+          zodSchema = z.tuple(tupleItems).rest(rest);
         } else {
-          zodSchema = z2.tuple(tupleItems);
+          zodSchema = z.tuple(tupleItems);
         }
         if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z2.minLength(schema.minItems));
+          zodSchema = zodSchema.check(z.minLength(schema.minItems));
         }
         if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z2.maxLength(schema.maxItems));
+          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
         }
       } else if (Array.isArray(items)) {
         const tupleItems = items.map((item) => convertSchema(item, ctx));
         const rest = schema.additionalItems && typeof schema.additionalItems === "object" ? convertSchema(schema.additionalItems, ctx) : undefined;
         if (rest) {
-          zodSchema = z2.tuple(tupleItems).rest(rest);
+          zodSchema = z.tuple(tupleItems).rest(rest);
         } else {
-          zodSchema = z2.tuple(tupleItems);
+          zodSchema = z.tuple(tupleItems);
         }
         if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z2.minLength(schema.minItems));
+          zodSchema = zodSchema.check(z.minLength(schema.minItems));
         }
         if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z2.maxLength(schema.maxItems));
+          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
         }
       } else if (items !== undefined) {
         const element = convertSchema(items, ctx);
-        let arraySchema = z2.array(element);
+        let arraySchema = z.array(element);
         if (typeof schema.minItems === "number") {
           arraySchema = arraySchema.min(schema.minItems);
         }
@@ -38568,7 +34074,7 @@ function convertBaseSchema(schema, ctx) {
         }
         zodSchema = arraySchema;
       } else {
-        zodSchema = z2.array(z2.any());
+        zodSchema = z.array(z.any());
       }
       break;
     }
@@ -38585,37 +34091,37 @@ function convertBaseSchema(schema, ctx) {
 }
 function convertSchema(schema, ctx) {
   if (typeof schema === "boolean") {
-    return schema ? z2.any() : z2.never();
+    return schema ? z.any() : z.never();
   }
   let baseSchema = convertBaseSchema(schema, ctx);
   const hasExplicitType = schema.type || schema.enum !== undefined || schema.const !== undefined;
   if (schema.anyOf && Array.isArray(schema.anyOf)) {
     const options = schema.anyOf.map((s) => convertSchema(s, ctx));
-    const anyOfUnion = z2.union(options);
-    baseSchema = hasExplicitType ? z2.intersection(baseSchema, anyOfUnion) : anyOfUnion;
+    const anyOfUnion = z.union(options);
+    baseSchema = hasExplicitType ? z.intersection(baseSchema, anyOfUnion) : anyOfUnion;
   }
   if (schema.oneOf && Array.isArray(schema.oneOf)) {
     const options = schema.oneOf.map((s) => convertSchema(s, ctx));
-    const oneOfUnion = z2.xor(options);
-    baseSchema = hasExplicitType ? z2.intersection(baseSchema, oneOfUnion) : oneOfUnion;
+    const oneOfUnion = z.xor(options);
+    baseSchema = hasExplicitType ? z.intersection(baseSchema, oneOfUnion) : oneOfUnion;
   }
   if (schema.allOf && Array.isArray(schema.allOf)) {
     if (schema.allOf.length === 0) {
-      baseSchema = hasExplicitType ? baseSchema : z2.any();
+      baseSchema = hasExplicitType ? baseSchema : z.any();
     } else {
       let result = hasExplicitType ? baseSchema : convertSchema(schema.allOf[0], ctx);
       const startIdx = hasExplicitType ? 0 : 1;
-      for (let i2 = startIdx;i2 < schema.allOf.length; i2++) {
-        result = z2.intersection(result, convertSchema(schema.allOf[i2], ctx));
+      for (let i = startIdx;i < schema.allOf.length; i++) {
+        result = z.intersection(result, convertSchema(schema.allOf[i], ctx));
       }
       baseSchema = result;
     }
   }
   if (schema.nullable === true && ctx.version === "openapi-3.0") {
-    baseSchema = z2.nullable(baseSchema);
+    baseSchema = z.nullable(baseSchema);
   }
   if (schema.readOnly === true) {
-    baseSchema = z2.readonly(baseSchema);
+    baseSchema = z.readonly(baseSchema);
   }
   const extraMeta = {};
   const coreMetadataKeys = ["$id", "id", "$comment", "$anchor", "$vocabulary", "$dynamicRef", "$dynamicAnchor"];
@@ -38642,7 +34148,7 @@ function convertSchema(schema, ctx) {
 }
 function fromJSONSchema(schema, params) {
   if (typeof schema === "boolean") {
-    return schema ? z2.any() : z2.never();
+    return schema ? z.any() : z.never();
   }
   const version2 = detectVersion(schema, params?.defaultTarget);
   const defs = schema.$defs || schema.definitions || {};
@@ -38686,7 +34192,7 @@ config(en_default());
 // node_modules/zod/v3/helpers/util.js
 var util3;
 (function(util4) {
-  util4.assertEqual = (_2) => {};
+  util4.assertEqual = (_) => {};
   function assertIs2(_arg) {}
   util4.assertIs = assertIs2;
   function assertNever2(_x) {
@@ -38701,10 +34207,10 @@ var util3;
     return obj;
   };
   util4.getValidEnumValues = (obj) => {
-    const validKeys = util4.objectKeys(obj).filter((k2) => typeof obj[obj[k2]] !== "number");
+    const validKeys = util4.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
     const filtered = {};
-    for (const k2 of validKeys) {
-      filtered[k2] = obj[k2];
+    for (const k of validKeys) {
+      filtered[k] = obj[k];
     }
     return util4.objectValues(filtered);
   };
@@ -38734,7 +34240,7 @@ var util3;
     return array2.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
   }
   util4.joinValues = joinValues2;
-  util4.jsonStringifyReplacer = (_2, value) => {
+  util4.jsonStringifyReplacer = (_, value) => {
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -38743,9 +34249,9 @@ var util3;
 })(util3 || (util3 = {}));
 var objectUtil;
 (function(objectUtil2) {
-  objectUtil2.mergeShapes = (first2, second) => {
+  objectUtil2.mergeShapes = (first, second) => {
     return {
-      ...first2,
+      ...first,
       ...second
     };
   };
@@ -38773,8 +34279,8 @@ var ZodParsedType = util3.arrayToEnum([
   "set"
 ]);
 var getParsedType2 = (data) => {
-  const t2 = typeof data;
-  switch (t2) {
+  const t = typeof data;
+  switch (t) {
     case "undefined":
       return ZodParsedType.undefined;
     case "string":
@@ -38872,10 +34378,10 @@ class ZodError2 extends Error {
           fieldErrors._errors.push(mapper(issue3));
         } else {
           let curr = fieldErrors;
-          let i2 = 0;
-          while (i2 < issue3.path.length) {
-            const el = issue3.path[i2];
-            const terminal = i2 === issue3.path.length - 1;
+          let i = 0;
+          while (i < issue3.path.length) {
+            const el = issue3.path[i];
+            const terminal = i === issue3.path.length - 1;
             if (!terminal) {
               curr[el] = curr[el] || { _errors: [] };
             } else {
@@ -38883,7 +34389,7 @@ class ZodError2 extends Error {
               curr[el]._errors.push(mapper(issue3));
             }
             curr = curr[el];
-            i2++;
+            i++;
           }
         }
       }
@@ -39074,7 +34580,7 @@ function addIssueToContext(ctx, issueData) {
       ctx.schemaErrorMap,
       overrideMap,
       overrideMap === en_default2 ? undefined : en_default2
-    ].filter((x2) => !!x2)
+    ].filter((x) => !!x)
   });
   ctx.common.issues.push(issue3);
 }
@@ -39138,10 +34644,10 @@ var INVALID = Object.freeze({
 });
 var DIRTY = (value) => ({ status: "dirty", value });
 var OK = (value) => ({ status: "valid", value });
-var isAborted = (x2) => x2.status === "aborted";
-var isDirty = (x2) => x2.status === "dirty";
-var isValid = (x2) => x2.status === "valid";
-var isAsync = (x2) => typeof Promise !== "undefined" && x2 instanceof Promise;
+var isAborted = (x) => x.status === "aborted";
+var isDirty = (x) => x.status === "dirty";
+var isValid = (x) => x.status === "valid";
+var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
 
 // node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
@@ -40864,14 +36370,14 @@ class ZodArray2 extends ZodType2 {
       }
     }
     if (ctx.common.async) {
-      return Promise.all([...ctx.data].map((item, i2) => {
-        return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i2));
+      return Promise.all([...ctx.data].map((item, i) => {
+        return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
       })).then((result2) => {
         return ParseStatus.mergeArray(status, result2);
       });
     }
-    const result = [...ctx.data].map((item, i2) => {
-      return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i2));
+    const result = [...ctx.data].map((item, i) => {
+      return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
     });
     return ParseStatus.mergeArray(status, result);
   }
@@ -41382,17 +36888,17 @@ class ZodDiscriminatedUnion2 extends ZodType2 {
     });
   }
 }
-function mergeValues2(a, b2) {
+function mergeValues2(a, b) {
   const aType = getParsedType2(a);
-  const bType = getParsedType2(b2);
-  if (a === b2) {
+  const bType = getParsedType2(b);
+  if (a === b) {
     return { valid: true, data: a };
   } else if (aType === ZodParsedType.object && bType === ZodParsedType.object) {
-    const bKeys = util3.objectKeys(b2);
+    const bKeys = util3.objectKeys(b);
     const sharedKeys = util3.objectKeys(a).filter((key) => bKeys.indexOf(key) !== -1);
-    const newObj = { ...a, ...b2 };
+    const newObj = { ...a, ...b };
     for (const key of sharedKeys) {
-      const sharedValue = mergeValues2(a[key], b2[key]);
+      const sharedValue = mergeValues2(a[key], b[key]);
       if (!sharedValue.valid) {
         return { valid: false };
       }
@@ -41400,13 +36906,13 @@ function mergeValues2(a, b2) {
     }
     return { valid: true, data: newObj };
   } else if (aType === ZodParsedType.array && bType === ZodParsedType.array) {
-    if (a.length !== b2.length) {
+    if (a.length !== b.length) {
       return { valid: false };
     }
     const newArray = [];
     for (let index = 0;index < a.length; index++) {
       const itemA = a[index];
-      const itemB = b2[index];
+      const itemB = b[index];
       const sharedValue = mergeValues2(itemA, itemB);
       if (!sharedValue.valid) {
         return { valid: false };
@@ -41414,7 +36920,7 @@ function mergeValues2(a, b2) {
       newArray.push(sharedValue.data);
     }
     return { valid: true, data: newArray };
-  } else if (aType === ZodParsedType.date && bType === ZodParsedType.date && +a === +b2) {
+  } else if (aType === ZodParsedType.date && bType === ZodParsedType.date && +a === +b) {
     return { valid: true, data: a };
   } else {
     return { valid: false };
@@ -41512,7 +37018,7 @@ class ZodTuple2 extends ZodType2 {
       if (!schema)
         return null;
       return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
-    }).filter((x2) => !!x2);
+    }).filter((x) => !!x);
     if (ctx.common.async) {
       return Promise.all(items).then((results) => {
         return ParseStatus.mergeArray(status, results);
@@ -41579,10 +37085,10 @@ class ZodRecord2 extends ZodType2 {
   get element() {
     return this._def.valueType;
   }
-  static create(first2, second, third) {
+  static create(first, second, third) {
     if (second instanceof ZodType2) {
       return new ZodRecord2({
-        keyType: first2,
+        keyType: first,
         valueType: second,
         typeName: ZodFirstPartyTypeKind2.ZodRecord,
         ...processCreateParams(third)
@@ -41590,7 +37096,7 @@ class ZodRecord2 extends ZodType2 {
     }
     return new ZodRecord2({
       keyType: ZodString2.create(),
-      valueType: first2,
+      valueType: first,
       typeName: ZodFirstPartyTypeKind2.ZodRecord,
       ...processCreateParams(second)
     });
@@ -41714,7 +37220,7 @@ class ZodSet2 extends ZodType2 {
       }
       return { status: status.value, value: parsedSet };
     }
-    const elements = [...ctx.data.values()].map((item, i2) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i2)));
+    const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
     if (ctx.common.async) {
       return Promise.all(elements).then((elements2) => finalizeSet(elements2));
     } else {
@@ -41769,7 +37275,7 @@ class ZodFunction2 extends ZodType2 {
       return makeIssue({
         data: args,
         path: ctx.path,
-        errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap2(), en_default2].filter((x2) => !!x2),
+        errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap2(), en_default2].filter((x) => !!x),
         issueData: {
           code: ZodIssueCode2.invalid_arguments,
           argumentsError: error49
@@ -41780,7 +37286,7 @@ class ZodFunction2 extends ZodType2 {
       return makeIssue({
         data: returns,
         path: ctx.path,
-        errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap2(), en_default2].filter((x2) => !!x2),
+        errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap2(), en_default2].filter((x) => !!x),
         issueData: {
           code: ZodIssueCode2.invalid_return_type,
           returnTypeError: error49
@@ -42386,10 +37892,10 @@ class ZodPipeline extends ZodType2 {
       }
     }
   }
-  static create(a, b2) {
+  static create(a, b) {
     return new ZodPipeline({
       in: a,
-      out: b2,
+      out: b,
       typeName: ZodFirstPartyTypeKind2.ZodPipeline
     });
   }
@@ -42504,7 +38010,7 @@ function noop(_arg) {}
 function createParser(callbacks) {
   if (typeof callbacks == "function")
     throw new TypeError("`callbacks` must be an object, got a function instead. Did you mean `{onEvent: fn}`?");
-  const { onEvent = noop, onError: onError2 = noop, onRetry = noop, onComment } = callbacks;
+  const { onEvent = noop, onError = noop, onRetry = noop, onComment } = callbacks;
   let incompleteLine = "", isFirstChunk = true, id, data = "", eventType = "";
   function feed(newChunk) {
     const chunk = isFirstChunk ? newChunk.replace(/^\xEF\xBB\xBF/, "") : newChunk, [complete, incomplete] = splitLines(`${incompleteLine}${chunk}`);
@@ -42542,14 +38048,14 @@ function createParser(callbacks) {
         id = value.includes("\x00") ? undefined : value;
         break;
       case "retry":
-        /^\d+$/.test(value) ? onRetry(parseInt(value, 10)) : onError2(new ParseError(`Invalid \`retry\` value: "${value}"`, {
+        /^\d+$/.test(value) ? onRetry(parseInt(value, 10)) : onError(new ParseError(`Invalid \`retry\` value: "${value}"`, {
           type: "invalid-retry",
           value,
           line
         }));
         break;
       default:
-        onError2(new ParseError(`Unknown field "${field.length > 20 ? `${field.slice(0, 20)}…` : field}"`, { type: "unknown-field", field, value, line }));
+        onError(new ParseError(`Unknown field "${field.length > 20 ? `${field.slice(0, 20)}…` : field}"`, { type: "unknown-field", field, value, line }));
         break;
     }
   }
@@ -42587,23 +38093,23 @@ function splitLines(chunk) {
 
 // node_modules/eventsource-parser/dist/stream.js
 class EventSourceParserStream extends TransformStream {
-  constructor({ onError: onError2, onRetry, onComment } = {}) {
-    let parser4;
+  constructor({ onError, onRetry, onComment } = {}) {
+    let parser;
     super({
       start(controller) {
-        parser4 = createParser({
+        parser = createParser({
           onEvent: (event) => {
             controller.enqueue(event);
           },
           onError(error49) {
-            onError2 === "terminate" ? controller.error(error49) : typeof onError2 == "function" && onError2(error49);
+            onError === "terminate" ? controller.error(error49) : typeof onError == "function" && onError(error49);
           },
           onRetry,
           onComment
         });
       },
       transform(chunk) {
-        parser4.feed(chunk);
+        parser.feed(chunk);
       }
     });
   }
@@ -42621,12 +38127,12 @@ function createToolNameMapping({
   providerToolNames,
   resolveProviderToolName
 }) {
-  var _a23;
+  var _a22;
   const customToolNameToProviderToolName = {};
   const providerToolNameToCustomToolName = {};
   for (const tool2 of tools) {
     if (tool2.type === "provider") {
-      const providerToolName = (_a23 = resolveProviderToolName == null ? undefined : resolveProviderToolName(tool2)) != null ? _a23 : (tool2.id in providerToolNames) ? providerToolNames[tool2.id] : undefined;
+      const providerToolName = (_a22 = resolveProviderToolName == null ? undefined : resolveProviderToolName(tool2)) != null ? _a22 : (tool2.id in providerToolNames) ? providerToolNames[tool2.id] : undefined;
       if (providerToolName == null) {
         continue;
       }
@@ -42645,7 +38151,7 @@ function createToolNameMapping({
     }
   };
 }
-async function delay2(delayInMs, options) {
+async function delay(delayInMs, options) {
   if (delayInMs == null) {
     return Promise.resolve();
   }
@@ -42684,8 +38190,8 @@ function convertBase64ToUint8Array(base64String) {
 }
 function convertUint8ArrayToBase64(array2) {
   let latin1string = "";
-  for (let i2 = 0;i2 < array2.length; i2++) {
-    latin1string += String.fromCodePoint(array2[i2]);
+  for (let i = 0;i < array2.length; i++) {
+    latin1string += String.fromCodePoint(array2[i]);
   }
   return btoa2(latin1string);
 }
@@ -42853,18 +38359,18 @@ function isIPv4(hostname3) {
 }
 function isPrivateIPv4(ip) {
   const parts = ip.split(".").map(Number);
-  const [a, b2] = parts;
+  const [a, b] = parts;
   if (a === 0)
     return true;
   if (a === 10)
     return true;
   if (a === 127)
     return true;
-  if (a === 169 && b2 === 254)
+  if (a === 169 && b === 254)
     return true;
-  if (a === 172 && b2 >= 16 && b2 <= 31)
+  if (a === 172 && b >= 16 && b <= 31)
     return true;
-  if (a === 192 && b2 === 168)
+  if (a === 192 && b === 168)
     return true;
   return false;
 }
@@ -42885,10 +38391,10 @@ function isPrivateIPv6(ip) {
       const low = parseInt(hexParts[1], 16);
       if (!isNaN(high) && !isNaN(low)) {
         const a = high >> 8 & 255;
-        const b2 = high & 255;
-        const c3 = low >> 8 & 255;
+        const b = high & 255;
+        const c = low >> 8 & 255;
         const d = low & 255;
-        return isPrivateIPv4(`${a}.${b2}.${c3}.${d}`);
+        return isPrivateIPv4(`${a}.${b}.${c}.${d}`);
       }
     }
   }
@@ -42899,7 +38405,7 @@ function isPrivateIPv6(ip) {
   return false;
 }
 async function downloadBlob(url2, options) {
-  var _a23, _b22;
+  var _a22, _b22;
   validateDownloadUrl(url2);
   try {
     const response = await fetch(url2, {
@@ -42918,7 +38424,7 @@ async function downloadBlob(url2, options) {
     const data = await readResponseWithSizeLimit({
       response,
       url: url2,
-      maxBytes: (_a23 = options == null ? undefined : options.maxBytes) != null ? _a23 : DEFAULT_MAX_DOWNLOAD_SIZE
+      maxBytes: (_a22 = options == null ? undefined : options.maxBytes) != null ? _a22 : DEFAULT_MAX_DOWNLOAD_SIZE
     });
     const contentType = (_b22 = response.headers.get("content-type")) != null ? _b22 : undefined;
     return new Blob([data], contentType ? { type: contentType } : undefined);
@@ -42938,8 +38444,8 @@ var createIdGenerator = ({
   const generator = () => {
     const alphabetLength = alphabet.length;
     const chars = new Array(size);
-    for (let i2 = 0;i2 < size; i2++) {
-      chars[i2] = alphabet[Math.random() * alphabetLength | 0];
+    for (let i = 0;i < size; i++) {
+      chars[i] = alphabet[Math.random() * alphabetLength | 0];
     }
     return chars.join("");
   };
@@ -42955,7 +38461,7 @@ var createIdGenerator = ({
   return () => `${prefix}${separator}${generator()}`;
 };
 var generateId = createIdGenerator();
-function getErrorMessage3(error49) {
+function getErrorMessage2(error49) {
   if (error49 == null) {
     return "unknown error";
   }
@@ -43022,11 +38528,11 @@ function handleFetchError({
   return error49;
 }
 function getRuntimeEnvironmentUserAgent(globalThisAny = globalThis) {
-  var _a23, _b22, _c;
+  var _a22, _b22, _c;
   if (globalThisAny.window) {
     return `runtime/browser`;
   }
-  if ((_a23 = globalThisAny.navigator) == null ? undefined : _a23.userAgent) {
+  if ((_a22 = globalThisAny.navigator) == null ? undefined : _a22.userAgent) {
     return `runtime/${globalThisAny.navigator.userAgent.toLowerCase()}`;
   }
   if ((_c = (_b22 = globalThisAny.process) == null ? undefined : _b22.versions) == null ? undefined : _c.node) {
@@ -43193,15 +38699,15 @@ function loadOptionalSetting({
   return settingValue;
 }
 function mediaTypeToExtension(mediaType) {
-  var _a23;
+  var _a22;
   const [_type, subtype = ""] = mediaType.toLowerCase().split("/");
-  return (_a23 = {
+  return (_a22 = {
     mpeg: "mp3",
     "x-wav": "wav",
     opus: "ogg",
     mp4: "m4a",
     "x-m4a": "m4a"
-  }[subtype]) != null ? _a23 : subtype;
+  }[subtype]) != null ? _a22 : subtype;
 }
 var suspectProtoRx = /"(?:_|\\u005[Ff])(?:_|\\u005[Ff])(?:p|\\u0070)(?:r|\\u0072)(?:o|\\u006[Ff])(?:t|\\u0074)(?:o|\\u006[Ff])(?:_|\\u005[Ff])(?:_|\\u005[Ff])"\s*:/;
 var suspectConstructorRx = /"(?:c|\\u0063)(?:o|\\u006[Ff])(?:n|\\u006[Ee])(?:s|\\u0073)(?:t|\\u0074)(?:r|\\u0072)(?:u|\\u0075)(?:c|\\u0063)(?:t|\\u0074)(?:o|\\u006[Ff])(?:r|\\u0072)"\s*:/;
@@ -43286,7 +38792,7 @@ function visit(def) {
   return addAdditionalPropertiesToJsonSchema(def);
 }
 var ignoreOverride = /* @__PURE__ */ Symbol("Let zodToJsonSchema decide on which parser to use");
-var defaultOptions2 = {
+var defaultOptions = {
   name: undefined,
   $refStrategy: "root",
   basePath: ["#"],
@@ -43308,21 +38814,21 @@ var defaultOptions2 = {
   nameStrategy: "ref"
 };
 var getDefaultOptions = (options) => typeof options === "string" ? {
-  ...defaultOptions2,
+  ...defaultOptions,
   name: options
 } : {
-  ...defaultOptions2,
+  ...defaultOptions,
   ...options
 };
 function parseAnyDef() {
   return {};
 }
 function parseArrayDef(def, refs) {
-  var _a23, _b22, _c;
+  var _a22, _b22, _c;
   const res = {
     type: "array"
   };
-  if (((_a23 = def.type) == null ? undefined : _a23._def) && ((_c = (_b22 = def.type) == null ? undefined : _b22._def) == null ? undefined : _c.typeName) !== ZodFirstPartyTypeKind2.ZodAny) {
+  if (((_a22 = def.type) == null ? undefined : _a22._def) && ((_c = (_b22 = def.type) == null ? undefined : _b22._def) == null ? undefined : _c.typeName) !== ZodFirstPartyTypeKind2.ZodAny) {
     res.items = parseDef(def.type._def, {
       ...refs,
       currentPath: [...refs.currentPath, "items"]
@@ -43383,7 +38889,7 @@ function parseDateDef(def, refs, overrideDateStrategy) {
   const strategy = overrideDateStrategy != null ? overrideDateStrategy : refs.dateStrategy;
   if (Array.isArray(strategy)) {
     return {
-      anyOf: strategy.map((item, i2) => parseDateDef(def, refs, item))
+      anyOf: strategy.map((item, i) => parseDateDef(def, refs, item))
     };
   }
   switch (strategy) {
@@ -43449,7 +38955,7 @@ function parseIntersectionDef(def, refs) {
       ...refs,
       currentPath: [...refs.currentPath, "allOf", "1"]
     })
-  ].filter((x2) => !!x2);
+  ].filter((x) => !!x);
   const mergedAllOf = [];
   allOf.forEach((schema) => {
     if (isJsonSchema7AllOfType(schema)) {
@@ -43633,17 +39139,17 @@ function escapeLiteralCheckValue(literal2, refs) {
 var ALPHA_NUMERIC = new Set("ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz0123456789");
 function escapeNonAlphaNumeric(source) {
   let result = "";
-  for (let i2 = 0;i2 < source.length; i2++) {
-    if (!ALPHA_NUMERIC.has(source[i2])) {
+  for (let i = 0;i < source.length; i++) {
+    if (!ALPHA_NUMERIC.has(source[i])) {
       result += "\\";
     }
-    result += source[i2];
+    result += source[i];
   }
   return result;
 }
 function addFormat(schema, value, message, refs) {
-  var _a23;
-  if (schema.format || ((_a23 = schema.anyOf) == null ? undefined : _a23.some((x2) => x2.format))) {
+  var _a22;
+  if (schema.format || ((_a22 = schema.anyOf) == null ? undefined : _a22.some((x) => x.format))) {
     if (!schema.anyOf) {
       schema.anyOf = [];
     }
@@ -43662,8 +39168,8 @@ function addFormat(schema, value, message, refs) {
   }
 }
 function addPattern(schema, regex, message, refs) {
-  var _a23;
-  if (schema.pattern || ((_a23 = schema.allOf) == null ? undefined : _a23.some((x2) => x2.pattern))) {
+  var _a22;
+  if (schema.pattern || ((_a22 = schema.allOf) == null ? undefined : _a22.some((x) => x.pattern))) {
     if (!schema.allOf) {
       schema.allOf = [];
     }
@@ -43682,7 +39188,7 @@ function addPattern(schema, regex, message, refs) {
   }
 }
 function stringifyRegExpWithFlags(regex, refs) {
-  var _a23;
+  var _a22;
   if (!refs.applyRegexFlags || !regex.flags) {
     return regex.source;
   }
@@ -43696,55 +39202,55 @@ function stringifyRegExpWithFlags(regex, refs) {
   let isEscaped = false;
   let inCharGroup = false;
   let inCharRange = false;
-  for (let i2 = 0;i2 < source.length; i2++) {
+  for (let i = 0;i < source.length; i++) {
     if (isEscaped) {
-      pattern += source[i2];
+      pattern += source[i];
       isEscaped = false;
       continue;
     }
     if (flags.i) {
       if (inCharGroup) {
-        if (source[i2].match(/[a-z]/)) {
+        if (source[i].match(/[a-z]/)) {
           if (inCharRange) {
-            pattern += source[i2];
-            pattern += `${source[i2 - 2]}-${source[i2]}`.toUpperCase();
+            pattern += source[i];
+            pattern += `${source[i - 2]}-${source[i]}`.toUpperCase();
             inCharRange = false;
-          } else if (source[i2 + 1] === "-" && ((_a23 = source[i2 + 2]) == null ? undefined : _a23.match(/[a-z]/))) {
-            pattern += source[i2];
+          } else if (source[i + 1] === "-" && ((_a22 = source[i + 2]) == null ? undefined : _a22.match(/[a-z]/))) {
+            pattern += source[i];
             inCharRange = true;
           } else {
-            pattern += `${source[i2]}${source[i2].toUpperCase()}`;
+            pattern += `${source[i]}${source[i].toUpperCase()}`;
           }
           continue;
         }
-      } else if (source[i2].match(/[a-z]/)) {
-        pattern += `[${source[i2]}${source[i2].toUpperCase()}]`;
+      } else if (source[i].match(/[a-z]/)) {
+        pattern += `[${source[i]}${source[i].toUpperCase()}]`;
         continue;
       }
     }
     if (flags.m) {
-      if (source[i2] === "^") {
+      if (source[i] === "^") {
         pattern += `(^|(?<=[\r
 ]))`;
         continue;
-      } else if (source[i2] === "$") {
+      } else if (source[i] === "$") {
         pattern += `($|(?=[\r
 ]))`;
         continue;
       }
     }
-    if (flags.s && source[i2] === ".") {
-      pattern += inCharGroup ? `${source[i2]}\r
-` : `[${source[i2]}\r
+    if (flags.s && source[i] === ".") {
+      pattern += inCharGroup ? `${source[i]}\r
+` : `[${source[i]}\r
 ]`;
       continue;
     }
-    pattern += source[i2];
-    if (source[i2] === "\\") {
+    pattern += source[i];
+    if (source[i] === "\\") {
       isEscaped = true;
-    } else if (inCharGroup && source[i2] === "]") {
+    } else if (inCharGroup && source[i] === "]") {
       inCharGroup = false;
-    } else if (!inCharGroup && source[i2] === "[") {
+    } else if (!inCharGroup && source[i] === "[") {
       inCharGroup = true;
     }
   }
@@ -43757,13 +39263,13 @@ function stringifyRegExpWithFlags(regex, refs) {
   return pattern;
 }
 function parseRecordDef(def, refs) {
-  var _a23, _b22, _c, _d, _e, _f;
+  var _a22, _b22, _c, _d, _e, _f;
   const schema = {
     type: "object",
-    additionalProperties: (_a23 = parseDef(def.valueType._def, {
+    additionalProperties: (_a22 = parseDef(def.valueType._def, {
       ...refs,
       currentPath: [...refs.currentPath, "additionalProperties"]
-    })) != null ? _a23 : refs.allowedAdditionalProperties
+    })) != null ? _a22 : refs.allowedAdditionalProperties
   };
   if (((_b22 = def.keyType) == null ? undefined : _b22._def.typeName) === ZodFirstPartyTypeKind2.ZodString && ((_c = def.keyType._def.checks) == null ? undefined : _c.length)) {
     const { type, ...keyType } = parseStringDef(def.keyType._def, refs);
@@ -43839,17 +39345,17 @@ var primitiveMappings = {
 };
 function parseUnionDef(def, refs) {
   const options = def.options instanceof Map ? Array.from(def.options.values()) : def.options;
-  if (options.every((x2) => (x2._def.typeName in primitiveMappings) && (!x2._def.checks || !x2._def.checks.length))) {
-    const types = options.reduce((types2, x2) => {
-      const type = primitiveMappings[x2._def.typeName];
+  if (options.every((x) => (x._def.typeName in primitiveMappings) && (!x._def.checks || !x._def.checks.length))) {
+    const types = options.reduce((types2, x) => {
+      const type = primitiveMappings[x._def.typeName];
       return type && !types2.includes(type) ? [...types2, type] : types2;
     }, []);
     return {
       type: types.length > 1 ? types : types[0]
     };
-  } else if (options.every((x2) => x2._def.typeName === "ZodLiteral" && !x2.description)) {
-    const types = options.reduce((acc, x2) => {
-      const type = typeof x2._def.value;
+  } else if (options.every((x) => x._def.typeName === "ZodLiteral" && !x.description)) {
+    const types = options.reduce((acc, x) => {
+      const type = typeof x._def.value;
       switch (type) {
         case "string":
         case "number":
@@ -43858,7 +39364,7 @@ function parseUnionDef(def, refs) {
         case "bigint":
           return [...acc, "integer"];
         case "object":
-          if (x2._def.value === null)
+          if (x._def.value === null)
             return [...acc, "null"];
         case "symbol":
         case "undefined":
@@ -43868,30 +39374,30 @@ function parseUnionDef(def, refs) {
       }
     }, []);
     if (types.length === options.length) {
-      const uniqueTypes = types.filter((x2, i2, a) => a.indexOf(x2) === i2);
+      const uniqueTypes = types.filter((x, i, a) => a.indexOf(x) === i);
       return {
         type: uniqueTypes.length > 1 ? uniqueTypes : uniqueTypes[0],
-        enum: options.reduce((acc, x2) => {
-          return acc.includes(x2._def.value) ? acc : [...acc, x2._def.value];
+        enum: options.reduce((acc, x) => {
+          return acc.includes(x._def.value) ? acc : [...acc, x._def.value];
         }, [])
       };
     }
-  } else if (options.every((x2) => x2._def.typeName === "ZodEnum")) {
+  } else if (options.every((x) => x._def.typeName === "ZodEnum")) {
     return {
       type: "string",
-      enum: options.reduce((acc, x2) => [
+      enum: options.reduce((acc, x) => [
         ...acc,
-        ...x2._def.values.filter((x22) => !acc.includes(x22))
+        ...x._def.values.filter((x2) => !acc.includes(x2))
       ], [])
     };
   }
   return asAnyOf(def, refs);
 }
 var asAnyOf = (def, refs) => {
-  const anyOf = (def.options instanceof Map ? Array.from(def.options.values()) : def.options).map((x2, i2) => parseDef(x2._def, {
+  const anyOf = (def.options instanceof Map ? Array.from(def.options.values()) : def.options).map((x, i) => parseDef(x._def, {
     ...refs,
-    currentPath: [...refs.currentPath, "anyOf", `${i2}`]
-  })).filter((x2) => !!x2 && (!refs.strictUnions || typeof x2 === "object" && Object.keys(x2).length > 0));
+    currentPath: [...refs.currentPath, "anyOf", `${i}`]
+  })).filter((x) => !!x && (!refs.strictUnions || typeof x === "object" && Object.keys(x).length > 0));
   return anyOf.length ? { anyOf } : undefined;
 };
 function parseNullableDef(def, refs) {
@@ -44000,8 +39506,8 @@ function safeIsOptional(schema) {
   }
 }
 var parseOptionalDef = (def, refs) => {
-  var _a23;
-  if (refs.currentPath.toString() === ((_a23 = refs.propertyPath) == null ? undefined : _a23.toString())) {
+  var _a22;
+  if (refs.currentPath.toString() === ((_a22 = refs.propertyPath) == null ? undefined : _a22.toString())) {
     return parseDef(def.innerType._def, refs);
   }
   const innerSchema = parseDef(def.innerType._def, {
@@ -44020,12 +39526,12 @@ var parsePipelineDef = (def, refs) => {
     ...refs,
     currentPath: [...refs.currentPath, "allOf", "0"]
   });
-  const b2 = parseDef(def.out._def, {
+  const b = parseDef(def.out._def, {
     ...refs,
     currentPath: [...refs.currentPath, "allOf", a ? "1" : "0"]
   });
   return {
-    allOf: [a, b2].filter((x2) => x2 !== undefined)
+    allOf: [a, b].filter((x) => x !== undefined)
   };
 };
 function parsePromiseDef(def, refs) {
@@ -44054,10 +39560,10 @@ function parseTupleDef(def, refs) {
     return {
       type: "array",
       minItems: def.items.length,
-      items: def.items.map((x2, i2) => parseDef(x2._def, {
+      items: def.items.map((x, i) => parseDef(x._def, {
         ...refs,
-        currentPath: [...refs.currentPath, "items", `${i2}`]
-      })).reduce((acc, x2) => x2 === undefined ? acc : [...acc, x2], []),
+        currentPath: [...refs.currentPath, "items", `${i}`]
+      })).reduce((acc, x) => x === undefined ? acc : [...acc, x], []),
       additionalItems: parseDef(def.rest._def, {
         ...refs,
         currentPath: [...refs.currentPath, "additionalItems"]
@@ -44068,10 +39574,10 @@ function parseTupleDef(def, refs) {
       type: "array",
       minItems: def.items.length,
       maxItems: def.items.length,
-      items: def.items.map((x2, i2) => parseDef(x2._def, {
+      items: def.items.map((x, i) => parseDef(x._def, {
         ...refs,
-        currentPath: [...refs.currentPath, "items", `${i2}`]
-      })).reduce((acc, x2) => x2 === undefined ? acc : [...acc, x2], [])
+        currentPath: [...refs.currentPath, "items", `${i}`]
+      })).reduce((acc, x) => x === undefined ? acc : [...acc, x], [])
     };
   }
 }
@@ -44157,24 +39663,24 @@ var selectParser = (def, typeName, refs) => {
     case ZodFirstPartyTypeKind2.ZodSymbol:
       return;
     default:
-      return /* @__PURE__ */ ((_2) => {
+      return /* @__PURE__ */ ((_) => {
         return;
       })(typeName);
   }
 };
 var getRelativePath = (pathA, pathB) => {
-  let i2 = 0;
-  for (;i2 < pathA.length && i2 < pathB.length; i2++) {
-    if (pathA[i2] !== pathB[i2])
+  let i = 0;
+  for (;i < pathA.length && i < pathB.length; i++) {
+    if (pathA[i] !== pathB[i])
       break;
   }
-  return [(pathA.length - i2).toString(), ...pathB.slice(i2)].join("/");
+  return [(pathA.length - i).toString(), ...pathB.slice(i)].join("/");
 };
 function parseDef(def, refs, forceResolution = false) {
-  var _a23;
+  var _a22;
   const seenItem = refs.seen.get(def);
   if (refs.override) {
-    const overrideResult = (_a23 = refs.override) == null ? undefined : _a23.call(refs, def, refs, seenItem, forceResolution);
+    const overrideResult = (_a22 = refs.override) == null ? undefined : _a22.call(refs, def, refs, seenItem, forceResolution);
     if (overrideResult !== ignoreOverride) {
       return overrideResult;
     }
@@ -44240,7 +39746,7 @@ var getRefs = (options) => {
   };
 };
 var zod3ToJsonSchema = (schema, options) => {
-  var _a23;
+  var _a22;
   const refs = getRefs(options);
   let definitions = typeof options === "object" && options.definitions ? Object.entries(options.definitions).reduce((acc, [name32, schema2]) => {
     var _a32;
@@ -44253,10 +39759,10 @@ var zod3ToJsonSchema = (schema, options) => {
     };
   }, {}) : undefined;
   const name22 = typeof options === "string" ? options : (options == null ? undefined : options.nameStrategy) === "title" ? undefined : options == null ? undefined : options.name;
-  const main = (_a23 = parseDef(schema._def, name22 === undefined ? refs : {
+  const main = (_a22 = parseDef(schema._def, name22 === undefined ? refs : {
     ...refs,
     currentPath: [...refs.basePath, refs.definitionPath, name22]
-  }, false)) != null ? _a23 : parseAnyDef();
+  }, false)) != null ? _a22 : parseAnyDef();
   const title = typeof options === "object" && options.name !== undefined && options.nameStrategy === "title" ? options.name : undefined;
   if (title !== undefined) {
     main.title = title;
@@ -44326,8 +39832,8 @@ function standardSchema(standardSchema2) {
   });
 }
 function zod3Schema(zodSchema2, options) {
-  var _a23;
-  const useReferences = (_a23 = options == null ? undefined : options.useReferences) != null ? _a23 : false;
+  var _a22;
+  const useReferences = (_a22 = options == null ? undefined : options.useReferences) != null ? _a22 : false;
   return jsonSchema(() => zod3ToJsonSchema(zodSchema2, {
     $refStrategy: useReferences ? "root" : "none"
   }), {
@@ -44338,8 +39844,8 @@ function zod3Schema(zodSchema2, options) {
   });
 }
 function zod4Schema(zodSchema2, options) {
-  var _a23;
-  const useReferences = (_a23 = options == null ? undefined : options.useReferences) != null ? _a23 : false;
+  var _a22;
+  const useReferences = (_a22 = options == null ? undefined : options.useReferences) != null ? _a22 : false;
   return jsonSchema(() => addAdditionalPropertiesToJsonSchema(toJSONSchema(zodSchema2, {
     target: "draft-7",
     io: "input",
@@ -44795,8 +40301,8 @@ async function* executeTool({
   }
 }
 // node_modules/@ai-sdk/gateway/dist/index.mjs
-var import_oidc = __toESM(require_dist3(), 1);
-var import_oidc2 = __toESM(require_dist3(), 1);
+var import_oidc = __toESM(require_dist(), 1);
+var import_oidc2 = __toESM(require_dist(), 1);
 var marker17 = "vercel.ai.gateway.error";
 var symbol18 = Symbol.for(marker17);
 var _a18;
@@ -44824,9 +40330,9 @@ var GatewayError = class _GatewayError extends (_b17 = Error, _a18 = symbol18, _
 var name16 = "GatewayAuthenticationError";
 var marker22 = `vercel.ai.gateway.error.${name16}`;
 var symbol22 = Symbol.for(marker22);
-var _a23;
+var _a22;
 var _b22;
-var GatewayAuthenticationError = class _GatewayAuthenticationError extends (_b22 = GatewayError, _a23 = symbol22, _b22) {
+var GatewayAuthenticationError = class _GatewayAuthenticationError extends (_b22 = GatewayError, _a22 = symbol22, _b22) {
   constructor({
     message = "Authentication failed",
     statusCode = 401,
@@ -44834,7 +40340,7 @@ var GatewayAuthenticationError = class _GatewayAuthenticationError extends (_b22
     generationId
   } = {}) {
     super({ message, statusCode, cause, generationId });
-    this[_a23] = true;
+    this[_a22] = true;
     this.name = name16;
     this.type = "authentication_error";
   }
@@ -46285,12 +41791,12 @@ async function getGatewayAuthToken(options) {
 }
 
 // node_modules/ai/dist/index.mjs
-var import_api = __toESM(require_src3(), 1);
-var import_api2 = __toESM(require_src3(), 1);
-var __defProp3 = Object.defineProperty;
-var __export3 = (target, all) => {
+var import_api = __toESM(require_src(), 1);
+var import_api2 = __toESM(require_src(), 1);
+var __defProp2 = Object.defineProperty;
+var __export2 = (target, all) => {
   for (var name21 in all)
-    __defProp3(target, name21, { get: all[name21], enumerable: true });
+    __defProp2(target, name21, { get: all[name21], enumerable: true });
 };
 var name17 = "AI_InvalidArgumentError";
 var marker18 = `vercel.ai.error.${name17}`;
@@ -46318,8 +41824,8 @@ _a19 = symbol19;
 var name23 = "AI_InvalidStreamPartError";
 var marker23 = `vercel.ai.error.${name23}`;
 var symbol23 = Symbol.for(marker23);
-var _a24;
-_a24 = symbol23;
+var _a23;
+_a23 = symbol23;
 var name33 = "AI_InvalidToolApprovalError";
 var marker33 = `vercel.ai.error.${name33}`;
 var symbol33 = Symbol.for(marker33);
@@ -46347,7 +41853,7 @@ var InvalidToolInputError = class extends AISDKError {
     toolInput,
     toolName,
     cause,
-    message = `Invalid input for tool ${toolName}: ${getErrorMessage2(cause)}`
+    message = `Invalid input for tool ${toolName}: ${getErrorMessage(cause)}`
   }) {
     super({ name: name43, message, cause });
     this[_a43] = true;
@@ -46489,7 +41995,7 @@ var ToolCallRepairError = class extends AISDKError {
   constructor({
     cause,
     originalError,
-    message = `Error repairing tool call: ${getErrorMessage2(cause)}`
+    message = `Error repairing tool call: ${getErrorMessage(cause)}`
   }) {
     super({ name: name142, message, cause });
     this[_a142] = true;
@@ -46565,11 +42071,11 @@ var RetryError = class extends AISDKError {
   }
 };
 _a192 = symbol192;
-function asArray2(value) {
+function asArray(value) {
   return value === undefined ? [] : Array.isArray(value) ? value : [value];
 }
 async function notify(options) {
-  for (const callback of asArray2(options.callbacks)) {
+  for (const callback of asArray(options.callbacks)) {
     if (callback == null)
       continue;
     try {
@@ -46982,7 +42488,7 @@ async function convertToLanguageModelPrompt({
     }
   }
   const messages = [
-    ...prompt.system != null ? typeof prompt.system === "string" ? [{ role: "system", content: prompt.system }] : asArray2(prompt.system).map((message) => ({
+    ...prompt.system != null ? typeof prompt.system === "string" ? [{ role: "system", content: prompt.system }] : asArray(prompt.system).map((message) => ({
       role: "system",
       content: message.content,
       providerOptions: message.providerOptions
@@ -47279,7 +42785,7 @@ async function createToolModelOutput({
   errorMode
 }) {
   if (errorMode === "text") {
-    return { type: "error-text", value: getErrorMessage2(output) };
+    return { type: "error-text", value: getErrorMessage(output) };
   } else if (errorMode === "json") {
     return { type: "error-json", value: toJSONValue(output) };
   }
@@ -47622,7 +43128,7 @@ async function standardizePrompt(prompt) {
       message: "prompt and messages cannot be defined at the same time"
     });
   }
-  if (prompt.system != null && typeof prompt.system !== "string" && !asArray2(prompt.system).every((message) => typeof message === "object" && message !== null && ("role" in message) && message.role === "system")) {
+  if (prompt.system != null && typeof prompt.system !== "string" && !asArray(prompt.system).every((message) => typeof message === "object" && message !== null && ("role" in message) && message.role === "system")) {
     throw new InvalidPromptError({
       prompt,
       message: "system must be a string, SystemModelMessage, or array of SystemModelMessage"
@@ -47888,7 +43394,7 @@ function getGlobalTelemetryIntegrations() {
 function getGlobalTelemetryIntegration() {
   const globalIntegrations = getGlobalTelemetryIntegrations();
   return (integrations) => {
-    const localIntegrations = asArray2(integrations);
+    const localIntegrations = asArray(integrations);
     const allIntegrations = [...globalIntegrations, ...localIntegrations];
     function createTelemetryComposite(getListenerFromIntegration) {
       const listeners = allIntegrations.map(getListenerFromIntegration).filter(Boolean);
@@ -48034,7 +43540,7 @@ async function _retryWithExponentialBackoff(f, {
     if (maxRetries === 0) {
       throw error49;
     }
-    const errorMessage = getErrorMessage3(error49);
+    const errorMessage = getErrorMessage2(error49);
     const newErrors = [...errors4, error49];
     const tryNumber = newErrors.length;
     if (tryNumber > maxRetries) {
@@ -48045,7 +43551,7 @@ async function _retryWithExponentialBackoff(f, {
       });
     }
     if (error49 instanceof Error && APICallError.isInstance(error49) && error49.isRetryable === true && tryNumber <= maxRetries) {
-      await delay2(getRetryDelayInMs({
+      await delay(getRetryDelayInMs({
         error: error49,
         exponentialBackoffDelay: delayInMs
       }), { abortSignal });
@@ -48351,7 +43857,7 @@ async function isApprovalNeeded({
   });
 }
 var output_exports = {};
-__export3(output_exports, {
+__export2(output_exports, {
   array: () => array2,
   choice: () => choice,
   json: () => json2,
@@ -48362,11 +43868,11 @@ function fixJson(input) {
   const stack = ["ROOT"];
   let lastValidIndex = -1;
   let literalStart = null;
-  function processValueStart(char, i2, swapState) {
+  function processValueStart(char, i, swapState) {
     {
       switch (char) {
         case '"': {
-          lastValidIndex = i2;
+          lastValidIndex = i;
           stack.pop();
           stack.push(swapState);
           stack.push("INSIDE_STRING");
@@ -48375,8 +43881,8 @@ function fixJson(input) {
         case "f":
         case "t":
         case "n": {
-          lastValidIndex = i2;
-          literalStart = i2;
+          lastValidIndex = i;
+          literalStart = i;
           stack.pop();
           stack.push(swapState);
           stack.push("INSIDE_LITERAL");
@@ -48398,21 +43904,21 @@ function fixJson(input) {
         case "7":
         case "8":
         case "9": {
-          lastValidIndex = i2;
+          lastValidIndex = i;
           stack.pop();
           stack.push(swapState);
           stack.push("INSIDE_NUMBER");
           break;
         }
         case "{": {
-          lastValidIndex = i2;
+          lastValidIndex = i;
           stack.pop();
           stack.push(swapState);
           stack.push("INSIDE_OBJECT_START");
           break;
         }
         case "[": {
-          lastValidIndex = i2;
+          lastValidIndex = i;
           stack.pop();
           stack.push(swapState);
           stack.push("INSIDE_ARRAY_START");
@@ -48421,7 +43927,7 @@ function fixJson(input) {
       }
     }
   }
-  function processAfterObjectValue(char, i2) {
+  function processAfterObjectValue(char, i) {
     switch (char) {
       case ",": {
         stack.pop();
@@ -48429,13 +43935,13 @@ function fixJson(input) {
         break;
       }
       case "}": {
-        lastValidIndex = i2;
+        lastValidIndex = i;
         stack.pop();
         break;
       }
     }
   }
-  function processAfterArrayValue(char, i2) {
+  function processAfterArrayValue(char, i) {
     switch (char) {
       case ",": {
         stack.pop();
@@ -48443,18 +43949,18 @@ function fixJson(input) {
         break;
       }
       case "]": {
-        lastValidIndex = i2;
+        lastValidIndex = i;
         stack.pop();
         break;
       }
     }
   }
-  for (let i2 = 0;i2 < input.length; i2++) {
-    const char = input[i2];
+  for (let i = 0;i < input.length; i++) {
+    const char = input[i];
     const currentState = stack[stack.length - 1];
     switch (currentState) {
       case "ROOT":
-        processValueStart(char, i2, "FINISH");
+        processValueStart(char, i, "FINISH");
         break;
       case "INSIDE_OBJECT_START": {
         switch (char) {
@@ -48464,7 +43970,7 @@ function fixJson(input) {
             break;
           }
           case "}": {
-            lastValidIndex = i2;
+            lastValidIndex = i;
             stack.pop();
             break;
           }
@@ -48502,18 +44008,18 @@ function fixJson(input) {
         break;
       }
       case "INSIDE_OBJECT_BEFORE_VALUE": {
-        processValueStart(char, i2, "INSIDE_OBJECT_AFTER_VALUE");
+        processValueStart(char, i, "INSIDE_OBJECT_AFTER_VALUE");
         break;
       }
       case "INSIDE_OBJECT_AFTER_VALUE": {
-        processAfterObjectValue(char, i2);
+        processAfterObjectValue(char, i);
         break;
       }
       case "INSIDE_STRING": {
         switch (char) {
           case '"': {
             stack.pop();
-            lastValidIndex = i2;
+            lastValidIndex = i;
             break;
           }
           case "\\": {
@@ -48521,7 +44027,7 @@ function fixJson(input) {
             break;
           }
           default: {
-            lastValidIndex = i2;
+            lastValidIndex = i;
           }
         }
         break;
@@ -48529,13 +44035,13 @@ function fixJson(input) {
       case "INSIDE_ARRAY_START": {
         switch (char) {
           case "]": {
-            lastValidIndex = i2;
+            lastValidIndex = i;
             stack.pop();
             break;
           }
           default: {
-            lastValidIndex = i2;
-            processValueStart(char, i2, "INSIDE_ARRAY_AFTER_VALUE");
+            lastValidIndex = i;
+            processValueStart(char, i, "INSIDE_ARRAY_AFTER_VALUE");
             break;
           }
         }
@@ -48549,24 +44055,24 @@ function fixJson(input) {
             break;
           }
           case "]": {
-            lastValidIndex = i2;
+            lastValidIndex = i;
             stack.pop();
             break;
           }
           default: {
-            lastValidIndex = i2;
+            lastValidIndex = i;
             break;
           }
         }
         break;
       }
       case "INSIDE_ARRAY_AFTER_COMMA": {
-        processValueStart(char, i2, "INSIDE_ARRAY_AFTER_VALUE");
+        processValueStart(char, i, "INSIDE_ARRAY_AFTER_VALUE");
         break;
       }
       case "INSIDE_STRING_ESCAPE": {
         stack.pop();
-        lastValidIndex = i2;
+        lastValidIndex = i;
         break;
       }
       case "INSIDE_NUMBER": {
@@ -48581,7 +44087,7 @@ function fixJson(input) {
           case "7":
           case "8":
           case "9": {
-            lastValidIndex = i2;
+            lastValidIndex = i;
             break;
           }
           case "e":
@@ -48593,24 +44099,24 @@ function fixJson(input) {
           case ",": {
             stack.pop();
             if (stack[stack.length - 1] === "INSIDE_ARRAY_AFTER_VALUE") {
-              processAfterArrayValue(char, i2);
+              processAfterArrayValue(char, i);
             }
             if (stack[stack.length - 1] === "INSIDE_OBJECT_AFTER_VALUE") {
-              processAfterObjectValue(char, i2);
+              processAfterObjectValue(char, i);
             }
             break;
           }
           case "}": {
             stack.pop();
             if (stack[stack.length - 1] === "INSIDE_OBJECT_AFTER_VALUE") {
-              processAfterObjectValue(char, i2);
+              processAfterObjectValue(char, i);
             }
             break;
           }
           case "]": {
             stack.pop();
             if (stack[stack.length - 1] === "INSIDE_ARRAY_AFTER_VALUE") {
-              processAfterArrayValue(char, i2);
+              processAfterArrayValue(char, i);
             }
             break;
           }
@@ -48622,24 +44128,24 @@ function fixJson(input) {
         break;
       }
       case "INSIDE_LITERAL": {
-        const partialLiteral = input.substring(literalStart, i2 + 1);
+        const partialLiteral = input.substring(literalStart, i + 1);
         if (!"false".startsWith(partialLiteral) && !"true".startsWith(partialLiteral) && !"null".startsWith(partialLiteral)) {
           stack.pop();
           if (stack[stack.length - 1] === "INSIDE_OBJECT_AFTER_VALUE") {
-            processAfterObjectValue(char, i2);
+            processAfterObjectValue(char, i);
           } else if (stack[stack.length - 1] === "INSIDE_ARRAY_AFTER_VALUE") {
-            processAfterArrayValue(char, i2);
+            processAfterArrayValue(char, i);
           }
         } else {
-          lastValidIndex = i2;
+          lastValidIndex = i;
         }
         break;
       }
     }
   }
   let result = input.slice(0, lastValidIndex + 1);
-  for (let i2 = stack.length - 1;i2 >= 0; i2--) {
-    const state = stack[i2];
+  for (let i = stack.length - 1;i >= 0; i--) {
+    const state = stack[i];
     switch (state) {
       case "INSIDE_STRING": {
         result += '"';
@@ -49375,7 +44881,7 @@ async function generateText({
 }) {
   const model = resolveLanguageModel(modelArg);
   const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const stopConditions = asArray2(stopWhen);
+  const stopConditions = asArray(stopWhen);
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const stepAbortController = stepTimeoutMs != null ? new AbortController : undefined;
@@ -49728,7 +45234,7 @@ async function generateText({
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
                 input: toolCall.input,
-                error: getErrorMessage3(toolCall.error),
+                error: getErrorMessage2(toolCall.error),
                 dynamic: true
               });
             }
@@ -50586,5798 +46092,37 @@ var _a20;
 _a20 = symbol20;
 var defaultDownload2 = createDownload();
 
-// node_modules/@ai-sdk/openai/dist/index.mjs
-var openaiErrorDataSchema = exports_external.object({
-  error: exports_external.object({
-    message: exports_external.string(),
-    type: exports_external.string().nullish(),
-    param: exports_external.any().nullish(),
-    code: exports_external.union([exports_external.string(), exports_external.number()]).nullish()
-  })
-});
-var openaiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: openaiErrorDataSchema,
-  errorToMessage: (data) => data.error.message
-});
-function getOpenAILanguageModelCapabilities(modelId) {
-  const supportsFlexProcessing = modelId.startsWith("o3") || modelId.startsWith("o4-mini") || modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-chat");
-  const supportsPriorityProcessing = modelId.startsWith("gpt-4") || modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-nano") && !modelId.startsWith("gpt-5-chat") && !modelId.startsWith("gpt-5.4-nano") || modelId.startsWith("o3") || modelId.startsWith("o4-mini");
-  const isReasoningModel = modelId.startsWith("o1") || modelId.startsWith("o3") || modelId.startsWith("o4-mini") || modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-chat");
-  const supportsNonReasoningParameters = modelId.startsWith("gpt-5.1") || modelId.startsWith("gpt-5.2") || modelId.startsWith("gpt-5.3") || modelId.startsWith("gpt-5.4");
-  const systemMessageMode = isReasoningModel ? "developer" : "system";
-  return {
-    supportsFlexProcessing,
-    supportsPriorityProcessing,
-    isReasoningModel,
-    systemMessageMode,
-    supportsNonReasoningParameters
-  };
-}
-function convertOpenAIChatUsage(usage) {
-  var _a21, _b16, _c, _d, _e, _f;
-  if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined
-      },
-      raw: undefined
-    };
-  }
-  const promptTokens = (_a21 = usage.prompt_tokens) != null ? _a21 : 0;
-  const completionTokens = (_b16 = usage.completion_tokens) != null ? _b16 : 0;
-  const cachedTokens = (_d = (_c = usage.prompt_tokens_details) == null ? undefined : _c.cached_tokens) != null ? _d : 0;
-  const reasoningTokens = (_f = (_e = usage.completion_tokens_details) == null ? undefined : _e.reasoning_tokens) != null ? _f : 0;
-  return {
-    inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cachedTokens,
-      cacheRead: cachedTokens,
-      cacheWrite: undefined
-    },
-    outputTokens: {
-      total: completionTokens,
-      text: completionTokens - reasoningTokens,
-      reasoning: reasoningTokens
-    },
-    raw: usage
-  };
-}
-function serializeToolCallArguments(input) {
-  return JSON.stringify(input === undefined ? {} : input);
-}
-function convertToOpenAIChatMessages({
-  prompt,
-  systemMessageMode = "system"
-}) {
-  var _a21;
-  const messages = [];
-  const warnings = [];
-  for (const { role, content } of prompt) {
-    switch (role) {
-      case "system": {
-        switch (systemMessageMode) {
-          case "system": {
-            messages.push({ role: "system", content });
-            break;
-          }
-          case "developer": {
-            messages.push({ role: "developer", content });
-            break;
-          }
-          case "remove": {
-            warnings.push({
-              type: "other",
-              message: "system messages are removed for this model"
-            });
-            break;
-          }
-          default: {
-            const _exhaustiveCheck = systemMessageMode;
-            throw new Error(`Unsupported system message mode: ${_exhaustiveCheck}`);
-          }
-        }
-        break;
-      }
-      case "user": {
-        if (content.length === 1 && content[0].type === "text") {
-          messages.push({ role: "user", content: content[0].text });
-          break;
-        }
-        messages.push({
-          role: "user",
-          content: content.map((part, index) => {
-            var _a25, _b16, _c;
-            switch (part.type) {
-              case "text": {
-                return { type: "text", text: part.text };
-              }
-              case "file": {
-                if (part.mediaType.startsWith("image/")) {
-                  const mediaType = part.mediaType === "image/*" ? "image/jpeg" : part.mediaType;
-                  return {
-                    type: "image_url",
-                    image_url: {
-                      url: part.data instanceof URL ? part.data.toString() : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                      detail: (_b16 = (_a25 = part.providerOptions) == null ? undefined : _a25.openai) == null ? undefined : _b16.imageDetail
-                    }
-                  };
-                } else if (part.mediaType.startsWith("audio/")) {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: "audio file parts with URLs"
-                    });
-                  }
-                  switch (part.mediaType) {
-                    case "audio/wav": {
-                      return {
-                        type: "input_audio",
-                        input_audio: {
-                          data: convertToBase64(part.data),
-                          format: "wav"
-                        }
-                      };
-                    }
-                    case "audio/mp3":
-                    case "audio/mpeg": {
-                      return {
-                        type: "input_audio",
-                        input_audio: {
-                          data: convertToBase64(part.data),
-                          format: "mp3"
-                        }
-                      };
-                    }
-                    default: {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: `audio content parts with media type ${part.mediaType}`
-                      });
-                    }
-                  }
-                } else if (part.mediaType === "application/pdf") {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: "PDF file parts with URLs"
-                    });
-                  }
-                  return {
-                    type: "file",
-                    file: typeof part.data === "string" && part.data.startsWith("file-") ? { file_id: part.data } : {
-                      filename: (_c = part.filename) != null ? _c : `part-${index}.pdf`,
-                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`
-                    }
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`
-                  });
-                }
-              }
-            }
-          })
-        });
-        break;
-      }
-      case "assistant": {
-        let text2 = "";
-        const toolCalls = [];
-        for (const part of content) {
-          switch (part.type) {
-            case "text": {
-              text2 += part.text;
-              break;
-            }
-            case "tool-call": {
-              toolCalls.push({
-                id: part.toolCallId,
-                type: "function",
-                function: {
-                  name: part.toolName,
-                  arguments: serializeToolCallArguments(part.input)
-                }
-              });
-              break;
-            }
-          }
-        }
-        messages.push({
-          role: "assistant",
-          content: text2,
-          tool_calls: toolCalls.length > 0 ? toolCalls : undefined
-        });
-        break;
-      }
-      case "tool": {
-        for (const toolResponse of content) {
-          if (toolResponse.type === "tool-approval-response") {
-            continue;
-          }
-          const output = toolResponse.output;
-          let contentValue;
-          switch (output.type) {
-            case "text":
-            case "error-text":
-              contentValue = output.value;
-              break;
-            case "execution-denied":
-              contentValue = (_a21 = output.reason) != null ? _a21 : "Tool execution denied.";
-              break;
-            case "content":
-            case "json":
-            case "error-json":
-              contentValue = JSON.stringify(output.value);
-              break;
-          }
-          messages.push({
-            role: "tool",
-            tool_call_id: toolResponse.toolCallId,
-            content: contentValue
-          });
-        }
-        break;
-      }
-      default: {
-        const _exhaustiveCheck = role;
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
-      }
-    }
-  }
-  return { messages, warnings };
-}
-function getResponseMetadata({
-  id,
-  model,
-  created
-}) {
-  return {
-    id: id != null ? id : undefined,
-    modelId: model != null ? model : undefined,
-    timestamp: created ? new Date(created * 1000) : undefined
-  };
-}
-function mapOpenAIFinishReason(finishReason) {
-  switch (finishReason) {
-    case "stop":
-      return "stop";
-    case "length":
-      return "length";
-    case "content_filter":
-      return "content-filter";
-    case "function_call":
-    case "tool_calls":
-      return "tool-calls";
-    default:
-      return "other";
-  }
-}
-var openaiChatResponseSchema = lazySchema(() => zodSchema(exports_external.object({
-  id: exports_external.string().nullish(),
-  created: exports_external.number().nullish(),
-  model: exports_external.string().nullish(),
-  choices: exports_external.array(exports_external.object({
-    message: exports_external.object({
-      role: exports_external.literal("assistant").nullish(),
-      content: exports_external.string().nullish(),
-      tool_calls: exports_external.array(exports_external.object({
-        id: exports_external.string().nullish(),
-        type: exports_external.literal("function"),
-        function: exports_external.object({
-          name: exports_external.string(),
-          arguments: exports_external.string()
-        })
-      })).nullish(),
-      annotations: exports_external.array(exports_external.object({
-        type: exports_external.literal("url_citation"),
-        url_citation: exports_external.object({
-          start_index: exports_external.number(),
-          end_index: exports_external.number(),
-          url: exports_external.string(),
-          title: exports_external.string()
-        })
-      })).nullish()
-    }),
-    index: exports_external.number(),
-    logprobs: exports_external.object({
-      content: exports_external.array(exports_external.object({
-        token: exports_external.string(),
-        logprob: exports_external.number(),
-        top_logprobs: exports_external.array(exports_external.object({
-          token: exports_external.string(),
-          logprob: exports_external.number()
-        }))
-      })).nullish()
-    }).nullish(),
-    finish_reason: exports_external.string().nullish()
-  })),
-  usage: exports_external.object({
-    prompt_tokens: exports_external.number().nullish(),
-    completion_tokens: exports_external.number().nullish(),
-    total_tokens: exports_external.number().nullish(),
-    prompt_tokens_details: exports_external.object({
-      cached_tokens: exports_external.number().nullish()
-    }).nullish(),
-    completion_tokens_details: exports_external.object({
-      reasoning_tokens: exports_external.number().nullish(),
-      accepted_prediction_tokens: exports_external.number().nullish(),
-      rejected_prediction_tokens: exports_external.number().nullish()
-    }).nullish()
-  }).nullish()
-})));
-var openaiChatChunkSchema = lazySchema(() => zodSchema(exports_external.union([
-  exports_external.object({
-    id: exports_external.string().nullish(),
-    created: exports_external.number().nullish(),
-    model: exports_external.string().nullish(),
-    choices: exports_external.array(exports_external.object({
-      delta: exports_external.object({
-        role: exports_external.enum(["assistant"]).nullish(),
-        content: exports_external.string().nullish(),
-        tool_calls: exports_external.array(exports_external.object({
-          index: exports_external.number(),
-          id: exports_external.string().nullish(),
-          type: exports_external.literal("function").nullish(),
-          function: exports_external.object({
-            name: exports_external.string().nullish(),
-            arguments: exports_external.string().nullish()
-          })
-        })).nullish(),
-        annotations: exports_external.array(exports_external.object({
-          type: exports_external.literal("url_citation"),
-          url_citation: exports_external.object({
-            start_index: exports_external.number(),
-            end_index: exports_external.number(),
-            url: exports_external.string(),
-            title: exports_external.string()
-          })
-        })).nullish()
-      }).nullish(),
-      logprobs: exports_external.object({
-        content: exports_external.array(exports_external.object({
-          token: exports_external.string(),
-          logprob: exports_external.number(),
-          top_logprobs: exports_external.array(exports_external.object({
-            token: exports_external.string(),
-            logprob: exports_external.number()
-          }))
-        })).nullish()
-      }).nullish(),
-      finish_reason: exports_external.string().nullish(),
-      index: exports_external.number()
-    })),
-    usage: exports_external.object({
-      prompt_tokens: exports_external.number().nullish(),
-      completion_tokens: exports_external.number().nullish(),
-      total_tokens: exports_external.number().nullish(),
-      prompt_tokens_details: exports_external.object({
-        cached_tokens: exports_external.number().nullish()
-      }).nullish(),
-      completion_tokens_details: exports_external.object({
-        reasoning_tokens: exports_external.number().nullish(),
-        accepted_prediction_tokens: exports_external.number().nullish(),
-        rejected_prediction_tokens: exports_external.number().nullish()
-      }).nullish()
-    }).nullish()
-  }),
-  openaiErrorDataSchema
-])));
-var openaiLanguageModelChatOptions = lazySchema(() => zodSchema(exports_external.object({
-  logitBias: exports_external.record(exports_external.coerce.number(), exports_external.number()).optional(),
-  logprobs: exports_external.union([exports_external.boolean(), exports_external.number()]).optional(),
-  parallelToolCalls: exports_external.boolean().optional(),
-  user: exports_external.string().optional(),
-  reasoningEffort: exports_external.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  maxCompletionTokens: exports_external.number().optional(),
-  store: exports_external.boolean().optional(),
-  metadata: exports_external.record(exports_external.string().max(64), exports_external.string().max(512)).optional(),
-  prediction: exports_external.record(exports_external.string(), exports_external.any()).optional(),
-  serviceTier: exports_external.enum(["auto", "flex", "priority", "default"]).optional(),
-  strictJsonSchema: exports_external.boolean().optional(),
-  textVerbosity: exports_external.enum(["low", "medium", "high"]).optional(),
-  promptCacheKey: exports_external.string().optional(),
-  promptCacheRetention: exports_external.enum(["in_memory", "24h"]).optional(),
-  safetyIdentifier: exports_external.string().optional(),
-  systemMessageMode: exports_external.enum(["system", "developer", "remove"]).optional(),
-  forceReasoning: exports_external.boolean().optional()
-})));
-function prepareChatTools({
-  tools,
-  toolChoice
-}) {
-  tools = (tools == null ? undefined : tools.length) ? tools : undefined;
-  const toolWarnings = [];
-  if (tools == null) {
-    return { tools: undefined, toolChoice: undefined, toolWarnings };
-  }
-  const openaiTools2 = [];
-  for (const tool2 of tools) {
-    switch (tool2.type) {
-      case "function":
-        openaiTools2.push({
-          type: "function",
-          function: {
-            name: tool2.name,
-            description: tool2.description,
-            parameters: tool2.inputSchema,
-            ...tool2.strict != null ? { strict: tool2.strict } : {}
-          }
-        });
-        break;
-      default:
-        toolWarnings.push({
-          type: "unsupported",
-          feature: `tool type: ${tool2.type}`
-        });
-        break;
-    }
-  }
-  if (toolChoice == null) {
-    return { tools: openaiTools2, toolChoice: undefined, toolWarnings };
-  }
-  const type = toolChoice.type;
-  switch (type) {
-    case "auto":
-    case "none":
-    case "required":
-      return { tools: openaiTools2, toolChoice: type, toolWarnings };
-    case "tool":
-      return {
-        tools: openaiTools2,
-        toolChoice: {
-          type: "function",
-          function: {
-            name: toolChoice.toolName
-          }
-        },
-        toolWarnings
-      };
-    default: {
-      const _exhaustiveCheck = type;
-      throw new UnsupportedFunctionalityError({
-        functionality: `tool choice type: ${_exhaustiveCheck}`
-      });
-    }
-  }
-}
-var OpenAIChatLanguageModel = class {
-  constructor(modelId, config2) {
-    this.specificationVersion = "v3";
-    this.supportedUrls = {
-      "image/*": [/^https?:\/\/.*$/]
-    };
-    this.modelId = modelId;
-    this.config = config2;
-  }
-  get provider() {
-    return this.config.provider;
-  }
-  async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    responseFormat,
-    seed,
-    tools,
-    toolChoice,
-    providerOptions
-  }) {
-    var _a21, _b16, _c, _d, _e;
-    const warnings = [];
-    const openaiOptions = (_a21 = await parseProviderOptions({
-      provider: "openai",
-      providerOptions,
-      schema: openaiLanguageModelChatOptions
-    })) != null ? _a21 : {};
-    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
-    const isReasoningModel = (_b16 = openaiOptions.forceReasoning) != null ? _b16 : modelCapabilities.isReasoningModel;
-    if (topK != null) {
-      warnings.push({ type: "unsupported", feature: "topK" });
-    }
-    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages({
-      prompt,
-      systemMessageMode: (_c = openaiOptions.systemMessageMode) != null ? _c : isReasoningModel ? "developer" : modelCapabilities.systemMessageMode
-    });
-    warnings.push(...messageWarnings);
-    const strictJsonSchema = (_d = openaiOptions.strictJsonSchema) != null ? _d : true;
-    const baseArgs = {
-      model: this.modelId,
-      logit_bias: openaiOptions.logitBias,
-      logprobs: openaiOptions.logprobs === true || typeof openaiOptions.logprobs === "number" ? true : undefined,
-      top_logprobs: typeof openaiOptions.logprobs === "number" ? openaiOptions.logprobs : typeof openaiOptions.logprobs === "boolean" ? openaiOptions.logprobs ? 0 : undefined : undefined,
-      user: openaiOptions.user,
-      parallel_tool_calls: openaiOptions.parallelToolCalls,
-      max_tokens: maxOutputTokens,
-      temperature,
-      top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      response_format: (responseFormat == null ? undefined : responseFormat.type) === "json" ? responseFormat.schema != null ? {
-        type: "json_schema",
-        json_schema: {
-          schema: responseFormat.schema,
-          strict: strictJsonSchema,
-          name: (_e = responseFormat.name) != null ? _e : "response",
-          description: responseFormat.description
-        }
-      } : { type: "json_object" } : undefined,
-      stop: stopSequences,
-      seed,
-      verbosity: openaiOptions.textVerbosity,
-      max_completion_tokens: openaiOptions.maxCompletionTokens,
-      store: openaiOptions.store,
-      metadata: openaiOptions.metadata,
-      prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
-      service_tier: openaiOptions.serviceTier,
-      prompt_cache_key: openaiOptions.promptCacheKey,
-      prompt_cache_retention: openaiOptions.promptCacheRetention,
-      safety_identifier: openaiOptions.safetyIdentifier,
-      messages
-    };
-    if (isReasoningModel) {
-      if (openaiOptions.reasoningEffort !== "none" || !modelCapabilities.supportsNonReasoningParameters) {
-        if (baseArgs.temperature != null) {
-          baseArgs.temperature = undefined;
-          warnings.push({
-            type: "unsupported",
-            feature: "temperature",
-            details: "temperature is not supported for reasoning models"
-          });
-        }
-        if (baseArgs.top_p != null) {
-          baseArgs.top_p = undefined;
-          warnings.push({
-            type: "unsupported",
-            feature: "topP",
-            details: "topP is not supported for reasoning models"
-          });
-        }
-        if (baseArgs.logprobs != null) {
-          baseArgs.logprobs = undefined;
-          warnings.push({
-            type: "other",
-            message: "logprobs is not supported for reasoning models"
-          });
-        }
-      }
-      if (baseArgs.frequency_penalty != null) {
-        baseArgs.frequency_penalty = undefined;
-        warnings.push({
-          type: "unsupported",
-          feature: "frequencyPenalty",
-          details: "frequencyPenalty is not supported for reasoning models"
-        });
-      }
-      if (baseArgs.presence_penalty != null) {
-        baseArgs.presence_penalty = undefined;
-        warnings.push({
-          type: "unsupported",
-          feature: "presencePenalty",
-          details: "presencePenalty is not supported for reasoning models"
-        });
-      }
-      if (baseArgs.logit_bias != null) {
-        baseArgs.logit_bias = undefined;
-        warnings.push({
-          type: "other",
-          message: "logitBias is not supported for reasoning models"
-        });
-      }
-      if (baseArgs.top_logprobs != null) {
-        baseArgs.top_logprobs = undefined;
-        warnings.push({
-          type: "other",
-          message: "topLogprobs is not supported for reasoning models"
-        });
-      }
-      if (baseArgs.max_tokens != null) {
-        if (baseArgs.max_completion_tokens == null) {
-          baseArgs.max_completion_tokens = baseArgs.max_tokens;
-        }
-        baseArgs.max_tokens = undefined;
-      }
-    } else if (this.modelId.startsWith("gpt-4o-search-preview") || this.modelId.startsWith("gpt-4o-mini-search-preview")) {
-      if (baseArgs.temperature != null) {
-        baseArgs.temperature = undefined;
-        warnings.push({
-          type: "unsupported",
-          feature: "temperature",
-          details: "temperature is not supported for the search preview models and has been removed."
-        });
-      }
-    }
-    if (openaiOptions.serviceTier === "flex" && !modelCapabilities.supportsFlexProcessing) {
-      warnings.push({
-        type: "unsupported",
-        feature: "serviceTier",
-        details: "flex processing is only available for o3, o4-mini, and gpt-5 models"
-      });
-      baseArgs.service_tier = undefined;
-    }
-    if (openaiOptions.serviceTier === "priority" && !modelCapabilities.supportsPriorityProcessing) {
-      warnings.push({
-        type: "unsupported",
-        feature: "serviceTier",
-        details: "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported"
-      });
-      baseArgs.service_tier = undefined;
-    }
-    const {
-      tools: openaiTools2,
-      toolChoice: openaiToolChoice,
-      toolWarnings
-    } = prepareChatTools({
-      tools,
-      toolChoice
-    });
-    return {
-      args: {
-        ...baseArgs,
-        tools: openaiTools2,
-        tool_choice: openaiToolChoice
-      },
-      warnings: [...warnings, ...toolWarnings]
-    };
-  }
-  async doGenerate(options) {
-    var _a21, _b16, _c, _d, _e, _f, _g;
-    const { args: body, warnings } = await this.getArgs(options);
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse
-    } = await postJsonToApi({
-      url: this.config.url({
-        path: "/chat/completions",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(openaiChatResponseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    const choice2 = response.choices[0];
-    const content = [];
-    const text2 = choice2.message.content;
-    if (text2 != null && text2.length > 0) {
-      content.push({ type: "text", text: text2 });
-    }
-    for (const toolCall of (_a21 = choice2.message.tool_calls) != null ? _a21 : []) {
-      content.push({
-        type: "tool-call",
-        toolCallId: (_b16 = toolCall.id) != null ? _b16 : generateId(),
-        toolName: toolCall.function.name,
-        input: toolCall.function.arguments
-      });
-    }
-    for (const annotation of (_c = choice2.message.annotations) != null ? _c : []) {
-      content.push({
-        type: "source",
-        sourceType: "url",
-        id: generateId(),
-        url: annotation.url_citation.url,
-        title: annotation.url_citation.title
-      });
-    }
-    const completionTokenDetails = (_d = response.usage) == null ? undefined : _d.completion_tokens_details;
-    const promptTokenDetails = (_e = response.usage) == null ? undefined : _e.prompt_tokens_details;
-    const providerMetadata = { openai: {} };
-    if ((completionTokenDetails == null ? undefined : completionTokenDetails.accepted_prediction_tokens) != null) {
-      providerMetadata.openai.acceptedPredictionTokens = completionTokenDetails == null ? undefined : completionTokenDetails.accepted_prediction_tokens;
-    }
-    if ((completionTokenDetails == null ? undefined : completionTokenDetails.rejected_prediction_tokens) != null) {
-      providerMetadata.openai.rejectedPredictionTokens = completionTokenDetails == null ? undefined : completionTokenDetails.rejected_prediction_tokens;
-    }
-    if (((_f = choice2.logprobs) == null ? undefined : _f.content) != null) {
-      providerMetadata.openai.logprobs = choice2.logprobs.content;
-    }
-    return {
-      content,
-      finishReason: {
-        unified: mapOpenAIFinishReason(choice2.finish_reason),
-        raw: (_g = choice2.finish_reason) != null ? _g : undefined
-      },
-      usage: convertOpenAIChatUsage(response.usage),
-      request: { body },
-      response: {
-        ...getResponseMetadata(response),
-        headers: responseHeaders,
-        body: rawResponse
-      },
-      warnings,
-      providerMetadata
-    };
-  }
-  async doStream(options) {
-    const { args, warnings } = await this.getArgs(options);
-    const body = {
-      ...args,
-      stream: true,
-      stream_options: {
-        include_usage: true
-      }
-    };
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: "/chat/completions",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(openaiChatChunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    const toolCalls = [];
-    let finishReason = {
-      unified: "other",
-      raw: undefined
-    };
-    let usage = undefined;
-    let metadataExtracted = false;
-    let isActiveText = false;
-    const providerMetadata = { openai: {} };
-    return {
-      stream: response.pipeThrough(new TransformStream({
-        start(controller) {
-          controller.enqueue({ type: "stream-start", warnings });
-        },
-        transform(chunk, controller) {
-          var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q;
-          if (options.includeRawChunks) {
-            controller.enqueue({ type: "raw", rawValue: chunk.rawValue });
-          }
-          if (!chunk.success) {
-            finishReason = { unified: "error", raw: undefined };
-            controller.enqueue({ type: "error", error: chunk.error });
-            return;
-          }
-          const value = chunk.value;
-          if ("error" in value) {
-            finishReason = { unified: "error", raw: undefined };
-            controller.enqueue({ type: "error", error: value.error });
-            return;
-          }
-          if (!metadataExtracted) {
-            const metadata = getResponseMetadata(value);
-            if (Object.values(metadata).some(Boolean)) {
-              metadataExtracted = true;
-              controller.enqueue({
-                type: "response-metadata",
-                ...getResponseMetadata(value)
-              });
-            }
-          }
-          if (value.usage != null) {
-            usage = value.usage;
-            if (((_a21 = value.usage.completion_tokens_details) == null ? undefined : _a21.accepted_prediction_tokens) != null) {
-              providerMetadata.openai.acceptedPredictionTokens = (_b16 = value.usage.completion_tokens_details) == null ? undefined : _b16.accepted_prediction_tokens;
-            }
-            if (((_c = value.usage.completion_tokens_details) == null ? undefined : _c.rejected_prediction_tokens) != null) {
-              providerMetadata.openai.rejectedPredictionTokens = (_d = value.usage.completion_tokens_details) == null ? undefined : _d.rejected_prediction_tokens;
-            }
-          }
-          const choice2 = value.choices[0];
-          if ((choice2 == null ? undefined : choice2.finish_reason) != null) {
-            finishReason = {
-              unified: mapOpenAIFinishReason(choice2.finish_reason),
-              raw: choice2.finish_reason
-            };
-          }
-          if (((_e = choice2 == null ? undefined : choice2.logprobs) == null ? undefined : _e.content) != null) {
-            providerMetadata.openai.logprobs = choice2.logprobs.content;
-          }
-          if ((choice2 == null ? undefined : choice2.delta) == null) {
-            return;
-          }
-          const delta = choice2.delta;
-          if (delta.content != null) {
-            if (!isActiveText) {
-              controller.enqueue({ type: "text-start", id: "0" });
-              isActiveText = true;
-            }
-            controller.enqueue({
-              type: "text-delta",
-              id: "0",
-              delta: delta.content
-            });
-          }
-          if (delta.tool_calls != null) {
-            for (const toolCallDelta of delta.tool_calls) {
-              const index = toolCallDelta.index;
-              if (toolCalls[index] == null) {
-                if (toolCallDelta.type != null && toolCallDelta.type !== "function") {
-                  throw new InvalidResponseDataError({
-                    data: toolCallDelta,
-                    message: `Expected 'function' type.`
-                  });
-                }
-                if (toolCallDelta.id == null) {
-                  throw new InvalidResponseDataError({
-                    data: toolCallDelta,
-                    message: `Expected 'id' to be a string.`
-                  });
-                }
-                if (((_f = toolCallDelta.function) == null ? undefined : _f.name) == null) {
-                  throw new InvalidResponseDataError({
-                    data: toolCallDelta,
-                    message: `Expected 'function.name' to be a string.`
-                  });
-                }
-                controller.enqueue({
-                  type: "tool-input-start",
-                  id: toolCallDelta.id,
-                  toolName: toolCallDelta.function.name
-                });
-                toolCalls[index] = {
-                  id: toolCallDelta.id,
-                  type: "function",
-                  function: {
-                    name: toolCallDelta.function.name,
-                    arguments: (_g = toolCallDelta.function.arguments) != null ? _g : ""
-                  },
-                  hasFinished: false
-                };
-                const toolCall2 = toolCalls[index];
-                if (((_h = toolCall2.function) == null ? undefined : _h.name) != null && ((_i = toolCall2.function) == null ? undefined : _i.arguments) != null) {
-                  if (toolCall2.function.arguments.length > 0) {
-                    controller.enqueue({
-                      type: "tool-input-delta",
-                      id: toolCall2.id,
-                      delta: toolCall2.function.arguments
-                    });
-                  }
-                  if (isParsableJson(toolCall2.function.arguments)) {
-                    controller.enqueue({
-                      type: "tool-input-end",
-                      id: toolCall2.id
-                    });
-                    controller.enqueue({
-                      type: "tool-call",
-                      toolCallId: (_j = toolCall2.id) != null ? _j : generateId(),
-                      toolName: toolCall2.function.name,
-                      input: toolCall2.function.arguments
-                    });
-                    toolCall2.hasFinished = true;
-                  }
-                }
-                continue;
-              }
-              const toolCall = toolCalls[index];
-              if (toolCall.hasFinished) {
-                continue;
-              }
-              if (((_k = toolCallDelta.function) == null ? undefined : _k.arguments) != null) {
-                toolCall.function.arguments += (_m = (_l = toolCallDelta.function) == null ? undefined : _l.arguments) != null ? _m : "";
-              }
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: toolCall.id,
-                delta: (_n = toolCallDelta.function.arguments) != null ? _n : ""
-              });
-              if (((_o = toolCall.function) == null ? undefined : _o.name) != null && ((_p = toolCall.function) == null ? undefined : _p.arguments) != null && isParsableJson(toolCall.function.arguments)) {
-                controller.enqueue({
-                  type: "tool-input-end",
-                  id: toolCall.id
-                });
-                controller.enqueue({
-                  type: "tool-call",
-                  toolCallId: (_q = toolCall.id) != null ? _q : generateId(),
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments
-                });
-                toolCall.hasFinished = true;
-              }
-            }
-          }
-          if (delta.annotations != null) {
-            for (const annotation of delta.annotations) {
-              controller.enqueue({
-                type: "source",
-                sourceType: "url",
-                id: generateId(),
-                url: annotation.url_citation.url,
-                title: annotation.url_citation.title
-              });
-            }
-          }
-        },
-        flush(controller) {
-          if (isActiveText) {
-            controller.enqueue({ type: "text-end", id: "0" });
-          }
-          controller.enqueue({
-            type: "finish",
-            finishReason,
-            usage: convertOpenAIChatUsage(usage),
-            ...providerMetadata != null ? { providerMetadata } : {}
-          });
-        }
-      })),
-      request: { body },
-      response: { headers: responseHeaders }
-    };
-  }
-};
-function convertOpenAICompletionUsage(usage) {
-  var _a21, _b16, _c, _d;
-  if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined
-      },
-      raw: undefined
-    };
-  }
-  const promptTokens = (_a21 = usage.prompt_tokens) != null ? _a21 : 0;
-  const completionTokens = (_b16 = usage.completion_tokens) != null ? _b16 : 0;
-  return {
-    inputTokens: {
-      total: (_c = usage.prompt_tokens) != null ? _c : undefined,
-      noCache: promptTokens,
-      cacheRead: undefined,
-      cacheWrite: undefined
-    },
-    outputTokens: {
-      total: (_d = usage.completion_tokens) != null ? _d : undefined,
-      text: completionTokens,
-      reasoning: undefined
-    },
-    raw: usage
-  };
-}
-function convertToOpenAICompletionPrompt({
-  prompt,
-  user = "user",
-  assistant = "assistant"
-}) {
-  let text2 = "";
-  if (prompt[0].role === "system") {
-    text2 += `${prompt[0].content}
+// src/ai/prompt.ts
+function buildPrompt(activities, timeRange) {
+  const contributorSections = activities.map((activity) => {
+    const commitList = activity.commits.map((c) => `  - ${c.hash.slice(0, 7)} ${c.message}`).join(`
+`);
+    return `### ${activity.author} (${activity.email}) — ${activity.commits.length} commit(s)
+${commitList}`;
+  }).join(`
 
-`;
-    prompt = prompt.slice(1);
-  }
-  for (const { role, content } of prompt) {
-    switch (role) {
-      case "system": {
-        throw new InvalidPromptError({
-          message: "Unexpected system message in prompt: ${content}",
-          prompt
-        });
-      }
-      case "user": {
-        const userMessage = content.map((part) => {
-          switch (part.type) {
-            case "text": {
-              return part.text;
-            }
-          }
-        }).filter(Boolean).join("");
-        text2 += `${user}:
-${userMessage}
+`);
+  return `You are a technical team lead writing a concise team activity pulse report.
 
-`;
-        break;
-      }
-      case "assistant": {
-        const assistantMessage = content.map((part) => {
-          switch (part.type) {
-            case "text": {
-              return part.text;
-            }
-            case "tool-call": {
-              throw new UnsupportedFunctionalityError({
-                functionality: "tool-call messages"
-              });
-            }
-          }
-        }).join("");
-        text2 += `${assistant}:
-${assistantMessage}
+Analyze the following git activity from the last ${timeRange} and write a report grouped by contributor.
 
-`;
-        break;
-      }
-      case "tool": {
-        throw new UnsupportedFunctionalityError({
-          functionality: "tool messages"
-        });
-      }
-      default: {
-        const _exhaustiveCheck = role;
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
-      }
-    }
-  }
-  text2 += `${assistant}:
-`;
-  return {
-    prompt: text2,
-    stopSequences: [`
-${user}:`]
-  };
+For each contributor, write a brief summary of what they worked on, highlighting:
+- Key features or changes they delivered
+- Bug fixes or improvements
+- Any patterns or themes in their work
+
+End with a brief "Team Highlights" section noting any cross-cutting themes or notable achievements.
+
+Keep the tone professional but approachable. Use plain text formatting suitable for Slack messages.
+Do NOT use markdown headers — use *bold* for section headers (Slack format).
+
+---
+
+${contributorSections}`;
 }
-function getResponseMetadata2({
-  id,
-  model,
-  created
-}) {
-  return {
-    id: id != null ? id : undefined,
-    modelId: model != null ? model : undefined,
-    timestamp: created != null ? new Date(created * 1000) : undefined
-  };
-}
-function mapOpenAIFinishReason2(finishReason) {
-  switch (finishReason) {
-    case "stop":
-      return "stop";
-    case "length":
-      return "length";
-    case "content_filter":
-      return "content-filter";
-    case "function_call":
-    case "tool_calls":
-      return "tool-calls";
-    default:
-      return "other";
-  }
-}
-var openaiCompletionResponseSchema = lazySchema(() => zodSchema(exports_external.object({
-  id: exports_external.string().nullish(),
-  created: exports_external.number().nullish(),
-  model: exports_external.string().nullish(),
-  choices: exports_external.array(exports_external.object({
-    text: exports_external.string(),
-    finish_reason: exports_external.string(),
-    logprobs: exports_external.object({
-      tokens: exports_external.array(exports_external.string()),
-      token_logprobs: exports_external.array(exports_external.number()),
-      top_logprobs: exports_external.array(exports_external.record(exports_external.string(), exports_external.number())).nullish()
-    }).nullish()
-  })),
-  usage: exports_external.object({
-    prompt_tokens: exports_external.number(),
-    completion_tokens: exports_external.number(),
-    total_tokens: exports_external.number()
-  }).nullish()
-})));
-var openaiCompletionChunkSchema = lazySchema(() => zodSchema(exports_external.union([
-  exports_external.object({
-    id: exports_external.string().nullish(),
-    created: exports_external.number().nullish(),
-    model: exports_external.string().nullish(),
-    choices: exports_external.array(exports_external.object({
-      text: exports_external.string(),
-      finish_reason: exports_external.string().nullish(),
-      index: exports_external.number(),
-      logprobs: exports_external.object({
-        tokens: exports_external.array(exports_external.string()),
-        token_logprobs: exports_external.array(exports_external.number()),
-        top_logprobs: exports_external.array(exports_external.record(exports_external.string(), exports_external.number())).nullish()
-      }).nullish()
-    })),
-    usage: exports_external.object({
-      prompt_tokens: exports_external.number(),
-      completion_tokens: exports_external.number(),
-      total_tokens: exports_external.number()
-    }).nullish()
-  }),
-  openaiErrorDataSchema
-])));
-var openaiLanguageModelCompletionOptions = lazySchema(() => zodSchema(exports_external.object({
-  echo: exports_external.boolean().optional(),
-  logitBias: exports_external.record(exports_external.string(), exports_external.number()).optional(),
-  suffix: exports_external.string().optional(),
-  user: exports_external.string().optional(),
-  logprobs: exports_external.union([exports_external.boolean(), exports_external.number()]).optional()
-})));
-var OpenAICompletionLanguageModel = class {
-  constructor(modelId, config2) {
-    this.specificationVersion = "v3";
-    this.supportedUrls = {};
-    this.modelId = modelId;
-    this.config = config2;
-  }
-  get providerOptionsName() {
-    return this.config.provider.split(".")[0].trim();
-  }
-  get provider() {
-    return this.config.provider;
-  }
-  async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences: userStopSequences,
-    responseFormat,
-    tools,
-    toolChoice,
-    seed,
-    providerOptions
-  }) {
-    const warnings = [];
-    const openaiOptions = {
-      ...await parseProviderOptions({
-        provider: "openai",
-        providerOptions,
-        schema: openaiLanguageModelCompletionOptions
-      }),
-      ...await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions,
-        schema: openaiLanguageModelCompletionOptions
-      })
-    };
-    if (topK != null) {
-      warnings.push({ type: "unsupported", feature: "topK" });
-    }
-    if (tools == null ? undefined : tools.length) {
-      warnings.push({ type: "unsupported", feature: "tools" });
-    }
-    if (toolChoice != null) {
-      warnings.push({ type: "unsupported", feature: "toolChoice" });
-    }
-    if (responseFormat != null && responseFormat.type !== "text") {
-      warnings.push({
-        type: "unsupported",
-        feature: "responseFormat",
-        details: "JSON response format is not supported."
-      });
-    }
-    const { prompt: completionPrompt, stopSequences } = convertToOpenAICompletionPrompt({ prompt });
-    const stop = [...stopSequences != null ? stopSequences : [], ...userStopSequences != null ? userStopSequences : []];
-    return {
-      args: {
-        model: this.modelId,
-        echo: openaiOptions.echo,
-        logit_bias: openaiOptions.logitBias,
-        logprobs: (openaiOptions == null ? undefined : openaiOptions.logprobs) === true ? 0 : (openaiOptions == null ? undefined : openaiOptions.logprobs) === false ? undefined : openaiOptions == null ? undefined : openaiOptions.logprobs,
-        suffix: openaiOptions.suffix,
-        user: openaiOptions.user,
-        max_tokens: maxOutputTokens,
-        temperature,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
-        presence_penalty: presencePenalty,
-        seed,
-        prompt: completionPrompt,
-        stop: stop.length > 0 ? stop : undefined
-      },
-      warnings
-    };
-  }
-  async doGenerate(options) {
-    var _a21;
-    const { args, warnings } = await this.getArgs(options);
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse
-    } = await postJsonToApi({
-      url: this.config.url({
-        path: "/completions",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(openaiCompletionResponseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    const choice2 = response.choices[0];
-    const providerMetadata = { openai: {} };
-    if (choice2.logprobs != null) {
-      providerMetadata.openai.logprobs = choice2.logprobs;
-    }
-    return {
-      content: [{ type: "text", text: choice2.text }],
-      usage: convertOpenAICompletionUsage(response.usage),
-      finishReason: {
-        unified: mapOpenAIFinishReason2(choice2.finish_reason),
-        raw: (_a21 = choice2.finish_reason) != null ? _a21 : undefined
-      },
-      request: { body: args },
-      response: {
-        ...getResponseMetadata2(response),
-        headers: responseHeaders,
-        body: rawResponse
-      },
-      providerMetadata,
-      warnings
-    };
-  }
-  async doStream(options) {
-    const { args, warnings } = await this.getArgs(options);
-    const body = {
-      ...args,
-      stream: true,
-      stream_options: {
-        include_usage: true
-      }
-    };
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: "/completions",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(openaiCompletionChunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    let finishReason = {
-      unified: "other",
-      raw: undefined
-    };
-    const providerMetadata = { openai: {} };
-    let usage = undefined;
-    let isFirstChunk = true;
-    return {
-      stream: response.pipeThrough(new TransformStream({
-        start(controller) {
-          controller.enqueue({ type: "stream-start", warnings });
-        },
-        transform(chunk, controller) {
-          if (options.includeRawChunks) {
-            controller.enqueue({ type: "raw", rawValue: chunk.rawValue });
-          }
-          if (!chunk.success) {
-            finishReason = { unified: "error", raw: undefined };
-            controller.enqueue({ type: "error", error: chunk.error });
-            return;
-          }
-          const value = chunk.value;
-          if ("error" in value) {
-            finishReason = { unified: "error", raw: undefined };
-            controller.enqueue({ type: "error", error: value.error });
-            return;
-          }
-          if (isFirstChunk) {
-            isFirstChunk = false;
-            controller.enqueue({
-              type: "response-metadata",
-              ...getResponseMetadata2(value)
-            });
-            controller.enqueue({ type: "text-start", id: "0" });
-          }
-          if (value.usage != null) {
-            usage = value.usage;
-          }
-          const choice2 = value.choices[0];
-          if ((choice2 == null ? undefined : choice2.finish_reason) != null) {
-            finishReason = {
-              unified: mapOpenAIFinishReason2(choice2.finish_reason),
-              raw: choice2.finish_reason
-            };
-          }
-          if ((choice2 == null ? undefined : choice2.logprobs) != null) {
-            providerMetadata.openai.logprobs = choice2.logprobs;
-          }
-          if ((choice2 == null ? undefined : choice2.text) != null && choice2.text.length > 0) {
-            controller.enqueue({
-              type: "text-delta",
-              id: "0",
-              delta: choice2.text
-            });
-          }
-        },
-        flush(controller) {
-          if (!isFirstChunk) {
-            controller.enqueue({ type: "text-end", id: "0" });
-          }
-          controller.enqueue({
-            type: "finish",
-            finishReason,
-            providerMetadata,
-            usage: convertOpenAICompletionUsage(usage)
-          });
-        }
-      })),
-      request: { body },
-      response: { headers: responseHeaders }
-    };
-  }
-};
-var openaiEmbeddingModelOptions = lazySchema(() => zodSchema(exports_external.object({
-  dimensions: exports_external.number().optional(),
-  user: exports_external.string().optional()
-})));
-var openaiTextEmbeddingResponseSchema = lazySchema(() => zodSchema(exports_external.object({
-  data: exports_external.array(exports_external.object({ embedding: exports_external.array(exports_external.number()) })),
-  usage: exports_external.object({ prompt_tokens: exports_external.number() }).nullish()
-})));
-var OpenAIEmbeddingModel = class {
-  constructor(modelId, config2) {
-    this.specificationVersion = "v3";
-    this.maxEmbeddingsPerCall = 2048;
-    this.supportsParallelCalls = true;
-    this.modelId = modelId;
-    this.config = config2;
-  }
-  get provider() {
-    return this.config.provider;
-  }
-  async doEmbed({
-    values,
-    headers,
-    abortSignal,
-    providerOptions
-  }) {
-    var _a21;
-    if (values.length > this.maxEmbeddingsPerCall) {
-      throw new TooManyEmbeddingValuesForCallError({
-        provider: this.provider,
-        modelId: this.modelId,
-        maxEmbeddingsPerCall: this.maxEmbeddingsPerCall,
-        values
-      });
-    }
-    const openaiOptions = (_a21 = await parseProviderOptions({
-      provider: "openai",
-      providerOptions,
-      schema: openaiEmbeddingModelOptions
-    })) != null ? _a21 : {};
-    const {
-      responseHeaders,
-      value: response,
-      rawValue
-    } = await postJsonToApi({
-      url: this.config.url({
-        path: "/embeddings",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), headers),
-      body: {
-        model: this.modelId,
-        input: values,
-        encoding_format: "float",
-        dimensions: openaiOptions.dimensions,
-        user: openaiOptions.user
-      },
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(openaiTextEmbeddingResponseSchema),
-      abortSignal,
-      fetch: this.config.fetch
-    });
-    return {
-      warnings: [],
-      embeddings: response.data.map((item) => item.embedding),
-      usage: response.usage ? { tokens: response.usage.prompt_tokens } : undefined,
-      response: { headers: responseHeaders, body: rawValue }
-    };
-  }
-};
-var openaiImageResponseSchema = lazySchema(() => zodSchema(exports_external.object({
-  created: exports_external.number().nullish(),
-  data: exports_external.array(exports_external.object({
-    b64_json: exports_external.string(),
-    revised_prompt: exports_external.string().nullish()
-  })),
-  background: exports_external.string().nullish(),
-  output_format: exports_external.string().nullish(),
-  size: exports_external.string().nullish(),
-  quality: exports_external.string().nullish(),
-  usage: exports_external.object({
-    input_tokens: exports_external.number().nullish(),
-    output_tokens: exports_external.number().nullish(),
-    total_tokens: exports_external.number().nullish(),
-    input_tokens_details: exports_external.object({
-      image_tokens: exports_external.number().nullish(),
-      text_tokens: exports_external.number().nullish()
-    }).nullish()
-  }).nullish()
-})));
-var modelMaxImagesPerCall = {
-  "dall-e-3": 1,
-  "dall-e-2": 10,
-  "gpt-image-1": 10,
-  "gpt-image-1-mini": 10,
-  "gpt-image-1.5": 10,
-  "chatgpt-image-latest": 10
-};
-var defaultResponseFormatPrefixes = [
-  "chatgpt-image-",
-  "gpt-image-1-mini",
-  "gpt-image-1.5",
-  "gpt-image-1"
-];
-function hasDefaultResponseFormat(modelId) {
-  return defaultResponseFormatPrefixes.some((prefix) => modelId.startsWith(prefix));
-}
-var OpenAIImageModel = class {
-  constructor(modelId, config2) {
-    this.modelId = modelId;
-    this.config = config2;
-    this.specificationVersion = "v3";
-  }
-  get maxImagesPerCall() {
-    var _a21;
-    return (_a21 = modelMaxImagesPerCall[this.modelId]) != null ? _a21 : 1;
-  }
-  get provider() {
-    return this.config.provider;
-  }
-  async doGenerate({
-    prompt,
-    files,
-    mask,
-    n,
-    size,
-    aspectRatio,
-    seed,
-    providerOptions,
-    headers,
-    abortSignal
-  }) {
-    var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k;
-    const warnings = [];
-    if (aspectRatio != null) {
-      warnings.push({
-        type: "unsupported",
-        feature: "aspectRatio",
-        details: "This model does not support aspect ratio. Use `size` instead."
-      });
-    }
-    if (seed != null) {
-      warnings.push({ type: "unsupported", feature: "seed" });
-    }
-    const currentDate = (_c = (_b16 = (_a21 = this.config._internal) == null ? undefined : _a21.currentDate) == null ? undefined : _b16.call(_a21)) != null ? _c : /* @__PURE__ */ new Date;
-    if (files != null) {
-      const { value: response2, responseHeaders: responseHeaders2 } = await postFormDataToApi({
-        url: this.config.url({
-          path: "/images/edits",
-          modelId: this.modelId
-        }),
-        headers: combineHeaders(this.config.headers(), headers),
-        formData: convertToFormData({
-          model: this.modelId,
-          prompt,
-          image: await Promise.all(files.map((file2) => file2.type === "file" ? new Blob([
-            file2.data instanceof Uint8Array ? new Blob([file2.data], {
-              type: file2.mediaType
-            }) : new Blob([convertBase64ToUint8Array(file2.data)], {
-              type: file2.mediaType
-            })
-          ], { type: file2.mediaType }) : downloadBlob(file2.url))),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
-          n,
-          size,
-          ...(_d = providerOptions.openai) != null ? _d : {}
-        }),
-        failedResponseHandler: openaiFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(openaiImageResponseSchema),
-        abortSignal,
-        fetch: this.config.fetch
-      });
-      return {
-        images: response2.data.map((item) => item.b64_json),
-        warnings,
-        usage: response2.usage != null ? {
-          inputTokens: (_e = response2.usage.input_tokens) != null ? _e : undefined,
-          outputTokens: (_f = response2.usage.output_tokens) != null ? _f : undefined,
-          totalTokens: (_g = response2.usage.total_tokens) != null ? _g : undefined
-        } : undefined,
-        response: {
-          timestamp: currentDate,
-          modelId: this.modelId,
-          headers: responseHeaders2
-        },
-        providerMetadata: {
-          openai: {
-            images: response2.data.map((item, index) => {
-              var _a25, _b23, _c2, _d2, _e2, _f2;
-              return {
-                ...item.revised_prompt ? { revisedPrompt: item.revised_prompt } : {},
-                created: (_a25 = response2.created) != null ? _a25 : undefined,
-                size: (_b23 = response2.size) != null ? _b23 : undefined,
-                quality: (_c2 = response2.quality) != null ? _c2 : undefined,
-                background: (_d2 = response2.background) != null ? _d2 : undefined,
-                outputFormat: (_e2 = response2.output_format) != null ? _e2 : undefined,
-                ...distributeTokenDetails((_f2 = response2.usage) == null ? undefined : _f2.input_tokens_details, index, response2.data.length)
-              };
-            })
-          }
-        }
-      };
-    }
-    const { value: response, responseHeaders } = await postJsonToApi({
-      url: this.config.url({
-        path: "/images/generations",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), headers),
-      body: {
-        model: this.modelId,
-        prompt,
-        n,
-        size,
-        ...(_h = providerOptions.openai) != null ? _h : {},
-        ...!hasDefaultResponseFormat(this.modelId) ? { response_format: "b64_json" } : {}
-      },
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(openaiImageResponseSchema),
-      abortSignal,
-      fetch: this.config.fetch
-    });
-    return {
-      images: response.data.map((item) => item.b64_json),
-      warnings,
-      usage: response.usage != null ? {
-        inputTokens: (_i = response.usage.input_tokens) != null ? _i : undefined,
-        outputTokens: (_j = response.usage.output_tokens) != null ? _j : undefined,
-        totalTokens: (_k = response.usage.total_tokens) != null ? _k : undefined
-      } : undefined,
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders
-      },
-      providerMetadata: {
-        openai: {
-          images: response.data.map((item, index) => {
-            var _a25, _b23, _c2, _d2, _e2, _f2;
-            return {
-              ...item.revised_prompt ? { revisedPrompt: item.revised_prompt } : {},
-              created: (_a25 = response.created) != null ? _a25 : undefined,
-              size: (_b23 = response.size) != null ? _b23 : undefined,
-              quality: (_c2 = response.quality) != null ? _c2 : undefined,
-              background: (_d2 = response.background) != null ? _d2 : undefined,
-              outputFormat: (_e2 = response.output_format) != null ? _e2 : undefined,
-              ...distributeTokenDetails((_f2 = response.usage) == null ? undefined : _f2.input_tokens_details, index, response.data.length)
-            };
-          })
-        }
-      }
-    };
-  }
-};
-function distributeTokenDetails(details, index, total) {
-  if (details == null) {
-    return {};
-  }
-  const result = {};
-  if (details.image_tokens != null) {
-    const base = Math.floor(details.image_tokens / total);
-    const remainder = details.image_tokens - base * (total - 1);
-    result.imageTokens = index === total - 1 ? remainder : base;
-  }
-  if (details.text_tokens != null) {
-    const base = Math.floor(details.text_tokens / total);
-    const remainder = details.text_tokens - base * (total - 1);
-    result.textTokens = index === total - 1 ? remainder : base;
-  }
-  return result;
-}
-async function fileToBlob(file2) {
-  if (!file2)
-    return;
-  if (file2.type === "url") {
-    return downloadBlob(file2.url);
-  }
-  const data = file2.data instanceof Uint8Array ? file2.data : convertBase64ToUint8Array(file2.data);
-  return new Blob([data], { type: file2.mediaType });
-}
-var applyPatchInputSchema = lazySchema(() => zodSchema(exports_external.object({
-  callId: exports_external.string(),
-  operation: exports_external.discriminatedUnion("type", [
-    exports_external.object({
-      type: exports_external.literal("create_file"),
-      path: exports_external.string(),
-      diff: exports_external.string()
-    }),
-    exports_external.object({
-      type: exports_external.literal("delete_file"),
-      path: exports_external.string()
-    }),
-    exports_external.object({
-      type: exports_external.literal("update_file"),
-      path: exports_external.string(),
-      diff: exports_external.string()
-    })
-  ])
-})));
-var applyPatchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  status: exports_external.enum(["completed", "failed"]),
-  output: exports_external.string().optional()
-})));
-var applyPatchArgsSchema = lazySchema(() => zodSchema(exports_external.object({})));
-var applyPatchToolFactory = createProviderToolFactoryWithOutputSchema({
-  id: "openai.apply_patch",
-  inputSchema: applyPatchInputSchema,
-  outputSchema: applyPatchOutputSchema
-});
-var applyPatch = applyPatchToolFactory;
-var codeInterpreterInputSchema = lazySchema(() => zodSchema(exports_external.object({
-  code: exports_external.string().nullish(),
-  containerId: exports_external.string()
-})));
-var codeInterpreterOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  outputs: exports_external.array(exports_external.discriminatedUnion("type", [
-    exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
-    exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
-  ])).nullish()
-})));
-var codeInterpreterArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  container: exports_external.union([
-    exports_external.string(),
-    exports_external.object({
-      fileIds: exports_external.array(exports_external.string()).optional()
-    })
-  ]).optional()
-})));
-var codeInterpreterToolFactory = createProviderToolFactoryWithOutputSchema({
-  id: "openai.code_interpreter",
-  inputSchema: codeInterpreterInputSchema,
-  outputSchema: codeInterpreterOutputSchema
-});
-var codeInterpreter = (args = {}) => {
-  return codeInterpreterToolFactory(args);
-};
-var customArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  name: exports_external.string(),
-  description: exports_external.string().optional(),
-  format: exports_external.union([
-    exports_external.object({
-      type: exports_external.literal("grammar"),
-      syntax: exports_external.enum(["regex", "lark"]),
-      definition: exports_external.string()
-    }),
-    exports_external.object({
-      type: exports_external.literal("text")
-    })
-  ]).optional()
-})));
-var customInputSchema = lazySchema(() => zodSchema(exports_external.string()));
-var customToolFactory = createProviderToolFactory({
-  id: "openai.custom",
-  inputSchema: customInputSchema
-});
-var customTool = (args) => customToolFactory(args);
-var comparisonFilterSchema = exports_external.object({
-  key: exports_external.string(),
-  type: exports_external.enum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin"]),
-  value: exports_external.union([exports_external.string(), exports_external.number(), exports_external.boolean(), exports_external.array(exports_external.string())])
-});
-var compoundFilterSchema = exports_external.object({
-  type: exports_external.enum(["and", "or"]),
-  filters: exports_external.array(exports_external.union([comparisonFilterSchema, exports_external.lazy(() => compoundFilterSchema)]))
-});
-var fileSearchArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  vectorStoreIds: exports_external.array(exports_external.string()),
-  maxNumResults: exports_external.number().optional(),
-  ranking: exports_external.object({
-    ranker: exports_external.string().optional(),
-    scoreThreshold: exports_external.number().optional()
-  }).optional(),
-  filters: exports_external.union([comparisonFilterSchema, compoundFilterSchema]).optional()
-})));
-var fileSearchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  queries: exports_external.array(exports_external.string()),
-  results: exports_external.array(exports_external.object({
-    attributes: exports_external.record(exports_external.string(), exports_external.unknown()),
-    fileId: exports_external.string(),
-    filename: exports_external.string(),
-    score: exports_external.number(),
-    text: exports_external.string()
-  })).nullable()
-})));
-var fileSearch = createProviderToolFactoryWithOutputSchema({
-  id: "openai.file_search",
-  inputSchema: exports_external.object({}),
-  outputSchema: fileSearchOutputSchema
-});
-var imageGenerationArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  background: exports_external.enum(["auto", "opaque", "transparent"]).optional(),
-  inputFidelity: exports_external.enum(["low", "high"]).optional(),
-  inputImageMask: exports_external.object({
-    fileId: exports_external.string().optional(),
-    imageUrl: exports_external.string().optional()
-  }).optional(),
-  model: exports_external.string().optional(),
-  moderation: exports_external.enum(["auto"]).optional(),
-  outputCompression: exports_external.number().int().min(0).max(100).optional(),
-  outputFormat: exports_external.enum(["png", "jpeg", "webp"]).optional(),
-  partialImages: exports_external.number().int().min(0).max(3).optional(),
-  quality: exports_external.enum(["auto", "low", "medium", "high"]).optional(),
-  size: exports_external.enum(["1024x1024", "1024x1536", "1536x1024", "auto"]).optional()
-}).strict()));
-var imageGenerationInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
-var imageGenerationOutputSchema = lazySchema(() => zodSchema(exports_external.object({ result: exports_external.string() })));
-var imageGenerationToolFactory = createProviderToolFactoryWithOutputSchema({
-  id: "openai.image_generation",
-  inputSchema: imageGenerationInputSchema,
-  outputSchema: imageGenerationOutputSchema
-});
-var imageGeneration = (args = {}) => {
-  return imageGenerationToolFactory(args);
-};
-var localShellInputSchema = lazySchema(() => zodSchema(exports_external.object({
-  action: exports_external.object({
-    type: exports_external.literal("exec"),
-    command: exports_external.array(exports_external.string()),
-    timeoutMs: exports_external.number().optional(),
-    user: exports_external.string().optional(),
-    workingDirectory: exports_external.string().optional(),
-    env: exports_external.record(exports_external.string(), exports_external.string()).optional()
-  })
-})));
-var localShellOutputSchema = lazySchema(() => zodSchema(exports_external.object({ output: exports_external.string() })));
-var localShell = createProviderToolFactoryWithOutputSchema({
-  id: "openai.local_shell",
-  inputSchema: localShellInputSchema,
-  outputSchema: localShellOutputSchema
-});
-var shellInputSchema = lazySchema(() => zodSchema(exports_external.object({
-  action: exports_external.object({
-    commands: exports_external.array(exports_external.string()),
-    timeoutMs: exports_external.number().optional(),
-    maxOutputLength: exports_external.number().optional()
-  })
-})));
-var shellOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  output: exports_external.array(exports_external.object({
-    stdout: exports_external.string(),
-    stderr: exports_external.string(),
-    outcome: exports_external.discriminatedUnion("type", [
-      exports_external.object({ type: exports_external.literal("timeout") }),
-      exports_external.object({ type: exports_external.literal("exit"), exitCode: exports_external.number() })
-    ])
-  }))
-})));
-var shellSkillsSchema = exports_external.array(exports_external.discriminatedUnion("type", [
-  exports_external.object({
-    type: exports_external.literal("skillReference"),
-    skillId: exports_external.string(),
-    version: exports_external.string().optional()
-  }),
-  exports_external.object({
-    type: exports_external.literal("inline"),
-    name: exports_external.string(),
-    description: exports_external.string(),
-    source: exports_external.object({
-      type: exports_external.literal("base64"),
-      mediaType: exports_external.literal("application/zip"),
-      data: exports_external.string()
-    })
-  })
-])).optional();
-var shellArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  environment: exports_external.union([
-    exports_external.object({
-      type: exports_external.literal("containerAuto"),
-      fileIds: exports_external.array(exports_external.string()).optional(),
-      memoryLimit: exports_external.enum(["1g", "4g", "16g", "64g"]).optional(),
-      networkPolicy: exports_external.discriminatedUnion("type", [
-        exports_external.object({ type: exports_external.literal("disabled") }),
-        exports_external.object({
-          type: exports_external.literal("allowlist"),
-          allowedDomains: exports_external.array(exports_external.string()),
-          domainSecrets: exports_external.array(exports_external.object({
-            domain: exports_external.string(),
-            name: exports_external.string(),
-            value: exports_external.string()
-          })).optional()
-        })
-      ]).optional(),
-      skills: shellSkillsSchema
-    }),
-    exports_external.object({
-      type: exports_external.literal("containerReference"),
-      containerId: exports_external.string()
-    }),
-    exports_external.object({
-      type: exports_external.literal("local").optional(),
-      skills: exports_external.array(exports_external.object({
-        name: exports_external.string(),
-        description: exports_external.string(),
-        path: exports_external.string()
-      })).optional()
-    })
-  ]).optional()
-})));
-var shell = createProviderToolFactoryWithOutputSchema({
-  id: "openai.shell",
-  inputSchema: shellInputSchema,
-  outputSchema: shellOutputSchema
-});
-var toolSearchArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  execution: exports_external.enum(["server", "client"]).optional(),
-  description: exports_external.string().optional(),
-  parameters: exports_external.record(exports_external.string(), exports_external.unknown()).optional()
-})));
-var toolSearchInputSchema = lazySchema(() => zodSchema(exports_external.object({
-  arguments: exports_external.unknown().optional(),
-  call_id: exports_external.string().nullish()
-})));
-var toolSearchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  tools: exports_external.array(exports_external.record(exports_external.string(), exports_external.unknown()))
-})));
-var toolSearchToolFactory = createProviderToolFactoryWithOutputSchema({
-  id: "openai.tool_search",
-  inputSchema: toolSearchInputSchema,
-  outputSchema: toolSearchOutputSchema
-});
-var toolSearch = (args = {}) => toolSearchToolFactory(args);
-var webSearchArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  externalWebAccess: exports_external.boolean().optional(),
-  filters: exports_external.object({ allowedDomains: exports_external.array(exports_external.string()).optional() }).optional(),
-  searchContextSize: exports_external.enum(["low", "medium", "high"]).optional(),
-  userLocation: exports_external.object({
-    type: exports_external.literal("approximate"),
-    country: exports_external.string().optional(),
-    city: exports_external.string().optional(),
-    region: exports_external.string().optional(),
-    timezone: exports_external.string().optional()
-  }).optional()
-})));
-var webSearchInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
-var webSearchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  action: exports_external.discriminatedUnion("type", [
-    exports_external.object({
-      type: exports_external.literal("search"),
-      query: exports_external.string().optional()
-    }),
-    exports_external.object({
-      type: exports_external.literal("openPage"),
-      url: exports_external.string().nullish()
-    }),
-    exports_external.object({
-      type: exports_external.literal("findInPage"),
-      url: exports_external.string().nullish(),
-      pattern: exports_external.string().nullish()
-    })
-  ]).optional(),
-  sources: exports_external.array(exports_external.discriminatedUnion("type", [
-    exports_external.object({ type: exports_external.literal("url"), url: exports_external.string() }),
-    exports_external.object({ type: exports_external.literal("api"), name: exports_external.string() })
-  ])).optional()
-})));
-var webSearchToolFactory = createProviderToolFactoryWithOutputSchema({
-  id: "openai.web_search",
-  inputSchema: webSearchInputSchema,
-  outputSchema: webSearchOutputSchema
-});
-var webSearch = (args = {}) => webSearchToolFactory(args);
-var webSearchPreviewArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  searchContextSize: exports_external.enum(["low", "medium", "high"]).optional(),
-  userLocation: exports_external.object({
-    type: exports_external.literal("approximate"),
-    country: exports_external.string().optional(),
-    city: exports_external.string().optional(),
-    region: exports_external.string().optional(),
-    timezone: exports_external.string().optional()
-  }).optional()
-})));
-var webSearchPreviewInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
-var webSearchPreviewOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  action: exports_external.discriminatedUnion("type", [
-    exports_external.object({
-      type: exports_external.literal("search"),
-      query: exports_external.string().optional()
-    }),
-    exports_external.object({
-      type: exports_external.literal("openPage"),
-      url: exports_external.string().nullish()
-    }),
-    exports_external.object({
-      type: exports_external.literal("findInPage"),
-      url: exports_external.string().nullish(),
-      pattern: exports_external.string().nullish()
-    })
-  ]).optional()
-})));
-var webSearchPreview = createProviderToolFactoryWithOutputSchema({
-  id: "openai.web_search_preview",
-  inputSchema: webSearchPreviewInputSchema,
-  outputSchema: webSearchPreviewOutputSchema
-});
-var jsonValueSchema2 = exports_external.lazy(() => exports_external.union([
-  exports_external.string(),
-  exports_external.number(),
-  exports_external.boolean(),
-  exports_external.null(),
-  exports_external.array(jsonValueSchema2),
-  exports_external.record(exports_external.string(), jsonValueSchema2)
-]));
-var mcpArgsSchema = lazySchema(() => zodSchema(exports_external.object({
-  serverLabel: exports_external.string(),
-  allowedTools: exports_external.union([
-    exports_external.array(exports_external.string()),
-    exports_external.object({
-      readOnly: exports_external.boolean().optional(),
-      toolNames: exports_external.array(exports_external.string()).optional()
-    })
-  ]).optional(),
-  authorization: exports_external.string().optional(),
-  connectorId: exports_external.string().optional(),
-  headers: exports_external.record(exports_external.string(), exports_external.string()).optional(),
-  requireApproval: exports_external.union([
-    exports_external.enum(["always", "never"]),
-    exports_external.object({
-      never: exports_external.object({
-        toolNames: exports_external.array(exports_external.string()).optional()
-      }).optional()
-    })
-  ]).optional(),
-  serverDescription: exports_external.string().optional(),
-  serverUrl: exports_external.string().optional()
-}).refine((v) => v.serverUrl != null || v.connectorId != null, "One of serverUrl or connectorId must be provided.")));
-var mcpInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
-var mcpOutputSchema = lazySchema(() => zodSchema(exports_external.object({
-  type: exports_external.literal("call"),
-  serverLabel: exports_external.string(),
-  name: exports_external.string(),
-  arguments: exports_external.string(),
-  output: exports_external.string().nullish(),
-  error: exports_external.union([exports_external.string(), jsonValueSchema2]).optional()
-})));
-var mcpToolFactory = createProviderToolFactoryWithOutputSchema({
-  id: "openai.mcp",
-  inputSchema: mcpInputSchema,
-  outputSchema: mcpOutputSchema
-});
-var mcp = (args) => mcpToolFactory(args);
-var openaiTools = {
-  applyPatch,
-  customTool,
-  codeInterpreter,
-  fileSearch,
-  imageGeneration,
-  localShell,
-  shell,
-  webSearchPreview,
-  webSearch,
-  mcp,
-  toolSearch
-};
-function convertOpenAIResponsesUsage(usage) {
-  var _a21, _b16, _c, _d;
-  if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined
-      },
-      raw: undefined
-    };
-  }
-  const inputTokens = usage.input_tokens;
-  const outputTokens = usage.output_tokens;
-  const cachedTokens = (_b16 = (_a21 = usage.input_tokens_details) == null ? undefined : _a21.cached_tokens) != null ? _b16 : 0;
-  const reasoningTokens = (_d = (_c = usage.output_tokens_details) == null ? undefined : _c.reasoning_tokens) != null ? _d : 0;
-  return {
-    inputTokens: {
-      total: inputTokens,
-      noCache: inputTokens - cachedTokens,
-      cacheRead: cachedTokens,
-      cacheWrite: undefined
-    },
-    outputTokens: {
-      total: outputTokens,
-      text: outputTokens - reasoningTokens,
-      reasoning: reasoningTokens
-    },
-    raw: usage
-  };
-}
-function serializeToolCallArguments2(input) {
-  return JSON.stringify(input === undefined ? {} : input);
-}
-function isFileId(data, prefixes) {
-  if (!prefixes)
-    return false;
-  return prefixes.some((prefix) => data.startsWith(prefix));
-}
-async function convertToOpenAIResponsesInput({
-  prompt,
-  toolNameMapping,
-  systemMessageMode,
-  providerOptionsName,
-  fileIdPrefixes,
-  store,
-  hasConversation = false,
-  hasLocalShellTool = false,
-  hasShellTool = false,
-  hasApplyPatchTool = false,
-  customProviderToolNames
-}) {
-  var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q;
-  let input = [];
-  const warnings = [];
-  const processedApprovalIds = /* @__PURE__ */ new Set;
-  for (const { role, content } of prompt) {
-    switch (role) {
-      case "system": {
-        switch (systemMessageMode) {
-          case "system": {
-            input.push({ role: "system", content });
-            break;
-          }
-          case "developer": {
-            input.push({ role: "developer", content });
-            break;
-          }
-          case "remove": {
-            warnings.push({
-              type: "other",
-              message: "system messages are removed for this model"
-            });
-            break;
-          }
-          default: {
-            const _exhaustiveCheck = systemMessageMode;
-            throw new Error(`Unsupported system message mode: ${_exhaustiveCheck}`);
-          }
-        }
-        break;
-      }
-      case "user": {
-        input.push({
-          role: "user",
-          content: content.map((part, index) => {
-            var _a25, _b23, _c2;
-            switch (part.type) {
-              case "text": {
-                return { type: "input_text", text: part.text };
-              }
-              case "file": {
-                if (part.mediaType.startsWith("image/")) {
-                  const mediaType = part.mediaType === "image/*" ? "image/jpeg" : part.mediaType;
-                  return {
-                    type: "input_image",
-                    ...part.data instanceof URL ? { image_url: part.data.toString() } : typeof part.data === "string" && isFileId(part.data, fileIdPrefixes) ? { file_id: part.data } : {
-                      image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`
-                    },
-                    detail: (_b23 = (_a25 = part.providerOptions) == null ? undefined : _a25[providerOptionsName]) == null ? undefined : _b23.imageDetail
-                  };
-                } else if (part.mediaType === "application/pdf") {
-                  if (part.data instanceof URL) {
-                    return {
-                      type: "input_file",
-                      file_url: part.data.toString()
-                    };
-                  }
-                  return {
-                    type: "input_file",
-                    ...typeof part.data === "string" && isFileId(part.data, fileIdPrefixes) ? { file_id: part.data } : {
-                      filename: (_c2 = part.filename) != null ? _c2 : `part-${index}.pdf`,
-                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`
-                    }
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`
-                  });
-                }
-              }
-            }
-          })
-        });
-        break;
-      }
-      case "assistant": {
-        const reasoningMessages = {};
-        for (const part of content) {
-          switch (part.type) {
-            case "text": {
-              const providerOpts = (_a21 = part.providerOptions) == null ? undefined : _a21[providerOptionsName];
-              const id = providerOpts == null ? undefined : providerOpts.itemId;
-              const phase = providerOpts == null ? undefined : providerOpts.phase;
-              if (hasConversation && id != null) {
-                break;
-              }
-              if (store && id != null) {
-                input.push({ type: "item_reference", id });
-                break;
-              }
-              input.push({
-                role: "assistant",
-                content: [{ type: "output_text", text: part.text }],
-                id,
-                ...phase != null && { phase }
-              });
-              break;
-            }
-            case "tool-call": {
-              const id = (_f = (_c = (_b16 = part.providerOptions) == null ? undefined : _b16[providerOptionsName]) == null ? undefined : _c.itemId) != null ? _f : (_e = (_d = part.providerMetadata) == null ? undefined : _d[providerOptionsName]) == null ? undefined : _e.itemId;
-              if (hasConversation && id != null) {
-                break;
-              }
-              const resolvedToolName = toolNameMapping.toProviderToolName(part.toolName);
-              if (resolvedToolName === "tool_search") {
-                if (store && id != null) {
-                  input.push({ type: "item_reference", id });
-                  break;
-                }
-                const parsedInput = typeof part.input === "string" ? await parseJSON({
-                  text: part.input,
-                  schema: toolSearchInputSchema
-                }) : await validateTypes({
-                  value: part.input,
-                  schema: toolSearchInputSchema
-                });
-                const execution = parsedInput.call_id != null ? "client" : "server";
-                input.push({
-                  type: "tool_search_call",
-                  id: id != null ? id : part.toolCallId,
-                  execution,
-                  call_id: (_g = parsedInput.call_id) != null ? _g : null,
-                  status: "completed",
-                  arguments: parsedInput.arguments
-                });
-                break;
-              }
-              if (part.providerExecuted) {
-                if (store && id != null) {
-                  input.push({ type: "item_reference", id });
-                }
-                break;
-              }
-              if (store && id != null) {
-                input.push({ type: "item_reference", id });
-                break;
-              }
-              if (hasLocalShellTool && resolvedToolName === "local_shell") {
-                const parsedInput = await validateTypes({
-                  value: part.input,
-                  schema: localShellInputSchema
-                });
-                input.push({
-                  type: "local_shell_call",
-                  call_id: part.toolCallId,
-                  id,
-                  action: {
-                    type: "exec",
-                    command: parsedInput.action.command,
-                    timeout_ms: parsedInput.action.timeoutMs,
-                    user: parsedInput.action.user,
-                    working_directory: parsedInput.action.workingDirectory,
-                    env: parsedInput.action.env
-                  }
-                });
-                break;
-              }
-              if (hasShellTool && resolvedToolName === "shell") {
-                const parsedInput = await validateTypes({
-                  value: part.input,
-                  schema: shellInputSchema
-                });
-                input.push({
-                  type: "shell_call",
-                  call_id: part.toolCallId,
-                  id,
-                  status: "completed",
-                  action: {
-                    commands: parsedInput.action.commands,
-                    timeout_ms: parsedInput.action.timeoutMs,
-                    max_output_length: parsedInput.action.maxOutputLength
-                  }
-                });
-                break;
-              }
-              if (hasApplyPatchTool && resolvedToolName === "apply_patch") {
-                const parsedInput = await validateTypes({
-                  value: part.input,
-                  schema: applyPatchInputSchema
-                });
-                input.push({
-                  type: "apply_patch_call",
-                  call_id: parsedInput.callId,
-                  id,
-                  status: "completed",
-                  operation: parsedInput.operation
-                });
-                break;
-              }
-              if (customProviderToolNames == null ? undefined : customProviderToolNames.has(resolvedToolName)) {
-                input.push({
-                  type: "custom_tool_call",
-                  call_id: part.toolCallId,
-                  name: resolvedToolName,
-                  input: typeof part.input === "string" ? part.input : JSON.stringify(part.input),
-                  id
-                });
-                break;
-              }
-              input.push({
-                type: "function_call",
-                call_id: part.toolCallId,
-                name: resolvedToolName,
-                arguments: serializeToolCallArguments2(part.input),
-                id
-              });
-              break;
-            }
-            case "tool-result": {
-              if (part.output.type === "execution-denied" || part.output.type === "json" && typeof part.output.value === "object" && part.output.value != null && "type" in part.output.value && part.output.value.type === "execution-denied") {
-                break;
-              }
-              if (hasConversation) {
-                break;
-              }
-              const resolvedResultToolName = toolNameMapping.toProviderToolName(part.toolName);
-              if (resolvedResultToolName === "tool_search") {
-                const itemId = (_j = (_i = (_h = part.providerOptions) == null ? undefined : _h[providerOptionsName]) == null ? undefined : _i.itemId) != null ? _j : part.toolCallId;
-                if (store) {
-                  input.push({ type: "item_reference", id: itemId });
-                } else if (part.output.type === "json") {
-                  const parsedOutput = await validateTypes({
-                    value: part.output.value,
-                    schema: toolSearchOutputSchema
-                  });
-                  input.push({
-                    type: "tool_search_output",
-                    id: itemId,
-                    execution: "server",
-                    call_id: null,
-                    status: "completed",
-                    tools: parsedOutput.tools
-                  });
-                }
-                break;
-              }
-              if (hasShellTool && resolvedResultToolName === "shell") {
-                if (part.output.type === "json") {
-                  const parsedOutput = await validateTypes({
-                    value: part.output.value,
-                    schema: shellOutputSchema
-                  });
-                  input.push({
-                    type: "shell_call_output",
-                    call_id: part.toolCallId,
-                    output: parsedOutput.output.map((item) => ({
-                      stdout: item.stdout,
-                      stderr: item.stderr,
-                      outcome: item.outcome.type === "timeout" ? { type: "timeout" } : {
-                        type: "exit",
-                        exit_code: item.outcome.exitCode
-                      }
-                    }))
-                  });
-                }
-                break;
-              }
-              if (store) {
-                const itemId = (_m = (_l = (_k = part.providerOptions) == null ? undefined : _k[providerOptionsName]) == null ? undefined : _l.itemId) != null ? _m : part.toolCallId;
-                input.push({ type: "item_reference", id: itemId });
-              } else {
-                warnings.push({
-                  type: "other",
-                  message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`
-                });
-              }
-              break;
-            }
-            case "reasoning": {
-              const providerOptions = await parseProviderOptions({
-                provider: providerOptionsName,
-                providerOptions: part.providerOptions,
-                schema: openaiResponsesReasoningProviderOptionsSchema
-              });
-              const reasoningId = providerOptions == null ? undefined : providerOptions.itemId;
-              if (hasConversation && reasoningId != null) {
-                break;
-              }
-              if (reasoningId != null) {
-                const reasoningMessage = reasoningMessages[reasoningId];
-                if (store) {
-                  if (reasoningMessage === undefined) {
-                    input.push({ type: "item_reference", id: reasoningId });
-                    reasoningMessages[reasoningId] = {
-                      type: "reasoning",
-                      id: reasoningId,
-                      summary: []
-                    };
-                  }
-                } else {
-                  const summaryParts = [];
-                  if (part.text.length > 0) {
-                    summaryParts.push({
-                      type: "summary_text",
-                      text: part.text
-                    });
-                  } else if (reasoningMessage !== undefined) {
-                    warnings.push({
-                      type: "other",
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`
-                    });
-                  }
-                  if (reasoningMessage === undefined) {
-                    reasoningMessages[reasoningId] = {
-                      type: "reasoning",
-                      id: reasoningId,
-                      encrypted_content: providerOptions == null ? undefined : providerOptions.reasoningEncryptedContent,
-                      summary: summaryParts
-                    };
-                    input.push(reasoningMessages[reasoningId]);
-                  } else {
-                    reasoningMessage.summary.push(...summaryParts);
-                    if ((providerOptions == null ? undefined : providerOptions.reasoningEncryptedContent) != null) {
-                      reasoningMessage.encrypted_content = providerOptions.reasoningEncryptedContent;
-                    }
-                  }
-                }
-              } else {
-                const encryptedContent = providerOptions == null ? undefined : providerOptions.reasoningEncryptedContent;
-                if (encryptedContent != null) {
-                  const summaryParts = [];
-                  if (part.text.length > 0) {
-                    summaryParts.push({
-                      type: "summary_text",
-                      text: part.text
-                    });
-                  }
-                  input.push({
-                    type: "reasoning",
-                    encrypted_content: encryptedContent,
-                    summary: summaryParts
-                  });
-                } else {
-                  warnings.push({
-                    type: "other",
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`
-                  });
-                }
-              }
-              break;
-            }
-          }
-        }
-        break;
-      }
-      case "tool": {
-        for (const part of content) {
-          if (part.type === "tool-approval-response") {
-            const approvalResponse = part;
-            if (processedApprovalIds.has(approvalResponse.approvalId)) {
-              continue;
-            }
-            processedApprovalIds.add(approvalResponse.approvalId);
-            if (store) {
-              input.push({
-                type: "item_reference",
-                id: approvalResponse.approvalId
-              });
-            }
-            input.push({
-              type: "mcp_approval_response",
-              approval_request_id: approvalResponse.approvalId,
-              approve: approvalResponse.approved
-            });
-            continue;
-          }
-          const output = part.output;
-          if (output.type === "execution-denied") {
-            const approvalId = (_o = (_n = output.providerOptions) == null ? undefined : _n.openai) == null ? undefined : _o.approvalId;
-            if (approvalId) {
-              continue;
-            }
-          }
-          const resolvedToolName = toolNameMapping.toProviderToolName(part.toolName);
-          if (resolvedToolName === "tool_search" && output.type === "json") {
-            const parsedOutput = await validateTypes({
-              value: output.value,
-              schema: toolSearchOutputSchema
-            });
-            input.push({
-              type: "tool_search_output",
-              execution: "client",
-              call_id: part.toolCallId,
-              status: "completed",
-              tools: parsedOutput.tools
-            });
-            continue;
-          }
-          if (hasLocalShellTool && resolvedToolName === "local_shell" && output.type === "json") {
-            const parsedOutput = await validateTypes({
-              value: output.value,
-              schema: localShellOutputSchema
-            });
-            input.push({
-              type: "local_shell_call_output",
-              call_id: part.toolCallId,
-              output: parsedOutput.output
-            });
-            continue;
-          }
-          if (hasShellTool && resolvedToolName === "shell" && output.type === "json") {
-            const parsedOutput = await validateTypes({
-              value: output.value,
-              schema: shellOutputSchema
-            });
-            input.push({
-              type: "shell_call_output",
-              call_id: part.toolCallId,
-              output: parsedOutput.output.map((item) => ({
-                stdout: item.stdout,
-                stderr: item.stderr,
-                outcome: item.outcome.type === "timeout" ? { type: "timeout" } : {
-                  type: "exit",
-                  exit_code: item.outcome.exitCode
-                }
-              }))
-            });
-            continue;
-          }
-          if (hasApplyPatchTool && part.toolName === "apply_patch" && output.type === "json") {
-            const parsedOutput = await validateTypes({
-              value: output.value,
-              schema: applyPatchOutputSchema
-            });
-            input.push({
-              type: "apply_patch_call_output",
-              call_id: part.toolCallId,
-              status: parsedOutput.status,
-              output: parsedOutput.output
-            });
-            continue;
-          }
-          if (customProviderToolNames == null ? undefined : customProviderToolNames.has(resolvedToolName)) {
-            let outputValue;
-            switch (output.type) {
-              case "text":
-              case "error-text":
-                outputValue = output.value;
-                break;
-              case "execution-denied":
-                outputValue = (_p = output.reason) != null ? _p : "Tool execution denied.";
-                break;
-              case "json":
-              case "error-json":
-                outputValue = JSON.stringify(output.value);
-                break;
-              case "content":
-                outputValue = output.value.map((item) => {
-                  var _a25;
-                  switch (item.type) {
-                    case "text":
-                      return { type: "input_text", text: item.text };
-                    case "image-data":
-                      return {
-                        type: "input_image",
-                        image_url: `data:${item.mediaType};base64,${item.data}`
-                      };
-                    case "image-url":
-                      return {
-                        type: "input_image",
-                        image_url: item.url
-                      };
-                    case "file-data":
-                      return {
-                        type: "input_file",
-                        filename: (_a25 = item.filename) != null ? _a25 : "data",
-                        file_data: `data:${item.mediaType};base64,${item.data}`
-                      };
-                    case "file-url":
-                      return {
-                        type: "input_file",
-                        file_url: item.url
-                      };
-                    default:
-                      warnings.push({
-                        type: "other",
-                        message: `unsupported custom tool content part type: ${item.type}`
-                      });
-                      return;
-                  }
-                }).filter(isNonNullable);
-                break;
-              default:
-                outputValue = "";
-            }
-            input.push({
-              type: "custom_tool_call_output",
-              call_id: part.toolCallId,
-              output: outputValue
-            });
-            continue;
-          }
-          let contentValue;
-          switch (output.type) {
-            case "text":
-            case "error-text":
-              contentValue = output.value;
-              break;
-            case "execution-denied":
-              contentValue = (_q = output.reason) != null ? _q : "Tool execution denied.";
-              break;
-            case "json":
-            case "error-json":
-              contentValue = JSON.stringify(output.value);
-              break;
-            case "content":
-              contentValue = output.value.map((item) => {
-                var _a25;
-                switch (item.type) {
-                  case "text": {
-                    return { type: "input_text", text: item.text };
-                  }
-                  case "image-data": {
-                    return {
-                      type: "input_image",
-                      image_url: `data:${item.mediaType};base64,${item.data}`
-                    };
-                  }
-                  case "image-url": {
-                    return {
-                      type: "input_image",
-                      image_url: item.url
-                    };
-                  }
-                  case "file-data": {
-                    return {
-                      type: "input_file",
-                      filename: (_a25 = item.filename) != null ? _a25 : "data",
-                      file_data: `data:${item.mediaType};base64,${item.data}`
-                    };
-                  }
-                  case "file-url": {
-                    return {
-                      type: "input_file",
-                      file_url: item.url
-                    };
-                  }
-                  default: {
-                    warnings.push({
-                      type: "other",
-                      message: `unsupported tool content part type: ${item.type}`
-                    });
-                    return;
-                  }
-                }
-              }).filter(isNonNullable);
-              break;
-          }
-          input.push({
-            type: "function_call_output",
-            call_id: part.toolCallId,
-            output: contentValue
-          });
-        }
-        break;
-      }
-      default: {
-        const _exhaustiveCheck = role;
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
-      }
-    }
-  }
-  if (!store && input.some((item) => ("type" in item) && item.type === "reasoning" && item.encrypted_content == null)) {
-    warnings.push({
-      type: "other",
-      message: "Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts."
-    });
-    input = input.filter((item) => !("type" in item) || item.type !== "reasoning" || item.encrypted_content != null);
-  }
-  return { input, warnings };
-}
-var openaiResponsesReasoningProviderOptionsSchema = exports_external.object({
-  itemId: exports_external.string().nullish(),
-  reasoningEncryptedContent: exports_external.string().nullish()
-});
-function mapOpenAIResponseFinishReason({
-  finishReason,
-  hasFunctionCall
-}) {
-  switch (finishReason) {
-    case undefined:
-    case null:
-      return hasFunctionCall ? "tool-calls" : "stop";
-    case "max_output_tokens":
-      return "length";
-    case "content_filter":
-      return "content-filter";
-    default:
-      return hasFunctionCall ? "tool-calls" : "other";
-  }
-}
-var jsonValueSchema22 = exports_external.lazy(() => exports_external.union([
-  exports_external.string(),
-  exports_external.number(),
-  exports_external.boolean(),
-  exports_external.null(),
-  exports_external.array(jsonValueSchema22),
-  exports_external.record(exports_external.string(), jsonValueSchema22.optional())
-]));
-var openaiResponsesChunkSchema = lazySchema(() => zodSchema(exports_external.union([
-  exports_external.object({
-    type: exports_external.literal("response.output_text.delta"),
-    item_id: exports_external.string(),
-    delta: exports_external.string(),
-    logprobs: exports_external.array(exports_external.object({
-      token: exports_external.string(),
-      logprob: exports_external.number(),
-      top_logprobs: exports_external.array(exports_external.object({
-        token: exports_external.string(),
-        logprob: exports_external.number()
-      }))
-    })).nullish()
-  }),
-  exports_external.object({
-    type: exports_external.enum(["response.completed", "response.incomplete"]),
-    response: exports_external.object({
-      incomplete_details: exports_external.object({ reason: exports_external.string() }).nullish(),
-      usage: exports_external.object({
-        input_tokens: exports_external.number(),
-        input_tokens_details: exports_external.object({ cached_tokens: exports_external.number().nullish() }).nullish(),
-        output_tokens: exports_external.number(),
-        output_tokens_details: exports_external.object({ reasoning_tokens: exports_external.number().nullish() }).nullish()
-      }),
-      service_tier: exports_external.string().nullish()
-    })
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.failed"),
-    response: exports_external.object({
-      error: exports_external.object({
-        code: exports_external.string().nullish(),
-        message: exports_external.string()
-      }).nullish(),
-      incomplete_details: exports_external.object({ reason: exports_external.string() }).nullish(),
-      usage: exports_external.object({
-        input_tokens: exports_external.number(),
-        input_tokens_details: exports_external.object({ cached_tokens: exports_external.number().nullish() }).nullish(),
-        output_tokens: exports_external.number(),
-        output_tokens_details: exports_external.object({ reasoning_tokens: exports_external.number().nullish() }).nullish()
-      }).nullish(),
-      service_tier: exports_external.string().nullish()
-    })
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.created"),
-    response: exports_external.object({
-      id: exports_external.string(),
-      created_at: exports_external.number(),
-      model: exports_external.string(),
-      service_tier: exports_external.string().nullish()
-    })
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.output_item.added"),
-    output_index: exports_external.number(),
-    item: exports_external.discriminatedUnion("type", [
-      exports_external.object({
-        type: exports_external.literal("message"),
-        id: exports_external.string(),
-        phase: exports_external.enum(["commentary", "final_answer"]).nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("reasoning"),
-        id: exports_external.string(),
-        encrypted_content: exports_external.string().nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("function_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        name: exports_external.string(),
-        arguments: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("web_search_call"),
-        id: exports_external.string(),
-        status: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("computer_call"),
-        id: exports_external.string(),
-        status: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("file_search_call"),
-        id: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("image_generation_call"),
-        id: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("code_interpreter_call"),
-        id: exports_external.string(),
-        container_id: exports_external.string(),
-        code: exports_external.string().nullable(),
-        outputs: exports_external.array(exports_external.discriminatedUnion("type", [
-          exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
-          exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
-        ])).nullable(),
-        status: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("mcp_call"),
-        id: exports_external.string(),
-        status: exports_external.string(),
-        approval_request_id: exports_external.string().nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("mcp_list_tools"),
-        id: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("mcp_approval_request"),
-        id: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("apply_patch_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        status: exports_external.enum(["in_progress", "completed"]),
-        operation: exports_external.discriminatedUnion("type", [
-          exports_external.object({
-            type: exports_external.literal("create_file"),
-            path: exports_external.string(),
-            diff: exports_external.string()
-          }),
-          exports_external.object({
-            type: exports_external.literal("delete_file"),
-            path: exports_external.string()
-          }),
-          exports_external.object({
-            type: exports_external.literal("update_file"),
-            path: exports_external.string(),
-            diff: exports_external.string()
-          })
-        ])
-      }),
-      exports_external.object({
-        type: exports_external.literal("custom_tool_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        name: exports_external.string(),
-        input: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("shell_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        action: exports_external.object({
-          commands: exports_external.array(exports_external.string())
-        })
-      }),
-      exports_external.object({
-        type: exports_external.literal("shell_call_output"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        output: exports_external.array(exports_external.object({
-          stdout: exports_external.string(),
-          stderr: exports_external.string(),
-          outcome: exports_external.discriminatedUnion("type", [
-            exports_external.object({ type: exports_external.literal("timeout") }),
-            exports_external.object({
-              type: exports_external.literal("exit"),
-              exit_code: exports_external.number()
-            })
-          ])
-        }))
-      }),
-      exports_external.object({
-        type: exports_external.literal("tool_search_call"),
-        id: exports_external.string(),
-        execution: exports_external.enum(["server", "client"]),
-        call_id: exports_external.string().nullable(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        arguments: exports_external.unknown()
-      }),
-      exports_external.object({
-        type: exports_external.literal("tool_search_output"),
-        id: exports_external.string(),
-        execution: exports_external.enum(["server", "client"]),
-        call_id: exports_external.string().nullable(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        tools: exports_external.array(exports_external.record(exports_external.string(), jsonValueSchema22.optional()))
-      })
-    ])
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.output_item.done"),
-    output_index: exports_external.number(),
-    item: exports_external.discriminatedUnion("type", [
-      exports_external.object({
-        type: exports_external.literal("message"),
-        id: exports_external.string(),
-        phase: exports_external.enum(["commentary", "final_answer"]).nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("reasoning"),
-        id: exports_external.string(),
-        encrypted_content: exports_external.string().nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("function_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        name: exports_external.string(),
-        arguments: exports_external.string(),
-        status: exports_external.literal("completed")
-      }),
-      exports_external.object({
-        type: exports_external.literal("custom_tool_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        name: exports_external.string(),
-        input: exports_external.string(),
-        status: exports_external.literal("completed")
-      }),
-      exports_external.object({
-        type: exports_external.literal("code_interpreter_call"),
-        id: exports_external.string(),
-        code: exports_external.string().nullable(),
-        container_id: exports_external.string(),
-        outputs: exports_external.array(exports_external.discriminatedUnion("type", [
-          exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
-          exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
-        ])).nullable()
-      }),
-      exports_external.object({
-        type: exports_external.literal("image_generation_call"),
-        id: exports_external.string(),
-        result: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("web_search_call"),
-        id: exports_external.string(),
-        status: exports_external.string(),
-        action: exports_external.discriminatedUnion("type", [
-          exports_external.object({
-            type: exports_external.literal("search"),
-            query: exports_external.string().nullish(),
-            sources: exports_external.array(exports_external.discriminatedUnion("type", [
-              exports_external.object({ type: exports_external.literal("url"), url: exports_external.string() }),
-              exports_external.object({ type: exports_external.literal("api"), name: exports_external.string() })
-            ])).nullish()
-          }),
-          exports_external.object({
-            type: exports_external.literal("open_page"),
-            url: exports_external.string().nullish()
-          }),
-          exports_external.object({
-            type: exports_external.literal("find_in_page"),
-            url: exports_external.string().nullish(),
-            pattern: exports_external.string().nullish()
-          })
-        ]).nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("file_search_call"),
-        id: exports_external.string(),
-        queries: exports_external.array(exports_external.string()),
-        results: exports_external.array(exports_external.object({
-          attributes: exports_external.record(exports_external.string(), exports_external.union([exports_external.string(), exports_external.number(), exports_external.boolean()])),
-          file_id: exports_external.string(),
-          filename: exports_external.string(),
-          score: exports_external.number(),
-          text: exports_external.string()
-        })).nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("local_shell_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        action: exports_external.object({
-          type: exports_external.literal("exec"),
-          command: exports_external.array(exports_external.string()),
-          timeout_ms: exports_external.number().optional(),
-          user: exports_external.string().optional(),
-          working_directory: exports_external.string().optional(),
-          env: exports_external.record(exports_external.string(), exports_external.string()).optional()
-        })
-      }),
-      exports_external.object({
-        type: exports_external.literal("computer_call"),
-        id: exports_external.string(),
-        status: exports_external.literal("completed")
-      }),
-      exports_external.object({
-        type: exports_external.literal("mcp_call"),
-        id: exports_external.string(),
-        status: exports_external.string(),
-        arguments: exports_external.string(),
-        name: exports_external.string(),
-        server_label: exports_external.string(),
-        output: exports_external.string().nullish(),
-        error: exports_external.union([
-          exports_external.string(),
-          exports_external.object({
-            type: exports_external.string().optional(),
-            code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
-            message: exports_external.string().optional()
-          }).loose()
-        ]).nullish(),
-        approval_request_id: exports_external.string().nullish()
-      }),
-      exports_external.object({
-        type: exports_external.literal("mcp_list_tools"),
-        id: exports_external.string(),
-        server_label: exports_external.string(),
-        tools: exports_external.array(exports_external.object({
-          name: exports_external.string(),
-          description: exports_external.string().optional(),
-          input_schema: exports_external.any(),
-          annotations: exports_external.record(exports_external.string(), exports_external.unknown()).optional()
-        })),
-        error: exports_external.union([
-          exports_external.string(),
-          exports_external.object({
-            type: exports_external.string().optional(),
-            code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
-            message: exports_external.string().optional()
-          }).loose()
-        ]).optional()
-      }),
-      exports_external.object({
-        type: exports_external.literal("mcp_approval_request"),
-        id: exports_external.string(),
-        server_label: exports_external.string(),
-        name: exports_external.string(),
-        arguments: exports_external.string(),
-        approval_request_id: exports_external.string().optional()
-      }),
-      exports_external.object({
-        type: exports_external.literal("apply_patch_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        status: exports_external.enum(["in_progress", "completed"]),
-        operation: exports_external.discriminatedUnion("type", [
-          exports_external.object({
-            type: exports_external.literal("create_file"),
-            path: exports_external.string(),
-            diff: exports_external.string()
-          }),
-          exports_external.object({
-            type: exports_external.literal("delete_file"),
-            path: exports_external.string()
-          }),
-          exports_external.object({
-            type: exports_external.literal("update_file"),
-            path: exports_external.string(),
-            diff: exports_external.string()
-          })
-        ])
-      }),
-      exports_external.object({
-        type: exports_external.literal("shell_call"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        action: exports_external.object({
-          commands: exports_external.array(exports_external.string())
-        })
-      }),
-      exports_external.object({
-        type: exports_external.literal("shell_call_output"),
-        id: exports_external.string(),
-        call_id: exports_external.string(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        output: exports_external.array(exports_external.object({
-          stdout: exports_external.string(),
-          stderr: exports_external.string(),
-          outcome: exports_external.discriminatedUnion("type", [
-            exports_external.object({ type: exports_external.literal("timeout") }),
-            exports_external.object({
-              type: exports_external.literal("exit"),
-              exit_code: exports_external.number()
-            })
-          ])
-        }))
-      }),
-      exports_external.object({
-        type: exports_external.literal("tool_search_call"),
-        id: exports_external.string(),
-        execution: exports_external.enum(["server", "client"]),
-        call_id: exports_external.string().nullable(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        arguments: exports_external.unknown()
-      }),
-      exports_external.object({
-        type: exports_external.literal("tool_search_output"),
-        id: exports_external.string(),
-        execution: exports_external.enum(["server", "client"]),
-        call_id: exports_external.string().nullable(),
-        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-        tools: exports_external.array(exports_external.record(exports_external.string(), jsonValueSchema22.optional()))
-      })
-    ])
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.function_call_arguments.delta"),
-    item_id: exports_external.string(),
-    output_index: exports_external.number(),
-    delta: exports_external.string()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.custom_tool_call_input.delta"),
-    item_id: exports_external.string(),
-    output_index: exports_external.number(),
-    delta: exports_external.string()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.image_generation_call.partial_image"),
-    item_id: exports_external.string(),
-    output_index: exports_external.number(),
-    partial_image_b64: exports_external.string()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.code_interpreter_call_code.delta"),
-    item_id: exports_external.string(),
-    output_index: exports_external.number(),
-    delta: exports_external.string()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.code_interpreter_call_code.done"),
-    item_id: exports_external.string(),
-    output_index: exports_external.number(),
-    code: exports_external.string()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.output_text.annotation.added"),
-    annotation: exports_external.discriminatedUnion("type", [
-      exports_external.object({
-        type: exports_external.literal("url_citation"),
-        start_index: exports_external.number(),
-        end_index: exports_external.number(),
-        url: exports_external.string(),
-        title: exports_external.string()
-      }),
-      exports_external.object({
-        type: exports_external.literal("file_citation"),
-        file_id: exports_external.string(),
-        filename: exports_external.string(),
-        index: exports_external.number()
-      }),
-      exports_external.object({
-        type: exports_external.literal("container_file_citation"),
-        container_id: exports_external.string(),
-        file_id: exports_external.string(),
-        filename: exports_external.string(),
-        start_index: exports_external.number(),
-        end_index: exports_external.number()
-      }),
-      exports_external.object({
-        type: exports_external.literal("file_path"),
-        file_id: exports_external.string(),
-        index: exports_external.number()
-      })
-    ])
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.reasoning_summary_part.added"),
-    item_id: exports_external.string(),
-    summary_index: exports_external.number()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.reasoning_summary_text.delta"),
-    item_id: exports_external.string(),
-    summary_index: exports_external.number(),
-    delta: exports_external.string()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.reasoning_summary_part.done"),
-    item_id: exports_external.string(),
-    summary_index: exports_external.number()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.apply_patch_call_operation_diff.delta"),
-    item_id: exports_external.string(),
-    output_index: exports_external.number(),
-    delta: exports_external.string(),
-    obfuscation: exports_external.string().nullish()
-  }),
-  exports_external.object({
-    type: exports_external.literal("response.apply_patch_call_operation_diff.done"),
-    item_id: exports_external.string(),
-    output_index: exports_external.number(),
-    diff: exports_external.string()
-  }),
-  exports_external.object({
-    type: exports_external.literal("error"),
-    sequence_number: exports_external.number(),
-    error: exports_external.object({
-      type: exports_external.string(),
-      code: exports_external.string(),
-      message: exports_external.string(),
-      param: exports_external.string().nullish()
-    })
-  }),
-  exports_external.object({ type: exports_external.string() }).loose().transform((value) => ({
-    type: "unknown_chunk",
-    message: value.type
-  }))
-])));
-var openaiResponsesResponseSchema = lazySchema(() => zodSchema(exports_external.object({
-  id: exports_external.string().optional(),
-  created_at: exports_external.number().optional(),
-  error: exports_external.object({
-    message: exports_external.string(),
-    type: exports_external.string(),
-    param: exports_external.string().nullish(),
-    code: exports_external.string()
-  }).nullish(),
-  model: exports_external.string().optional(),
-  output: exports_external.array(exports_external.discriminatedUnion("type", [
-    exports_external.object({
-      type: exports_external.literal("message"),
-      role: exports_external.literal("assistant"),
-      id: exports_external.string(),
-      phase: exports_external.enum(["commentary", "final_answer"]).nullish(),
-      content: exports_external.array(exports_external.object({
-        type: exports_external.literal("output_text"),
-        text: exports_external.string(),
-        logprobs: exports_external.array(exports_external.object({
-          token: exports_external.string(),
-          logprob: exports_external.number(),
-          top_logprobs: exports_external.array(exports_external.object({
-            token: exports_external.string(),
-            logprob: exports_external.number()
-          }))
-        })).nullish(),
-        annotations: exports_external.array(exports_external.discriminatedUnion("type", [
-          exports_external.object({
-            type: exports_external.literal("url_citation"),
-            start_index: exports_external.number(),
-            end_index: exports_external.number(),
-            url: exports_external.string(),
-            title: exports_external.string()
-          }),
-          exports_external.object({
-            type: exports_external.literal("file_citation"),
-            file_id: exports_external.string(),
-            filename: exports_external.string(),
-            index: exports_external.number()
-          }),
-          exports_external.object({
-            type: exports_external.literal("container_file_citation"),
-            container_id: exports_external.string(),
-            file_id: exports_external.string(),
-            filename: exports_external.string(),
-            start_index: exports_external.number(),
-            end_index: exports_external.number()
-          }),
-          exports_external.object({
-            type: exports_external.literal("file_path"),
-            file_id: exports_external.string(),
-            index: exports_external.number()
-          })
-        ]))
-      }))
-    }),
-    exports_external.object({
-      type: exports_external.literal("web_search_call"),
-      id: exports_external.string(),
-      status: exports_external.string(),
-      action: exports_external.discriminatedUnion("type", [
-        exports_external.object({
-          type: exports_external.literal("search"),
-          query: exports_external.string().nullish(),
-          sources: exports_external.array(exports_external.discriminatedUnion("type", [
-            exports_external.object({ type: exports_external.literal("url"), url: exports_external.string() }),
-            exports_external.object({
-              type: exports_external.literal("api"),
-              name: exports_external.string()
-            })
-          ])).nullish()
-        }),
-        exports_external.object({
-          type: exports_external.literal("open_page"),
-          url: exports_external.string().nullish()
-        }),
-        exports_external.object({
-          type: exports_external.literal("find_in_page"),
-          url: exports_external.string().nullish(),
-          pattern: exports_external.string().nullish()
-        })
-      ]).nullish()
-    }),
-    exports_external.object({
-      type: exports_external.literal("file_search_call"),
-      id: exports_external.string(),
-      queries: exports_external.array(exports_external.string()),
-      results: exports_external.array(exports_external.object({
-        attributes: exports_external.record(exports_external.string(), exports_external.union([exports_external.string(), exports_external.number(), exports_external.boolean()])),
-        file_id: exports_external.string(),
-        filename: exports_external.string(),
-        score: exports_external.number(),
-        text: exports_external.string()
-      })).nullish()
-    }),
-    exports_external.object({
-      type: exports_external.literal("code_interpreter_call"),
-      id: exports_external.string(),
-      code: exports_external.string().nullable(),
-      container_id: exports_external.string(),
-      outputs: exports_external.array(exports_external.discriminatedUnion("type", [
-        exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
-        exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
-      ])).nullable()
-    }),
-    exports_external.object({
-      type: exports_external.literal("image_generation_call"),
-      id: exports_external.string(),
-      result: exports_external.string()
-    }),
-    exports_external.object({
-      type: exports_external.literal("local_shell_call"),
-      id: exports_external.string(),
-      call_id: exports_external.string(),
-      action: exports_external.object({
-        type: exports_external.literal("exec"),
-        command: exports_external.array(exports_external.string()),
-        timeout_ms: exports_external.number().optional(),
-        user: exports_external.string().optional(),
-        working_directory: exports_external.string().optional(),
-        env: exports_external.record(exports_external.string(), exports_external.string()).optional()
-      })
-    }),
-    exports_external.object({
-      type: exports_external.literal("function_call"),
-      call_id: exports_external.string(),
-      name: exports_external.string(),
-      arguments: exports_external.string(),
-      id: exports_external.string()
-    }),
-    exports_external.object({
-      type: exports_external.literal("custom_tool_call"),
-      call_id: exports_external.string(),
-      name: exports_external.string(),
-      input: exports_external.string(),
-      id: exports_external.string()
-    }),
-    exports_external.object({
-      type: exports_external.literal("computer_call"),
-      id: exports_external.string(),
-      status: exports_external.string().optional()
-    }),
-    exports_external.object({
-      type: exports_external.literal("reasoning"),
-      id: exports_external.string(),
-      encrypted_content: exports_external.string().nullish(),
-      summary: exports_external.array(exports_external.object({
-        type: exports_external.literal("summary_text"),
-        text: exports_external.string()
-      }))
-    }),
-    exports_external.object({
-      type: exports_external.literal("mcp_call"),
-      id: exports_external.string(),
-      status: exports_external.string(),
-      arguments: exports_external.string(),
-      name: exports_external.string(),
-      server_label: exports_external.string(),
-      output: exports_external.string().nullish(),
-      error: exports_external.union([
-        exports_external.string(),
-        exports_external.object({
-          type: exports_external.string().optional(),
-          code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
-          message: exports_external.string().optional()
-        }).loose()
-      ]).nullish(),
-      approval_request_id: exports_external.string().nullish()
-    }),
-    exports_external.object({
-      type: exports_external.literal("mcp_list_tools"),
-      id: exports_external.string(),
-      server_label: exports_external.string(),
-      tools: exports_external.array(exports_external.object({
-        name: exports_external.string(),
-        description: exports_external.string().optional(),
-        input_schema: exports_external.any(),
-        annotations: exports_external.record(exports_external.string(), exports_external.unknown()).optional()
-      })),
-      error: exports_external.union([
-        exports_external.string(),
-        exports_external.object({
-          type: exports_external.string().optional(),
-          code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
-          message: exports_external.string().optional()
-        }).loose()
-      ]).optional()
-    }),
-    exports_external.object({
-      type: exports_external.literal("mcp_approval_request"),
-      id: exports_external.string(),
-      server_label: exports_external.string(),
-      name: exports_external.string(),
-      arguments: exports_external.string(),
-      approval_request_id: exports_external.string().optional()
-    }),
-    exports_external.object({
-      type: exports_external.literal("apply_patch_call"),
-      id: exports_external.string(),
-      call_id: exports_external.string(),
-      status: exports_external.enum(["in_progress", "completed"]),
-      operation: exports_external.discriminatedUnion("type", [
-        exports_external.object({
-          type: exports_external.literal("create_file"),
-          path: exports_external.string(),
-          diff: exports_external.string()
-        }),
-        exports_external.object({
-          type: exports_external.literal("delete_file"),
-          path: exports_external.string()
-        }),
-        exports_external.object({
-          type: exports_external.literal("update_file"),
-          path: exports_external.string(),
-          diff: exports_external.string()
-        })
-      ])
-    }),
-    exports_external.object({
-      type: exports_external.literal("shell_call"),
-      id: exports_external.string(),
-      call_id: exports_external.string(),
-      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-      action: exports_external.object({
-        commands: exports_external.array(exports_external.string())
-      })
-    }),
-    exports_external.object({
-      type: exports_external.literal("shell_call_output"),
-      id: exports_external.string(),
-      call_id: exports_external.string(),
-      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-      output: exports_external.array(exports_external.object({
-        stdout: exports_external.string(),
-        stderr: exports_external.string(),
-        outcome: exports_external.discriminatedUnion("type", [
-          exports_external.object({ type: exports_external.literal("timeout") }),
-          exports_external.object({
-            type: exports_external.literal("exit"),
-            exit_code: exports_external.number()
-          })
-        ])
-      }))
-    }),
-    exports_external.object({
-      type: exports_external.literal("tool_search_call"),
-      id: exports_external.string(),
-      execution: exports_external.enum(["server", "client"]),
-      call_id: exports_external.string().nullable(),
-      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-      arguments: exports_external.unknown()
-    }),
-    exports_external.object({
-      type: exports_external.literal("tool_search_output"),
-      id: exports_external.string(),
-      execution: exports_external.enum(["server", "client"]),
-      call_id: exports_external.string().nullable(),
-      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
-      tools: exports_external.array(exports_external.record(exports_external.string(), jsonValueSchema22.optional()))
-    })
-  ])).optional(),
-  service_tier: exports_external.string().nullish(),
-  incomplete_details: exports_external.object({ reason: exports_external.string() }).nullish(),
-  usage: exports_external.object({
-    input_tokens: exports_external.number(),
-    input_tokens_details: exports_external.object({ cached_tokens: exports_external.number().nullish() }).nullish(),
-    output_tokens: exports_external.number(),
-    output_tokens_details: exports_external.object({ reasoning_tokens: exports_external.number().nullish() }).nullish()
-  }).optional()
-})));
-var TOP_LOGPROBS_MAX = 20;
-var openaiResponsesReasoningModelIds = [
-  "o1",
-  "o1-2024-12-17",
-  "o3",
-  "o3-2025-04-16",
-  "o3-mini",
-  "o3-mini-2025-01-31",
-  "o4-mini",
-  "o4-mini-2025-04-16",
-  "gpt-5",
-  "gpt-5-2025-08-07",
-  "gpt-5-codex",
-  "gpt-5-mini",
-  "gpt-5-mini-2025-08-07",
-  "gpt-5-nano",
-  "gpt-5-nano-2025-08-07",
-  "gpt-5-pro",
-  "gpt-5-pro-2025-10-06",
-  "gpt-5.1",
-  "gpt-5.1-chat-latest",
-  "gpt-5.1-codex-mini",
-  "gpt-5.1-codex",
-  "gpt-5.1-codex-max",
-  "gpt-5.2",
-  "gpt-5.2-chat-latest",
-  "gpt-5.2-pro",
-  "gpt-5.2-codex",
-  "gpt-5.3-chat-latest",
-  "gpt-5.3-codex",
-  "gpt-5.4",
-  "gpt-5.4-2026-03-05",
-  "gpt-5.4-mini",
-  "gpt-5.4-mini-2026-03-17",
-  "gpt-5.4-nano",
-  "gpt-5.4-nano-2026-03-17",
-  "gpt-5.4-pro",
-  "gpt-5.4-pro-2026-03-05"
-];
-var openaiResponsesModelIds = [
-  "gpt-4.1",
-  "gpt-4.1-2025-04-14",
-  "gpt-4.1-mini",
-  "gpt-4.1-mini-2025-04-14",
-  "gpt-4.1-nano",
-  "gpt-4.1-nano-2025-04-14",
-  "gpt-4o",
-  "gpt-4o-2024-05-13",
-  "gpt-4o-2024-08-06",
-  "gpt-4o-2024-11-20",
-  "gpt-4o-audio-preview",
-  "gpt-4o-audio-preview-2024-12-17",
-  "gpt-4o-search-preview",
-  "gpt-4o-search-preview-2025-03-11",
-  "gpt-4o-mini-search-preview",
-  "gpt-4o-mini-search-preview-2025-03-11",
-  "gpt-4o-mini",
-  "gpt-4o-mini-2024-07-18",
-  "gpt-3.5-turbo-0125",
-  "gpt-3.5-turbo",
-  "gpt-3.5-turbo-1106",
-  "gpt-5-chat-latest",
-  ...openaiResponsesReasoningModelIds
-];
-var openaiLanguageModelResponsesOptionsSchema = lazySchema(() => zodSchema(exports_external.object({
-  conversation: exports_external.string().nullish(),
-  include: exports_external.array(exports_external.enum([
-    "reasoning.encrypted_content",
-    "file_search_call.results",
-    "message.output_text.logprobs"
-  ])).nullish(),
-  instructions: exports_external.string().nullish(),
-  logprobs: exports_external.union([exports_external.boolean(), exports_external.number().min(1).max(TOP_LOGPROBS_MAX)]).optional(),
-  maxToolCalls: exports_external.number().nullish(),
-  metadata: exports_external.any().nullish(),
-  parallelToolCalls: exports_external.boolean().nullish(),
-  previousResponseId: exports_external.string().nullish(),
-  promptCacheKey: exports_external.string().nullish(),
-  promptCacheRetention: exports_external.enum(["in_memory", "24h"]).nullish(),
-  reasoningEffort: exports_external.string().nullish(),
-  reasoningSummary: exports_external.string().nullish(),
-  safetyIdentifier: exports_external.string().nullish(),
-  serviceTier: exports_external.enum(["auto", "flex", "priority", "default"]).nullish(),
-  store: exports_external.boolean().nullish(),
-  strictJsonSchema: exports_external.boolean().nullish(),
-  textVerbosity: exports_external.enum(["low", "medium", "high"]).nullish(),
-  truncation: exports_external.enum(["auto", "disabled"]).nullish(),
-  user: exports_external.string().nullish(),
-  systemMessageMode: exports_external.enum(["system", "developer", "remove"]).optional(),
-  forceReasoning: exports_external.boolean().optional()
-})));
-async function prepareResponsesTools({
-  tools,
-  toolChoice,
-  toolNameMapping,
-  customProviderToolNames
-}) {
-  var _a21, _b16;
-  tools = (tools == null ? undefined : tools.length) ? tools : undefined;
-  const toolWarnings = [];
-  if (tools == null) {
-    return { tools: undefined, toolChoice: undefined, toolWarnings };
-  }
-  const openaiTools2 = [];
-  const resolvedCustomProviderToolNames = customProviderToolNames != null ? customProviderToolNames : /* @__PURE__ */ new Set;
-  for (const tool2 of tools) {
-    switch (tool2.type) {
-      case "function": {
-        const openaiOptions = (_a21 = tool2.providerOptions) == null ? undefined : _a21.openai;
-        const deferLoading = openaiOptions == null ? undefined : openaiOptions.deferLoading;
-        openaiTools2.push({
-          type: "function",
-          name: tool2.name,
-          description: tool2.description,
-          parameters: tool2.inputSchema,
-          ...tool2.strict != null ? { strict: tool2.strict } : {},
-          ...deferLoading != null ? { defer_loading: deferLoading } : {}
-        });
-        break;
-      }
-      case "provider": {
-        switch (tool2.id) {
-          case "openai.file_search": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: fileSearchArgsSchema
-            });
-            openaiTools2.push({
-              type: "file_search",
-              vector_store_ids: args.vectorStoreIds,
-              max_num_results: args.maxNumResults,
-              ranking_options: args.ranking ? {
-                ranker: args.ranking.ranker,
-                score_threshold: args.ranking.scoreThreshold
-              } : undefined,
-              filters: args.filters
-            });
-            break;
-          }
-          case "openai.local_shell": {
-            openaiTools2.push({
-              type: "local_shell"
-            });
-            break;
-          }
-          case "openai.shell": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: shellArgsSchema
-            });
-            openaiTools2.push({
-              type: "shell",
-              ...args.environment && {
-                environment: mapShellEnvironment(args.environment)
-              }
-            });
-            break;
-          }
-          case "openai.apply_patch": {
-            openaiTools2.push({
-              type: "apply_patch"
-            });
-            break;
-          }
-          case "openai.web_search_preview": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: webSearchPreviewArgsSchema
-            });
-            openaiTools2.push({
-              type: "web_search_preview",
-              search_context_size: args.searchContextSize,
-              user_location: args.userLocation
-            });
-            break;
-          }
-          case "openai.web_search": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: webSearchArgsSchema
-            });
-            openaiTools2.push({
-              type: "web_search",
-              filters: args.filters != null ? { allowed_domains: args.filters.allowedDomains } : undefined,
-              external_web_access: args.externalWebAccess,
-              search_context_size: args.searchContextSize,
-              user_location: args.userLocation
-            });
-            break;
-          }
-          case "openai.code_interpreter": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: codeInterpreterArgsSchema
-            });
-            openaiTools2.push({
-              type: "code_interpreter",
-              container: args.container == null ? { type: "auto", file_ids: undefined } : typeof args.container === "string" ? args.container : { type: "auto", file_ids: args.container.fileIds }
-            });
-            break;
-          }
-          case "openai.image_generation": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: imageGenerationArgsSchema
-            });
-            openaiTools2.push({
-              type: "image_generation",
-              background: args.background,
-              input_fidelity: args.inputFidelity,
-              input_image_mask: args.inputImageMask ? {
-                file_id: args.inputImageMask.fileId,
-                image_url: args.inputImageMask.imageUrl
-              } : undefined,
-              model: args.model,
-              moderation: args.moderation,
-              partial_images: args.partialImages,
-              quality: args.quality,
-              output_compression: args.outputCompression,
-              output_format: args.outputFormat,
-              size: args.size
-            });
-            break;
-          }
-          case "openai.mcp": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: mcpArgsSchema
-            });
-            const mapApprovalFilter = (filter2) => ({
-              tool_names: filter2.toolNames
-            });
-            const requireApproval = args.requireApproval;
-            const requireApprovalParam = requireApproval == null ? undefined : typeof requireApproval === "string" ? requireApproval : requireApproval.never != null ? { never: mapApprovalFilter(requireApproval.never) } : undefined;
-            openaiTools2.push({
-              type: "mcp",
-              server_label: args.serverLabel,
-              allowed_tools: Array.isArray(args.allowedTools) ? args.allowedTools : args.allowedTools ? {
-                read_only: args.allowedTools.readOnly,
-                tool_names: args.allowedTools.toolNames
-              } : undefined,
-              authorization: args.authorization,
-              connector_id: args.connectorId,
-              headers: args.headers,
-              require_approval: requireApprovalParam != null ? requireApprovalParam : "never",
-              server_description: args.serverDescription,
-              server_url: args.serverUrl
-            });
-            break;
-          }
-          case "openai.custom": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: customArgsSchema
-            });
-            openaiTools2.push({
-              type: "custom",
-              name: args.name,
-              description: args.description,
-              format: args.format
-            });
-            resolvedCustomProviderToolNames.add(args.name);
-            break;
-          }
-          case "openai.tool_search": {
-            const args = await validateTypes({
-              value: tool2.args,
-              schema: toolSearchArgsSchema
-            });
-            openaiTools2.push({
-              type: "tool_search",
-              ...args.execution != null ? { execution: args.execution } : {},
-              ...args.description != null ? { description: args.description } : {},
-              ...args.parameters != null ? { parameters: args.parameters } : {}
-            });
-            break;
-          }
-        }
-        break;
-      }
-      default:
-        toolWarnings.push({
-          type: "unsupported",
-          feature: `function tool ${tool2}`
-        });
-        break;
-    }
-  }
-  if (toolChoice == null) {
-    return { tools: openaiTools2, toolChoice: undefined, toolWarnings };
-  }
-  const type = toolChoice.type;
-  switch (type) {
-    case "auto":
-    case "none":
-    case "required":
-      return { tools: openaiTools2, toolChoice: type, toolWarnings };
-    case "tool": {
-      const resolvedToolName = (_b16 = toolNameMapping == null ? undefined : toolNameMapping.toProviderToolName(toolChoice.toolName)) != null ? _b16 : toolChoice.toolName;
-      return {
-        tools: openaiTools2,
-        toolChoice: resolvedToolName === "code_interpreter" || resolvedToolName === "file_search" || resolvedToolName === "image_generation" || resolvedToolName === "web_search_preview" || resolvedToolName === "web_search" || resolvedToolName === "mcp" || resolvedToolName === "apply_patch" ? { type: resolvedToolName } : resolvedCustomProviderToolNames.has(resolvedToolName) ? { type: "custom", name: resolvedToolName } : { type: "function", name: resolvedToolName },
-        toolWarnings
-      };
-    }
-    default: {
-      const _exhaustiveCheck = type;
-      throw new UnsupportedFunctionalityError({
-        functionality: `tool choice type: ${_exhaustiveCheck}`
-      });
-    }
-  }
-}
-function mapShellEnvironment(environment) {
-  if (environment.type === "containerReference") {
-    const env2 = environment;
-    return {
-      type: "container_reference",
-      container_id: env2.containerId
-    };
-  }
-  if (environment.type === "containerAuto") {
-    const env2 = environment;
-    return {
-      type: "container_auto",
-      file_ids: env2.fileIds,
-      memory_limit: env2.memoryLimit,
-      network_policy: env2.networkPolicy == null ? undefined : env2.networkPolicy.type === "disabled" ? { type: "disabled" } : {
-        type: "allowlist",
-        allowed_domains: env2.networkPolicy.allowedDomains,
-        domain_secrets: env2.networkPolicy.domainSecrets
-      },
-      skills: mapShellSkills(env2.skills)
-    };
-  }
-  const env = environment;
-  return {
-    type: "local",
-    skills: env.skills
-  };
-}
-function mapShellSkills(skills) {
-  return skills == null ? undefined : skills.map((skill) => skill.type === "skillReference" ? {
-    type: "skill_reference",
-    skill_id: skill.skillId,
-    version: skill.version
-  } : {
-    type: "inline",
-    name: skill.name,
-    description: skill.description,
-    source: {
-      type: "base64",
-      media_type: skill.source.mediaType,
-      data: skill.source.data
-    }
-  });
-}
-function extractApprovalRequestIdToToolCallIdMapping(prompt) {
-  var _a21, _b16;
-  const mapping = {};
-  for (const message of prompt) {
-    if (message.role !== "assistant")
-      continue;
-    for (const part of message.content) {
-      if (part.type !== "tool-call")
-        continue;
-      const approvalRequestId = (_b16 = (_a21 = part.providerOptions) == null ? undefined : _a21.openai) == null ? undefined : _b16.approvalRequestId;
-      if (approvalRequestId != null) {
-        mapping[approvalRequestId] = part.toolCallId;
-      }
-    }
-  }
-  return mapping;
-}
-var OpenAIResponsesLanguageModel = class {
-  constructor(modelId, config2) {
-    this.specificationVersion = "v3";
-    this.supportedUrls = {
-      "image/*": [/^https?:\/\/.*$/],
-      "application/pdf": [/^https?:\/\/.*$/]
-    };
-    this.modelId = modelId;
-    this.config = config2;
-  }
-  get provider() {
-    return this.config.provider;
-  }
-  async getArgs({
-    maxOutputTokens,
-    temperature,
-    stopSequences,
-    topP,
-    topK,
-    presencePenalty,
-    frequencyPenalty,
-    seed,
-    prompt,
-    providerOptions,
-    tools,
-    toolChoice,
-    responseFormat
-  }) {
-    var _a21, _b16, _c, _d, _e, _f, _g, _h, _i;
-    const warnings = [];
-    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
-    if (topK != null) {
-      warnings.push({ type: "unsupported", feature: "topK" });
-    }
-    if (seed != null) {
-      warnings.push({ type: "unsupported", feature: "seed" });
-    }
-    if (presencePenalty != null) {
-      warnings.push({ type: "unsupported", feature: "presencePenalty" });
-    }
-    if (frequencyPenalty != null) {
-      warnings.push({ type: "unsupported", feature: "frequencyPenalty" });
-    }
-    if (stopSequences != null) {
-      warnings.push({ type: "unsupported", feature: "stopSequences" });
-    }
-    const providerOptionsName = this.config.provider.includes("azure") ? "azure" : "openai";
-    let openaiOptions = await parseProviderOptions({
-      provider: providerOptionsName,
-      providerOptions,
-      schema: openaiLanguageModelResponsesOptionsSchema
-    });
-    if (openaiOptions == null && providerOptionsName !== "openai") {
-      openaiOptions = await parseProviderOptions({
-        provider: "openai",
-        providerOptions,
-        schema: openaiLanguageModelResponsesOptionsSchema
-      });
-    }
-    const isReasoningModel = (_a21 = openaiOptions == null ? undefined : openaiOptions.forceReasoning) != null ? _a21 : modelCapabilities.isReasoningModel;
-    if ((openaiOptions == null ? undefined : openaiOptions.conversation) && (openaiOptions == null ? undefined : openaiOptions.previousResponseId)) {
-      warnings.push({
-        type: "unsupported",
-        feature: "conversation",
-        details: "conversation and previousResponseId cannot be used together"
-      });
-    }
-    const toolNameMapping = createToolNameMapping({
-      tools,
-      providerToolNames: {
-        "openai.code_interpreter": "code_interpreter",
-        "openai.file_search": "file_search",
-        "openai.image_generation": "image_generation",
-        "openai.local_shell": "local_shell",
-        "openai.shell": "shell",
-        "openai.web_search": "web_search",
-        "openai.web_search_preview": "web_search_preview",
-        "openai.mcp": "mcp",
-        "openai.apply_patch": "apply_patch",
-        "openai.tool_search": "tool_search"
-      },
-      resolveProviderToolName: (tool2) => tool2.id === "openai.custom" ? tool2.args.name : undefined
-    });
-    const customProviderToolNames = /* @__PURE__ */ new Set;
-    const {
-      tools: openaiTools2,
-      toolChoice: openaiToolChoice,
-      toolWarnings
-    } = await prepareResponsesTools({
-      tools,
-      toolChoice,
-      toolNameMapping,
-      customProviderToolNames
-    });
-    const { input, warnings: inputWarnings } = await convertToOpenAIResponsesInput({
-      prompt,
-      toolNameMapping,
-      systemMessageMode: (_b16 = openaiOptions == null ? undefined : openaiOptions.systemMessageMode) != null ? _b16 : isReasoningModel ? "developer" : modelCapabilities.systemMessageMode,
-      providerOptionsName,
-      fileIdPrefixes: this.config.fileIdPrefixes,
-      store: (_c = openaiOptions == null ? undefined : openaiOptions.store) != null ? _c : true,
-      hasConversation: (openaiOptions == null ? undefined : openaiOptions.conversation) != null,
-      hasLocalShellTool: hasOpenAITool("openai.local_shell"),
-      hasShellTool: hasOpenAITool("openai.shell"),
-      hasApplyPatchTool: hasOpenAITool("openai.apply_patch"),
-      customProviderToolNames: customProviderToolNames.size > 0 ? customProviderToolNames : undefined
-    });
-    warnings.push(...inputWarnings);
-    const strictJsonSchema = (_d = openaiOptions == null ? undefined : openaiOptions.strictJsonSchema) != null ? _d : true;
-    let include = openaiOptions == null ? undefined : openaiOptions.include;
-    function addInclude(key) {
-      if (include == null) {
-        include = [key];
-      } else if (!include.includes(key)) {
-        include = [...include, key];
-      }
-    }
-    function hasOpenAITool(id) {
-      return (tools == null ? undefined : tools.find((tool2) => tool2.type === "provider" && tool2.id === id)) != null;
-    }
-    const topLogprobs = typeof (openaiOptions == null ? undefined : openaiOptions.logprobs) === "number" ? openaiOptions == null ? undefined : openaiOptions.logprobs : (openaiOptions == null ? undefined : openaiOptions.logprobs) === true ? TOP_LOGPROBS_MAX : undefined;
-    if (topLogprobs) {
-      addInclude("message.output_text.logprobs");
-    }
-    const webSearchToolName = (_e = tools == null ? undefined : tools.find((tool2) => tool2.type === "provider" && (tool2.id === "openai.web_search" || tool2.id === "openai.web_search_preview"))) == null ? undefined : _e.name;
-    if (webSearchToolName) {
-      addInclude("web_search_call.action.sources");
-    }
-    if (hasOpenAITool("openai.code_interpreter")) {
-      addInclude("code_interpreter_call.outputs");
-    }
-    const store = openaiOptions == null ? undefined : openaiOptions.store;
-    if (store === false && isReasoningModel) {
-      addInclude("reasoning.encrypted_content");
-    }
-    const baseArgs = {
-      model: this.modelId,
-      input,
-      temperature,
-      top_p: topP,
-      max_output_tokens: maxOutputTokens,
-      ...((responseFormat == null ? undefined : responseFormat.type) === "json" || (openaiOptions == null ? undefined : openaiOptions.textVerbosity)) && {
-        text: {
-          ...(responseFormat == null ? undefined : responseFormat.type) === "json" && {
-            format: responseFormat.schema != null ? {
-              type: "json_schema",
-              strict: strictJsonSchema,
-              name: (_f = responseFormat.name) != null ? _f : "response",
-              description: responseFormat.description,
-              schema: responseFormat.schema
-            } : { type: "json_object" }
-          },
-          ...(openaiOptions == null ? undefined : openaiOptions.textVerbosity) && {
-            verbosity: openaiOptions.textVerbosity
-          }
-        }
-      },
-      conversation: openaiOptions == null ? undefined : openaiOptions.conversation,
-      max_tool_calls: openaiOptions == null ? undefined : openaiOptions.maxToolCalls,
-      metadata: openaiOptions == null ? undefined : openaiOptions.metadata,
-      parallel_tool_calls: openaiOptions == null ? undefined : openaiOptions.parallelToolCalls,
-      previous_response_id: openaiOptions == null ? undefined : openaiOptions.previousResponseId,
-      store,
-      user: openaiOptions == null ? undefined : openaiOptions.user,
-      instructions: openaiOptions == null ? undefined : openaiOptions.instructions,
-      service_tier: openaiOptions == null ? undefined : openaiOptions.serviceTier,
-      include,
-      prompt_cache_key: openaiOptions == null ? undefined : openaiOptions.promptCacheKey,
-      prompt_cache_retention: openaiOptions == null ? undefined : openaiOptions.promptCacheRetention,
-      safety_identifier: openaiOptions == null ? undefined : openaiOptions.safetyIdentifier,
-      top_logprobs: topLogprobs,
-      truncation: openaiOptions == null ? undefined : openaiOptions.truncation,
-      ...isReasoningModel && ((openaiOptions == null ? undefined : openaiOptions.reasoningEffort) != null || (openaiOptions == null ? undefined : openaiOptions.reasoningSummary) != null) && {
-        reasoning: {
-          ...(openaiOptions == null ? undefined : openaiOptions.reasoningEffort) != null && {
-            effort: openaiOptions.reasoningEffort
-          },
-          ...(openaiOptions == null ? undefined : openaiOptions.reasoningSummary) != null && {
-            summary: openaiOptions.reasoningSummary
-          }
-        }
-      }
-    };
-    if (isReasoningModel) {
-      if (!((openaiOptions == null ? undefined : openaiOptions.reasoningEffort) === "none" && modelCapabilities.supportsNonReasoningParameters)) {
-        if (baseArgs.temperature != null) {
-          baseArgs.temperature = undefined;
-          warnings.push({
-            type: "unsupported",
-            feature: "temperature",
-            details: "temperature is not supported for reasoning models"
-          });
-        }
-        if (baseArgs.top_p != null) {
-          baseArgs.top_p = undefined;
-          warnings.push({
-            type: "unsupported",
-            feature: "topP",
-            details: "topP is not supported for reasoning models"
-          });
-        }
-      }
-    } else {
-      if ((openaiOptions == null ? undefined : openaiOptions.reasoningEffort) != null) {
-        warnings.push({
-          type: "unsupported",
-          feature: "reasoningEffort",
-          details: "reasoningEffort is not supported for non-reasoning models"
-        });
-      }
-      if ((openaiOptions == null ? undefined : openaiOptions.reasoningSummary) != null) {
-        warnings.push({
-          type: "unsupported",
-          feature: "reasoningSummary",
-          details: "reasoningSummary is not supported for non-reasoning models"
-        });
-      }
-    }
-    if ((openaiOptions == null ? undefined : openaiOptions.serviceTier) === "flex" && !modelCapabilities.supportsFlexProcessing) {
-      warnings.push({
-        type: "unsupported",
-        feature: "serviceTier",
-        details: "flex processing is only available for o3, o4-mini, and gpt-5 models"
-      });
-      delete baseArgs.service_tier;
-    }
-    if ((openaiOptions == null ? undefined : openaiOptions.serviceTier) === "priority" && !modelCapabilities.supportsPriorityProcessing) {
-      warnings.push({
-        type: "unsupported",
-        feature: "serviceTier",
-        details: "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported"
-      });
-      delete baseArgs.service_tier;
-    }
-    const shellToolEnvType = (_i = (_h = (_g = tools == null ? undefined : tools.find((tool2) => tool2.type === "provider" && tool2.id === "openai.shell")) == null ? undefined : _g.args) == null ? undefined : _h.environment) == null ? undefined : _i.type;
-    const isShellProviderExecuted = shellToolEnvType === "containerAuto" || shellToolEnvType === "containerReference";
-    return {
-      webSearchToolName,
-      args: {
-        ...baseArgs,
-        tools: openaiTools2,
-        tool_choice: openaiToolChoice
-      },
-      warnings: [...warnings, ...toolWarnings],
-      store,
-      toolNameMapping,
-      providerOptionsName,
-      isShellProviderExecuted
-    };
-  }
-  async doGenerate(options) {
-    var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B;
-    const {
-      args: body,
-      warnings,
-      webSearchToolName,
-      toolNameMapping,
-      providerOptionsName,
-      isShellProviderExecuted
-    } = await this.getArgs(options);
-    const url2 = this.config.url({
-      path: "/responses",
-      modelId: this.modelId
-    });
-    const approvalRequestIdToDummyToolCallIdFromPrompt = extractApprovalRequestIdToToolCallIdMapping(options.prompt);
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse
-    } = await postJsonToApi({
-      url: url2,
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(openaiResponsesResponseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    if (response.error) {
-      throw new APICallError({
-        message: response.error.message,
-        url: url2,
-        requestBodyValues: body,
-        statusCode: 400,
-        responseHeaders,
-        responseBody: rawResponse,
-        isRetryable: false
-      });
-    }
-    const content = [];
-    const logprobs = [];
-    let hasFunctionCall = false;
-    const hostedToolSearchCallIds = [];
-    for (const part of response.output) {
-      switch (part.type) {
-        case "reasoning": {
-          if (part.summary.length === 0) {
-            part.summary.push({ type: "summary_text", text: "" });
-          }
-          for (const summary2 of part.summary) {
-            content.push({
-              type: "reasoning",
-              text: summary2.text,
-              providerMetadata: {
-                [providerOptionsName]: {
-                  itemId: part.id,
-                  reasoningEncryptedContent: (_a21 = part.encrypted_content) != null ? _a21 : null
-                }
-              }
-            });
-          }
-          break;
-        }
-        case "image_generation_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("image_generation"),
-            input: "{}",
-            providerExecuted: true
-          });
-          content.push({
-            type: "tool-result",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("image_generation"),
-            result: {
-              result: part.result
-            }
-          });
-          break;
-        }
-        case "tool_search_call": {
-          const toolCallId = (_b16 = part.call_id) != null ? _b16 : part.id;
-          const isHosted = part.execution === "server";
-          if (isHosted) {
-            hostedToolSearchCallIds.push(toolCallId);
-          }
-          content.push({
-            type: "tool-call",
-            toolCallId,
-            toolName: toolNameMapping.toCustomToolName("tool_search"),
-            input: JSON.stringify({
-              arguments: part.arguments,
-              call_id: part.call_id
-            }),
-            ...isHosted ? { providerExecuted: true } : {},
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-        case "tool_search_output": {
-          const toolCallId = (_d = (_c = part.call_id) != null ? _c : hostedToolSearchCallIds.shift()) != null ? _d : part.id;
-          content.push({
-            type: "tool-result",
-            toolCallId,
-            toolName: toolNameMapping.toCustomToolName("tool_search"),
-            result: {
-              tools: part.tools
-            },
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-        case "local_shell_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.call_id,
-            toolName: toolNameMapping.toCustomToolName("local_shell"),
-            input: JSON.stringify({
-              action: part.action
-            }),
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-        case "shell_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.call_id,
-            toolName: toolNameMapping.toCustomToolName("shell"),
-            input: JSON.stringify({
-              action: {
-                commands: part.action.commands
-              }
-            }),
-            ...isShellProviderExecuted && { providerExecuted: true },
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-        case "shell_call_output": {
-          content.push({
-            type: "tool-result",
-            toolCallId: part.call_id,
-            toolName: toolNameMapping.toCustomToolName("shell"),
-            result: {
-              output: part.output.map((item) => ({
-                stdout: item.stdout,
-                stderr: item.stderr,
-                outcome: item.outcome.type === "exit" ? {
-                  type: "exit",
-                  exitCode: item.outcome.exit_code
-                } : { type: "timeout" }
-              }))
-            }
-          });
-          break;
-        }
-        case "message": {
-          for (const contentPart of part.content) {
-            if (((_f = (_e = options.providerOptions) == null ? undefined : _e[providerOptionsName]) == null ? undefined : _f.logprobs) && contentPart.logprobs) {
-              logprobs.push(contentPart.logprobs);
-            }
-            const providerMetadata2 = {
-              itemId: part.id,
-              ...part.phase != null && { phase: part.phase },
-              ...contentPart.annotations.length > 0 && {
-                annotations: contentPart.annotations
-              }
-            };
-            content.push({
-              type: "text",
-              text: contentPart.text,
-              providerMetadata: {
-                [providerOptionsName]: providerMetadata2
-              }
-            });
-            for (const annotation of contentPart.annotations) {
-              if (annotation.type === "url_citation") {
-                content.push({
-                  type: "source",
-                  sourceType: "url",
-                  id: (_i = (_h = (_g = this.config).generateId) == null ? undefined : _h.call(_g)) != null ? _i : generateId(),
-                  url: annotation.url,
-                  title: annotation.title
-                });
-              } else if (annotation.type === "file_citation") {
-                content.push({
-                  type: "source",
-                  sourceType: "document",
-                  id: (_l = (_k = (_j = this.config).generateId) == null ? undefined : _k.call(_j)) != null ? _l : generateId(),
-                  mediaType: "text/plain",
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index
-                    }
-                  }
-                });
-              } else if (annotation.type === "container_file_citation") {
-                content.push({
-                  type: "source",
-                  sourceType: "document",
-                  id: (_o = (_n = (_m = this.config).generateId) == null ? undefined : _n.call(_m)) != null ? _o : generateId(),
-                  mediaType: "text/plain",
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      containerId: annotation.container_id
-                    }
-                  }
-                });
-              } else if (annotation.type === "file_path") {
-                content.push({
-                  type: "source",
-                  sourceType: "document",
-                  id: (_r = (_q = (_p = this.config).generateId) == null ? undefined : _q.call(_p)) != null ? _r : generateId(),
-                  mediaType: "application/octet-stream",
-                  title: annotation.file_id,
-                  filename: annotation.file_id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index
-                    }
-                  }
-                });
-              }
-            }
-          }
-          break;
-        }
-        case "function_call": {
-          hasFunctionCall = true;
-          content.push({
-            type: "tool-call",
-            toolCallId: part.call_id,
-            toolName: part.name,
-            input: part.arguments,
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-        case "custom_tool_call": {
-          hasFunctionCall = true;
-          const toolName = toolNameMapping.toCustomToolName(part.name);
-          content.push({
-            type: "tool-call",
-            toolCallId: part.call_id,
-            toolName,
-            input: JSON.stringify(part.input),
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-        case "web_search_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
-            input: JSON.stringify({}),
-            providerExecuted: true
-          });
-          content.push({
-            type: "tool-result",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
-            result: mapWebSearchOutput(part.action)
-          });
-          break;
-        }
-        case "mcp_call": {
-          const toolCallId = part.approval_request_id != null ? (_s = approvalRequestIdToDummyToolCallIdFromPrompt[part.approval_request_id]) != null ? _s : part.id : part.id;
-          const toolName = `mcp.${part.name}`;
-          content.push({
-            type: "tool-call",
-            toolCallId,
-            toolName,
-            input: part.arguments,
-            providerExecuted: true,
-            dynamic: true
-          });
-          content.push({
-            type: "tool-result",
-            toolCallId,
-            toolName,
-            result: {
-              type: "call",
-              serverLabel: part.server_label,
-              name: part.name,
-              arguments: part.arguments,
-              ...part.output != null ? { output: part.output } : {},
-              ...part.error != null ? { error: part.error } : {}
-            },
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-        case "mcp_list_tools": {
-          break;
-        }
-        case "mcp_approval_request": {
-          const approvalRequestId = (_t = part.approval_request_id) != null ? _t : part.id;
-          const dummyToolCallId = (_w = (_v = (_u = this.config).generateId) == null ? undefined : _v.call(_u)) != null ? _w : generateId();
-          const toolName = `mcp.${part.name}`;
-          content.push({
-            type: "tool-call",
-            toolCallId: dummyToolCallId,
-            toolName,
-            input: part.arguments,
-            providerExecuted: true,
-            dynamic: true
-          });
-          content.push({
-            type: "tool-approval-request",
-            approvalId: approvalRequestId,
-            toolCallId: dummyToolCallId
-          });
-          break;
-        }
-        case "computer_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("computer_use"),
-            input: "",
-            providerExecuted: true
-          });
-          content.push({
-            type: "tool-result",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("computer_use"),
-            result: {
-              type: "computer_use_tool_result",
-              status: part.status || "completed"
-            }
-          });
-          break;
-        }
-        case "file_search_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("file_search"),
-            input: "{}",
-            providerExecuted: true
-          });
-          content.push({
-            type: "tool-result",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("file_search"),
-            result: {
-              queries: part.queries,
-              results: (_y = (_x = part.results) == null ? undefined : _x.map((result) => ({
-                attributes: result.attributes,
-                fileId: result.file_id,
-                filename: result.filename,
-                score: result.score,
-                text: result.text
-              }))) != null ? _y : null
-            }
-          });
-          break;
-        }
-        case "code_interpreter_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("code_interpreter"),
-            input: JSON.stringify({
-              code: part.code,
-              containerId: part.container_id
-            }),
-            providerExecuted: true
-          });
-          content.push({
-            type: "tool-result",
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName("code_interpreter"),
-            result: {
-              outputs: part.outputs
-            }
-          });
-          break;
-        }
-        case "apply_patch_call": {
-          content.push({
-            type: "tool-call",
-            toolCallId: part.call_id,
-            toolName: toolNameMapping.toCustomToolName("apply_patch"),
-            input: JSON.stringify({
-              callId: part.call_id,
-              operation: part.operation
-            }),
-            providerMetadata: {
-              [providerOptionsName]: {
-                itemId: part.id
-              }
-            }
-          });
-          break;
-        }
-      }
-    }
-    const providerMetadata = {
-      [providerOptionsName]: {
-        responseId: response.id,
-        ...logprobs.length > 0 ? { logprobs } : {},
-        ...typeof response.service_tier === "string" ? { serviceTier: response.service_tier } : {}
-      }
-    };
-    const usage = response.usage;
-    return {
-      content,
-      finishReason: {
-        unified: mapOpenAIResponseFinishReason({
-          finishReason: (_z = response.incomplete_details) == null ? undefined : _z.reason,
-          hasFunctionCall
-        }),
-        raw: (_B = (_A = response.incomplete_details) == null ? undefined : _A.reason) != null ? _B : undefined
-      },
-      usage: convertOpenAIResponsesUsage(usage),
-      request: { body },
-      response: {
-        id: response.id,
-        timestamp: new Date(response.created_at * 1000),
-        modelId: response.model,
-        headers: responseHeaders,
-        body: rawResponse
-      },
-      providerMetadata,
-      warnings
-    };
-  }
-  async doStream(options) {
-    const {
-      args: body,
-      warnings,
-      webSearchToolName,
-      toolNameMapping,
-      store,
-      providerOptionsName,
-      isShellProviderExecuted
-    } = await this.getArgs(options);
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: "/responses",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...body,
-        stream: true
-      },
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(openaiResponsesChunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    const self = this;
-    const approvalRequestIdToDummyToolCallIdFromPrompt = extractApprovalRequestIdToToolCallIdMapping(options.prompt);
-    const approvalRequestIdToDummyToolCallIdFromStream = /* @__PURE__ */ new Map;
-    let finishReason = {
-      unified: "other",
-      raw: undefined
-    };
-    let usage = undefined;
-    const logprobs = [];
-    let responseId = null;
-    const ongoingToolCalls = {};
-    const ongoingAnnotations = [];
-    let activeMessagePhase;
-    let hasFunctionCall = false;
-    const activeReasoning = {};
-    let serviceTier;
-    const hostedToolSearchCallIds = [];
-    return {
-      stream: response.pipeThrough(new TransformStream({
-        start(controller) {
-          controller.enqueue({ type: "stream-start", warnings });
-        },
-        transform(chunk, controller) {
-          var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L;
-          if (options.includeRawChunks) {
-            controller.enqueue({ type: "raw", rawValue: chunk.rawValue });
-          }
-          if (!chunk.success) {
-            finishReason = { unified: "error", raw: undefined };
-            controller.enqueue({ type: "error", error: chunk.error });
-            return;
-          }
-          const value = chunk.value;
-          if (isResponseOutputItemAddedChunk(value)) {
-            if (value.item.type === "function_call") {
-              ongoingToolCalls[value.output_index] = {
-                toolName: value.item.name,
-                toolCallId: value.item.call_id
-              };
-              controller.enqueue({
-                type: "tool-input-start",
-                id: value.item.call_id,
-                toolName: value.item.name
-              });
-            } else if (value.item.type === "custom_tool_call") {
-              const toolName = toolNameMapping.toCustomToolName(value.item.name);
-              ongoingToolCalls[value.output_index] = {
-                toolName,
-                toolCallId: value.item.call_id
-              };
-              controller.enqueue({
-                type: "tool-input-start",
-                id: value.item.call_id,
-                toolName
-              });
-            } else if (value.item.type === "web_search_call") {
-              ongoingToolCalls[value.output_index] = {
-                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
-                toolCallId: value.item.id
-              };
-              controller.enqueue({
-                type: "tool-input-start",
-                id: value.item.id,
-                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
-                providerExecuted: true
-              });
-              controller.enqueue({
-                type: "tool-input-end",
-                id: value.item.id
-              });
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
-                input: JSON.stringify({}),
-                providerExecuted: true
-              });
-            } else if (value.item.type === "computer_call") {
-              ongoingToolCalls[value.output_index] = {
-                toolName: toolNameMapping.toCustomToolName("computer_use"),
-                toolCallId: value.item.id
-              };
-              controller.enqueue({
-                type: "tool-input-start",
-                id: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("computer_use"),
-                providerExecuted: true
-              });
-            } else if (value.item.type === "code_interpreter_call") {
-              ongoingToolCalls[value.output_index] = {
-                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
-                toolCallId: value.item.id,
-                codeInterpreter: {
-                  containerId: value.item.container_id
-                }
-              };
-              controller.enqueue({
-                type: "tool-input-start",
-                id: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
-                providerExecuted: true
-              });
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: value.item.id,
-                delta: `{"containerId":"${value.item.container_id}","code":"`
-              });
-            } else if (value.item.type === "file_search_call") {
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("file_search"),
-                input: "{}",
-                providerExecuted: true
-              });
-            } else if (value.item.type === "image_generation_call") {
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("image_generation"),
-                input: "{}",
-                providerExecuted: true
-              });
-            } else if (value.item.type === "tool_search_call") {
-              const toolCallId = value.item.id;
-              const toolName = toolNameMapping.toCustomToolName("tool_search");
-              const isHosted = value.item.execution === "server";
-              ongoingToolCalls[value.output_index] = {
-                toolName,
-                toolCallId,
-                toolSearchExecution: (_a21 = value.item.execution) != null ? _a21 : "server"
-              };
-              if (isHosted) {
-                controller.enqueue({
-                  type: "tool-input-start",
-                  id: toolCallId,
-                  toolName,
-                  providerExecuted: true
-                });
-              }
-            } else if (value.item.type === "tool_search_output") {} else if (value.item.type === "mcp_call" || value.item.type === "mcp_list_tools" || value.item.type === "mcp_approval_request") {} else if (value.item.type === "apply_patch_call") {
-              const { call_id: callId, operation } = value.item;
-              ongoingToolCalls[value.output_index] = {
-                toolName: toolNameMapping.toCustomToolName("apply_patch"),
-                toolCallId: callId,
-                applyPatch: {
-                  hasDiff: operation.type === "delete_file",
-                  endEmitted: operation.type === "delete_file"
-                }
-              };
-              controller.enqueue({
-                type: "tool-input-start",
-                id: callId,
-                toolName: toolNameMapping.toCustomToolName("apply_patch")
-              });
-              if (operation.type === "delete_file") {
-                const inputString = JSON.stringify({
-                  callId,
-                  operation
-                });
-                controller.enqueue({
-                  type: "tool-input-delta",
-                  id: callId,
-                  delta: inputString
-                });
-                controller.enqueue({
-                  type: "tool-input-end",
-                  id: callId
-                });
-              } else {
-                controller.enqueue({
-                  type: "tool-input-delta",
-                  id: callId,
-                  delta: `{"callId":"${escapeJSONDelta(callId)}","operation":{"type":"${escapeJSONDelta(operation.type)}","path":"${escapeJSONDelta(operation.path)}","diff":"`
-                });
-              }
-            } else if (value.item.type === "shell_call") {
-              ongoingToolCalls[value.output_index] = {
-                toolName: toolNameMapping.toCustomToolName("shell"),
-                toolCallId: value.item.call_id
-              };
-            } else if (value.item.type === "shell_call_output") {} else if (value.item.type === "message") {
-              ongoingAnnotations.splice(0, ongoingAnnotations.length);
-              activeMessagePhase = (_b16 = value.item.phase) != null ? _b16 : undefined;
-              controller.enqueue({
-                type: "text-start",
-                id: value.item.id,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item.id,
-                    ...value.item.phase != null && {
-                      phase: value.item.phase
-                    }
-                  }
-                }
-              });
-            } else if (isResponseOutputItemAddedChunk(value) && value.item.type === "reasoning") {
-              activeReasoning[value.item.id] = {
-                encryptedContent: value.item.encrypted_content,
-                summaryParts: { 0: "active" }
-              };
-              controller.enqueue({
-                type: "reasoning-start",
-                id: `${value.item.id}:0`,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item.id,
-                    reasoningEncryptedContent: (_c = value.item.encrypted_content) != null ? _c : null
-                  }
-                }
-              });
-            }
-          } else if (isResponseOutputItemDoneChunk(value)) {
-            if (value.item.type === "message") {
-              const phase = (_d = value.item.phase) != null ? _d : activeMessagePhase;
-              activeMessagePhase = undefined;
-              controller.enqueue({
-                type: "text-end",
-                id: value.item.id,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item.id,
-                    ...phase != null && { phase },
-                    ...ongoingAnnotations.length > 0 && {
-                      annotations: ongoingAnnotations
-                    }
-                  }
-                }
-              });
-            } else if (value.item.type === "function_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              hasFunctionCall = true;
-              controller.enqueue({
-                type: "tool-input-end",
-                id: value.item.call_id
-              });
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.call_id,
-                toolName: value.item.name,
-                input: value.item.arguments,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item.id
-                  }
-                }
-              });
-            } else if (value.item.type === "custom_tool_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              hasFunctionCall = true;
-              const toolName = toolNameMapping.toCustomToolName(value.item.name);
-              controller.enqueue({
-                type: "tool-input-end",
-                id: value.item.call_id
-              });
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.call_id,
-                toolName,
-                input: JSON.stringify(value.item.input),
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item.id
-                  }
-                }
-              });
-            } else if (value.item.type === "web_search_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
-                result: mapWebSearchOutput(value.item.action)
-              });
-            } else if (value.item.type === "computer_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              controller.enqueue({
-                type: "tool-input-end",
-                id: value.item.id
-              });
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("computer_use"),
-                input: "",
-                providerExecuted: true
-              });
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("computer_use"),
-                result: {
-                  type: "computer_use_tool_result",
-                  status: value.item.status || "completed"
-                }
-              });
-            } else if (value.item.type === "file_search_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("file_search"),
-                result: {
-                  queries: value.item.queries,
-                  results: (_f = (_e = value.item.results) == null ? undefined : _e.map((result) => ({
-                    attributes: result.attributes,
-                    fileId: result.file_id,
-                    filename: result.filename,
-                    score: result.score,
-                    text: result.text
-                  }))) != null ? _f : null
-                }
-              });
-            } else if (value.item.type === "code_interpreter_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
-                result: {
-                  outputs: value.item.outputs
-                }
-              });
-            } else if (value.item.type === "image_generation_call") {
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId: value.item.id,
-                toolName: toolNameMapping.toCustomToolName("image_generation"),
-                result: {
-                  result: value.item.result
-                }
-              });
-            } else if (value.item.type === "tool_search_call") {
-              const toolCall = ongoingToolCalls[value.output_index];
-              const isHosted = value.item.execution === "server";
-              if (toolCall != null) {
-                const toolCallId = isHosted ? toolCall.toolCallId : (_g = value.item.call_id) != null ? _g : value.item.id;
-                if (isHosted) {
-                  hostedToolSearchCallIds.push(toolCallId);
-                } else {
-                  controller.enqueue({
-                    type: "tool-input-start",
-                    id: toolCallId,
-                    toolName: toolCall.toolName
-                  });
-                }
-                controller.enqueue({
-                  type: "tool-input-end",
-                  id: toolCallId
-                });
-                controller.enqueue({
-                  type: "tool-call",
-                  toolCallId,
-                  toolName: toolCall.toolName,
-                  input: JSON.stringify({
-                    arguments: value.item.arguments,
-                    call_id: isHosted ? null : toolCallId
-                  }),
-                  ...isHosted ? { providerExecuted: true } : {},
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id
-                    }
-                  }
-                });
-              }
-              ongoingToolCalls[value.output_index] = undefined;
-            } else if (value.item.type === "tool_search_output") {
-              const toolCallId = (_i = (_h = value.item.call_id) != null ? _h : hostedToolSearchCallIds.shift()) != null ? _i : value.item.id;
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId,
-                toolName: toolNameMapping.toCustomToolName("tool_search"),
-                result: {
-                  tools: value.item.tools
-                },
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item.id
-                  }
-                }
-              });
-            } else if (value.item.type === "mcp_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              const approvalRequestId = (_j = value.item.approval_request_id) != null ? _j : undefined;
-              const aliasedToolCallId = approvalRequestId != null ? (_l = (_k = approvalRequestIdToDummyToolCallIdFromStream.get(approvalRequestId)) != null ? _k : approvalRequestIdToDummyToolCallIdFromPrompt[approvalRequestId]) != null ? _l : value.item.id : value.item.id;
-              const toolName = `mcp.${value.item.name}`;
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: aliasedToolCallId,
-                toolName,
-                input: value.item.arguments,
-                providerExecuted: true,
-                dynamic: true
-              });
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId: aliasedToolCallId,
-                toolName,
-                result: {
-                  type: "call",
-                  serverLabel: value.item.server_label,
-                  name: value.item.name,
-                  arguments: value.item.arguments,
-                  ...value.item.output != null ? { output: value.item.output } : {},
-                  ...value.item.error != null ? { error: value.item.error } : {}
-                },
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item.id
-                  }
-                }
-              });
-            } else if (value.item.type === "mcp_list_tools") {
-              ongoingToolCalls[value.output_index] = undefined;
-            } else if (value.item.type === "apply_patch_call") {
-              const toolCall = ongoingToolCalls[value.output_index];
-              if ((toolCall == null ? undefined : toolCall.applyPatch) && !toolCall.applyPatch.endEmitted && value.item.operation.type !== "delete_file") {
-                if (!toolCall.applyPatch.hasDiff) {
-                  controller.enqueue({
-                    type: "tool-input-delta",
-                    id: toolCall.toolCallId,
-                    delta: escapeJSONDelta(value.item.operation.diff)
-                  });
-                }
-                controller.enqueue({
-                  type: "tool-input-delta",
-                  id: toolCall.toolCallId,
-                  delta: '"}}'
-                });
-                controller.enqueue({
-                  type: "tool-input-end",
-                  id: toolCall.toolCallId
-                });
-                toolCall.applyPatch.endEmitted = true;
-              }
-              if (toolCall && value.item.status === "completed") {
-                controller.enqueue({
-                  type: "tool-call",
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolNameMapping.toCustomToolName("apply_patch"),
-                  input: JSON.stringify({
-                    callId: value.item.call_id,
-                    operation: value.item.operation
-                  }),
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id
-                    }
-                  }
-                });
-              }
-              ongoingToolCalls[value.output_index] = undefined;
-            } else if (value.item.type === "mcp_approval_request") {
-              ongoingToolCalls[value.output_index] = undefined;
-              const dummyToolCallId = (_o = (_n = (_m = self.config).generateId) == null ? undefined : _n.call(_m)) != null ? _o : generateId();
-              const approvalRequestId = (_p = value.item.approval_request_id) != null ? _p : value.item.id;
-              approvalRequestIdToDummyToolCallIdFromStream.set(approvalRequestId, dummyToolCallId);
-              const toolName = `mcp.${value.item.name}`;
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: dummyToolCallId,
-                toolName,
-                input: value.item.arguments,
-                providerExecuted: true,
-                dynamic: true
-              });
-              controller.enqueue({
-                type: "tool-approval-request",
-                approvalId: approvalRequestId,
-                toolCallId: dummyToolCallId
-              });
-            } else if (value.item.type === "local_shell_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.call_id,
-                toolName: toolNameMapping.toCustomToolName("local_shell"),
-                input: JSON.stringify({
-                  action: {
-                    type: "exec",
-                    command: value.item.action.command,
-                    timeoutMs: value.item.action.timeout_ms,
-                    user: value.item.action.user,
-                    workingDirectory: value.item.action.working_directory,
-                    env: value.item.action.env
-                  }
-                }),
-                providerMetadata: {
-                  [providerOptionsName]: { itemId: value.item.id }
-                }
-              });
-            } else if (value.item.type === "shell_call") {
-              ongoingToolCalls[value.output_index] = undefined;
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: value.item.call_id,
-                toolName: toolNameMapping.toCustomToolName("shell"),
-                input: JSON.stringify({
-                  action: {
-                    commands: value.item.action.commands
-                  }
-                }),
-                ...isShellProviderExecuted && {
-                  providerExecuted: true
-                },
-                providerMetadata: {
-                  [providerOptionsName]: { itemId: value.item.id }
-                }
-              });
-            } else if (value.item.type === "shell_call_output") {
-              controller.enqueue({
-                type: "tool-result",
-                toolCallId: value.item.call_id,
-                toolName: toolNameMapping.toCustomToolName("shell"),
-                result: {
-                  output: value.item.output.map((item) => ({
-                    stdout: item.stdout,
-                    stderr: item.stderr,
-                    outcome: item.outcome.type === "exit" ? {
-                      type: "exit",
-                      exitCode: item.outcome.exit_code
-                    } : { type: "timeout" }
-                  }))
-                }
-              });
-            } else if (value.item.type === "reasoning") {
-              const activeReasoningPart = activeReasoning[value.item.id];
-              const summaryPartIndices = Object.entries(activeReasoningPart.summaryParts).filter(([_2, status]) => status === "active" || status === "can-conclude").map(([summaryIndex]) => summaryIndex);
-              for (const summaryIndex of summaryPartIndices) {
-                controller.enqueue({
-                  type: "reasoning-end",
-                  id: `${value.item.id}:${summaryIndex}`,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id,
-                      reasoningEncryptedContent: (_q = value.item.encrypted_content) != null ? _q : null
-                    }
-                  }
-                });
-              }
-              delete activeReasoning[value.item.id];
-            }
-          } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
-            const toolCall = ongoingToolCalls[value.output_index];
-            if (toolCall != null) {
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: toolCall.toolCallId,
-                delta: value.delta
-              });
-            }
-          } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
-            const toolCall = ongoingToolCalls[value.output_index];
-            if (toolCall != null) {
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: toolCall.toolCallId,
-                delta: value.delta
-              });
-            }
-          } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
-            const toolCall = ongoingToolCalls[value.output_index];
-            if (toolCall == null ? undefined : toolCall.applyPatch) {
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: toolCall.toolCallId,
-                delta: escapeJSONDelta(value.delta)
-              });
-              toolCall.applyPatch.hasDiff = true;
-            }
-          } else if (isResponseApplyPatchCallOperationDiffDoneChunk(value)) {
-            const toolCall = ongoingToolCalls[value.output_index];
-            if ((toolCall == null ? undefined : toolCall.applyPatch) && !toolCall.applyPatch.endEmitted) {
-              if (!toolCall.applyPatch.hasDiff) {
-                controller.enqueue({
-                  type: "tool-input-delta",
-                  id: toolCall.toolCallId,
-                  delta: escapeJSONDelta(value.diff)
-                });
-                toolCall.applyPatch.hasDiff = true;
-              }
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: toolCall.toolCallId,
-                delta: '"}}'
-              });
-              controller.enqueue({
-                type: "tool-input-end",
-                id: toolCall.toolCallId
-              });
-              toolCall.applyPatch.endEmitted = true;
-            }
-          } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
-            controller.enqueue({
-              type: "tool-result",
-              toolCallId: value.item_id,
-              toolName: toolNameMapping.toCustomToolName("image_generation"),
-              result: {
-                result: value.partial_image_b64
-              },
-              preliminary: true
-            });
-          } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
-            const toolCall = ongoingToolCalls[value.output_index];
-            if (toolCall != null) {
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: toolCall.toolCallId,
-                delta: escapeJSONDelta(value.delta)
-              });
-            }
-          } else if (isResponseCodeInterpreterCallCodeDoneChunk(value)) {
-            const toolCall = ongoingToolCalls[value.output_index];
-            if (toolCall != null) {
-              controller.enqueue({
-                type: "tool-input-delta",
-                id: toolCall.toolCallId,
-                delta: '"}'
-              });
-              controller.enqueue({
-                type: "tool-input-end",
-                id: toolCall.toolCallId
-              });
-              controller.enqueue({
-                type: "tool-call",
-                toolCallId: toolCall.toolCallId,
-                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
-                input: JSON.stringify({
-                  code: value.code,
-                  containerId: toolCall.codeInterpreter.containerId
-                }),
-                providerExecuted: true
-              });
-            }
-          } else if (isResponseCreatedChunk(value)) {
-            responseId = value.response.id;
-            controller.enqueue({
-              type: "response-metadata",
-              id: value.response.id,
-              timestamp: new Date(value.response.created_at * 1000),
-              modelId: value.response.model
-            });
-          } else if (isTextDeltaChunk(value)) {
-            controller.enqueue({
-              type: "text-delta",
-              id: value.item_id,
-              delta: value.delta
-            });
-            if (((_s = (_r = options.providerOptions) == null ? undefined : _r[providerOptionsName]) == null ? undefined : _s.logprobs) && value.logprobs) {
-              logprobs.push(value.logprobs);
-            }
-          } else if (value.type === "response.reasoning_summary_part.added") {
-            if (value.summary_index > 0) {
-              const activeReasoningPart = activeReasoning[value.item_id];
-              activeReasoningPart.summaryParts[value.summary_index] = "active";
-              for (const summaryIndex of Object.keys(activeReasoningPart.summaryParts)) {
-                if (activeReasoningPart.summaryParts[summaryIndex] === "can-conclude") {
-                  controller.enqueue({
-                    type: "reasoning-end",
-                    id: `${value.item_id}:${summaryIndex}`,
-                    providerMetadata: {
-                      [providerOptionsName]: {
-                        itemId: value.item_id
-                      }
-                    }
-                  });
-                  activeReasoningPart.summaryParts[summaryIndex] = "concluded";
-                }
-              }
-              controller.enqueue({
-                type: "reasoning-start",
-                id: `${value.item_id}:${value.summary_index}`,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item_id,
-                    reasoningEncryptedContent: (_u = (_t = activeReasoning[value.item_id]) == null ? undefined : _t.encryptedContent) != null ? _u : null
-                  }
-                }
-              });
-            }
-          } else if (value.type === "response.reasoning_summary_text.delta") {
-            controller.enqueue({
-              type: "reasoning-delta",
-              id: `${value.item_id}:${value.summary_index}`,
-              delta: value.delta,
-              providerMetadata: {
-                [providerOptionsName]: {
-                  itemId: value.item_id
-                }
-              }
-            });
-          } else if (value.type === "response.reasoning_summary_part.done") {
-            if (store) {
-              controller.enqueue({
-                type: "reasoning-end",
-                id: `${value.item_id}:${value.summary_index}`,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    itemId: value.item_id
-                  }
-                }
-              });
-              activeReasoning[value.item_id].summaryParts[value.summary_index] = "concluded";
-            } else {
-              activeReasoning[value.item_id].summaryParts[value.summary_index] = "can-conclude";
-            }
-          } else if (isResponseFinishedChunk(value)) {
-            finishReason = {
-              unified: mapOpenAIResponseFinishReason({
-                finishReason: (_v = value.response.incomplete_details) == null ? undefined : _v.reason,
-                hasFunctionCall
-              }),
-              raw: (_x = (_w = value.response.incomplete_details) == null ? undefined : _w.reason) != null ? _x : undefined
-            };
-            usage = value.response.usage;
-            if (typeof value.response.service_tier === "string") {
-              serviceTier = value.response.service_tier;
-            }
-          } else if (isResponseFailedChunk(value)) {
-            const incompleteReason = (_y = value.response.incomplete_details) == null ? undefined : _y.reason;
-            finishReason = {
-              unified: incompleteReason ? mapOpenAIResponseFinishReason({
-                finishReason: incompleteReason,
-                hasFunctionCall
-              }) : "error",
-              raw: incompleteReason != null ? incompleteReason : "error"
-            };
-            usage = (_z = value.response.usage) != null ? _z : undefined;
-          } else if (isResponseAnnotationAddedChunk(value)) {
-            ongoingAnnotations.push(value.annotation);
-            if (value.annotation.type === "url_citation") {
-              controller.enqueue({
-                type: "source",
-                sourceType: "url",
-                id: (_C = (_B = (_A = self.config).generateId) == null ? undefined : _B.call(_A)) != null ? _C : generateId(),
-                url: value.annotation.url,
-                title: value.annotation.title
-              });
-            } else if (value.annotation.type === "file_citation") {
-              controller.enqueue({
-                type: "source",
-                sourceType: "document",
-                id: (_F = (_E = (_D = self.config).generateId) == null ? undefined : _E.call(_D)) != null ? _F : generateId(),
-                mediaType: "text/plain",
-                title: value.annotation.filename,
-                filename: value.annotation.filename,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    type: value.annotation.type,
-                    fileId: value.annotation.file_id,
-                    index: value.annotation.index
-                  }
-                }
-              });
-            } else if (value.annotation.type === "container_file_citation") {
-              controller.enqueue({
-                type: "source",
-                sourceType: "document",
-                id: (_I = (_H = (_G = self.config).generateId) == null ? undefined : _H.call(_G)) != null ? _I : generateId(),
-                mediaType: "text/plain",
-                title: value.annotation.filename,
-                filename: value.annotation.filename,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    type: value.annotation.type,
-                    fileId: value.annotation.file_id,
-                    containerId: value.annotation.container_id
-                  }
-                }
-              });
-            } else if (value.annotation.type === "file_path") {
-              controller.enqueue({
-                type: "source",
-                sourceType: "document",
-                id: (_L = (_K = (_J = self.config).generateId) == null ? undefined : _K.call(_J)) != null ? _L : generateId(),
-                mediaType: "application/octet-stream",
-                title: value.annotation.file_id,
-                filename: value.annotation.file_id,
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    type: value.annotation.type,
-                    fileId: value.annotation.file_id,
-                    index: value.annotation.index
-                  }
-                }
-              });
-            }
-          } else if (isErrorChunk(value)) {
-            controller.enqueue({ type: "error", error: value });
-          }
-        },
-        flush(controller) {
-          const providerMetadata = {
-            [providerOptionsName]: {
-              responseId,
-              ...logprobs.length > 0 ? { logprobs } : {},
-              ...serviceTier !== undefined ? { serviceTier } : {}
-            }
-          };
-          controller.enqueue({
-            type: "finish",
-            finishReason,
-            usage: convertOpenAIResponsesUsage(usage),
-            providerMetadata
-          });
-        }
-      })),
-      request: { body },
-      response: { headers: responseHeaders }
-    };
-  }
-};
-function isTextDeltaChunk(chunk) {
-  return chunk.type === "response.output_text.delta";
-}
-function isResponseOutputItemDoneChunk(chunk) {
-  return chunk.type === "response.output_item.done";
-}
-function isResponseFinishedChunk(chunk) {
-  return chunk.type === "response.completed" || chunk.type === "response.incomplete";
-}
-function isResponseFailedChunk(chunk) {
-  return chunk.type === "response.failed";
-}
-function isResponseCreatedChunk(chunk) {
-  return chunk.type === "response.created";
-}
-function isResponseFunctionCallArgumentsDeltaChunk(chunk) {
-  return chunk.type === "response.function_call_arguments.delta";
-}
-function isResponseCustomToolCallInputDeltaChunk(chunk) {
-  return chunk.type === "response.custom_tool_call_input.delta";
-}
-function isResponseImageGenerationCallPartialImageChunk(chunk) {
-  return chunk.type === "response.image_generation_call.partial_image";
-}
-function isResponseCodeInterpreterCallCodeDeltaChunk(chunk) {
-  return chunk.type === "response.code_interpreter_call_code.delta";
-}
-function isResponseCodeInterpreterCallCodeDoneChunk(chunk) {
-  return chunk.type === "response.code_interpreter_call_code.done";
-}
-function isResponseApplyPatchCallOperationDiffDeltaChunk(chunk) {
-  return chunk.type === "response.apply_patch_call_operation_diff.delta";
-}
-function isResponseApplyPatchCallOperationDiffDoneChunk(chunk) {
-  return chunk.type === "response.apply_patch_call_operation_diff.done";
-}
-function isResponseOutputItemAddedChunk(chunk) {
-  return chunk.type === "response.output_item.added";
-}
-function isResponseAnnotationAddedChunk(chunk) {
-  return chunk.type === "response.output_text.annotation.added";
-}
-function isErrorChunk(chunk) {
-  return chunk.type === "error";
-}
-function mapWebSearchOutput(action) {
-  var _a21;
-  if (action == null) {
-    return {};
-  }
-  switch (action.type) {
-    case "search":
-      return {
-        action: { type: "search", query: (_a21 = action.query) != null ? _a21 : undefined },
-        ...action.sources != null && { sources: action.sources }
-      };
-    case "open_page":
-      return { action: { type: "openPage", url: action.url } };
-    case "find_in_page":
-      return {
-        action: {
-          type: "findInPage",
-          url: action.url,
-          pattern: action.pattern
-        }
-      };
-  }
-}
-function escapeJSONDelta(delta) {
-  return JSON.stringify(delta).slice(1, -1);
-}
-var openaiSpeechModelOptionsSchema = lazySchema(() => zodSchema(exports_external.object({
-  instructions: exports_external.string().nullish(),
-  speed: exports_external.number().min(0.25).max(4).default(1).nullish()
-})));
-var OpenAISpeechModel = class {
-  constructor(modelId, config2) {
-    this.modelId = modelId;
-    this.config = config2;
-    this.specificationVersion = "v3";
-  }
-  get provider() {
-    return this.config.provider;
-  }
-  async getArgs({
-    text: text2,
-    voice = "alloy",
-    outputFormat = "mp3",
-    speed,
-    instructions,
-    language,
-    providerOptions
-  }) {
-    const warnings = [];
-    const openAIOptions = await parseProviderOptions({
-      provider: "openai",
-      providerOptions,
-      schema: openaiSpeechModelOptionsSchema
-    });
-    const requestBody = {
-      model: this.modelId,
-      input: text2,
-      voice,
-      response_format: "mp3",
-      speed,
-      instructions
-    };
-    if (outputFormat) {
-      if (["mp3", "opus", "aac", "flac", "wav", "pcm"].includes(outputFormat)) {
-        requestBody.response_format = outputFormat;
-      } else {
-        warnings.push({
-          type: "unsupported",
-          feature: "outputFormat",
-          details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`
-        });
-      }
-    }
-    if (openAIOptions) {
-      const speechModelOptions = {};
-      for (const key in speechModelOptions) {
-        const value = speechModelOptions[key];
-        if (value !== undefined) {
-          requestBody[key] = value;
-        }
-      }
-    }
-    if (language) {
-      warnings.push({
-        type: "unsupported",
-        feature: "language",
-        details: `OpenAI speech models do not support language selection. Language parameter "${language}" was ignored.`
-      });
-    }
-    return {
-      requestBody,
-      warnings
-    };
-  }
-  async doGenerate(options) {
-    var _a21, _b16, _c;
-    const currentDate = (_c = (_b16 = (_a21 = this.config._internal) == null ? undefined : _a21.currentDate) == null ? undefined : _b16.call(_a21)) != null ? _c : /* @__PURE__ */ new Date;
-    const { requestBody, warnings } = await this.getArgs(options);
-    const {
-      value: audio,
-      responseHeaders,
-      rawValue: rawResponse
-    } = await postJsonToApi({
-      url: this.config.url({
-        path: "/audio/speech",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body: requestBody,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createBinaryResponseHandler(),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    return {
-      audio,
-      warnings,
-      request: {
-        body: JSON.stringify(requestBody)
-      },
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-        body: rawResponse
-      }
-    };
-  }
-};
-var openaiTranscriptionResponseSchema = lazySchema(() => zodSchema(exports_external.object({
-  text: exports_external.string(),
-  language: exports_external.string().nullish(),
-  duration: exports_external.number().nullish(),
-  words: exports_external.array(exports_external.object({
-    word: exports_external.string(),
-    start: exports_external.number(),
-    end: exports_external.number()
-  })).nullish(),
-  segments: exports_external.array(exports_external.object({
-    id: exports_external.number(),
-    seek: exports_external.number(),
-    start: exports_external.number(),
-    end: exports_external.number(),
-    text: exports_external.string(),
-    tokens: exports_external.array(exports_external.number()),
-    temperature: exports_external.number(),
-    avg_logprob: exports_external.number(),
-    compression_ratio: exports_external.number(),
-    no_speech_prob: exports_external.number()
-  })).nullish()
-})));
-var openAITranscriptionModelOptions = lazySchema(() => zodSchema(exports_external.object({
-  include: exports_external.array(exports_external.string()).optional(),
-  language: exports_external.string().optional(),
-  prompt: exports_external.string().optional(),
-  temperature: exports_external.number().min(0).max(1).default(0).optional(),
-  timestampGranularities: exports_external.array(exports_external.enum(["word", "segment"])).default(["segment"]).optional()
-})));
-var languageMap = {
-  afrikaans: "af",
-  arabic: "ar",
-  armenian: "hy",
-  azerbaijani: "az",
-  belarusian: "be",
-  bosnian: "bs",
-  bulgarian: "bg",
-  catalan: "ca",
-  chinese: "zh",
-  croatian: "hr",
-  czech: "cs",
-  danish: "da",
-  dutch: "nl",
-  english: "en",
-  estonian: "et",
-  finnish: "fi",
-  french: "fr",
-  galician: "gl",
-  german: "de",
-  greek: "el",
-  hebrew: "he",
-  hindi: "hi",
-  hungarian: "hu",
-  icelandic: "is",
-  indonesian: "id",
-  italian: "it",
-  japanese: "ja",
-  kannada: "kn",
-  kazakh: "kk",
-  korean: "ko",
-  latvian: "lv",
-  lithuanian: "lt",
-  macedonian: "mk",
-  malay: "ms",
-  marathi: "mr",
-  maori: "mi",
-  nepali: "ne",
-  norwegian: "no",
-  persian: "fa",
-  polish: "pl",
-  portuguese: "pt",
-  romanian: "ro",
-  russian: "ru",
-  serbian: "sr",
-  slovak: "sk",
-  slovenian: "sl",
-  spanish: "es",
-  swahili: "sw",
-  swedish: "sv",
-  tagalog: "tl",
-  tamil: "ta",
-  thai: "th",
-  turkish: "tr",
-  ukrainian: "uk",
-  urdu: "ur",
-  vietnamese: "vi",
-  welsh: "cy"
-};
-var OpenAITranscriptionModel = class {
-  constructor(modelId, config2) {
-    this.modelId = modelId;
-    this.config = config2;
-    this.specificationVersion = "v3";
-  }
-  get provider() {
-    return this.config.provider;
-  }
-  async getArgs({
-    audio,
-    mediaType,
-    providerOptions
-  }) {
-    const warnings = [];
-    const openAIOptions = await parseProviderOptions({
-      provider: "openai",
-      providerOptions,
-      schema: openAITranscriptionModelOptions
-    });
-    const formData = new FormData;
-    const blob = audio instanceof Uint8Array ? new Blob([audio]) : new Blob([convertBase64ToUint8Array(audio)]);
-    formData.append("model", this.modelId);
-    const fileExtension = mediaTypeToExtension(mediaType);
-    formData.append("file", new File([blob], "audio", { type: mediaType }), `audio.${fileExtension}`);
-    if (openAIOptions) {
-      const transcriptionModelOptions = {
-        include: openAIOptions.include,
-        language: openAIOptions.language,
-        prompt: openAIOptions.prompt,
-        response_format: [
-          "gpt-4o-transcribe",
-          "gpt-4o-mini-transcribe"
-        ].includes(this.modelId) ? "json" : "verbose_json",
-        temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities
-      };
-      for (const [key, value] of Object.entries(transcriptionModelOptions)) {
-        if (value != null) {
-          if (Array.isArray(value)) {
-            for (const item of value) {
-              formData.append(`${key}[]`, String(item));
-            }
-          } else {
-            formData.append(key, String(value));
-          }
-        }
-      }
-    }
-    return {
-      formData,
-      warnings
-    };
-  }
-  async doGenerate(options) {
-    var _a21, _b16, _c, _d, _e, _f, _g, _h;
-    const currentDate = (_c = (_b16 = (_a21 = this.config._internal) == null ? undefined : _a21.currentDate) == null ? undefined : _b16.call(_a21)) != null ? _c : /* @__PURE__ */ new Date;
-    const { formData, warnings } = await this.getArgs(options);
-    const {
-      value: response,
-      responseHeaders,
-      rawValue: rawResponse
-    } = await postFormDataToApi({
-      url: this.config.url({
-        path: "/audio/transcriptions",
-        modelId: this.modelId
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      formData,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(openaiTranscriptionResponseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch
-    });
-    const language = response.language != null && response.language in languageMap ? languageMap[response.language] : undefined;
-    return {
-      text: response.text,
-      segments: (_g = (_f = (_d = response.segments) == null ? undefined : _d.map((segment) => ({
-        text: segment.text,
-        startSecond: segment.start,
-        endSecond: segment.end
-      }))) != null ? _f : (_e = response.words) == null ? undefined : _e.map((word) => ({
-        text: word.word,
-        startSecond: word.start,
-        endSecond: word.end
-      }))) != null ? _g : [],
-      language,
-      durationInSeconds: (_h = response.duration) != null ? _h : undefined,
-      warnings,
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-        body: rawResponse
-      }
-    };
-  }
-};
-var VERSION4 = "3.0.53";
-function createOpenAI(options = {}) {
-  var _a21, _b16;
-  const baseURL = (_a21 = withoutTrailingSlash(loadOptionalSetting({
-    settingValue: options.baseURL,
-    environmentVariableName: "OPENAI_BASE_URL"
-  }))) != null ? _a21 : "https://api.openai.com/v1";
-  const providerName = (_b16 = options.name) != null ? _b16 : "openai";
-  const getHeaders = () => withUserAgentSuffix({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: "OPENAI_API_KEY",
-      description: "OpenAI"
-    })}`,
-    "OpenAI-Organization": options.organization,
-    "OpenAI-Project": options.project,
-    ...options.headers
-  }, `ai-sdk/openai/${VERSION4}`);
-  const createChatModel = (modelId) => new OpenAIChatLanguageModel(modelId, {
-    provider: `${providerName}.chat`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
-    fetch: options.fetch
-  });
-  const createCompletionModel = (modelId) => new OpenAICompletionLanguageModel(modelId, {
-    provider: `${providerName}.completion`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
-    fetch: options.fetch
-  });
-  const createEmbeddingModel = (modelId) => new OpenAIEmbeddingModel(modelId, {
-    provider: `${providerName}.embedding`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
-    fetch: options.fetch
-  });
-  const createImageModel = (modelId) => new OpenAIImageModel(modelId, {
-    provider: `${providerName}.image`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
-    fetch: options.fetch
-  });
-  const createTranscriptionModel = (modelId) => new OpenAITranscriptionModel(modelId, {
-    provider: `${providerName}.transcription`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
-    fetch: options.fetch
-  });
-  const createSpeechModel = (modelId) => new OpenAISpeechModel(modelId, {
-    provider: `${providerName}.speech`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
-    fetch: options.fetch
-  });
-  const createLanguageModel = (modelId) => {
-    if (new.target) {
-      throw new Error("The OpenAI model function cannot be called with the new keyword.");
-    }
-    return createResponsesModel(modelId);
-  };
-  const createResponsesModel = (modelId) => {
-    return new OpenAIResponsesLanguageModel(modelId, {
-      provider: `${providerName}.responses`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-      fileIdPrefixes: ["file-"]
-    });
-  };
-  const provider = function(modelId) {
-    return createLanguageModel(modelId);
-  };
-  provider.specificationVersion = "v3";
-  provider.languageModel = createLanguageModel;
-  provider.chat = createChatModel;
-  provider.completion = createCompletionModel;
-  provider.responses = createResponsesModel;
-  provider.embedding = createEmbeddingModel;
-  provider.embeddingModel = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
-  provider.image = createImageModel;
-  provider.imageModel = createImageModel;
-  provider.transcription = createTranscriptionModel;
-  provider.transcriptionModel = createTranscriptionModel;
-  provider.speech = createSpeechModel;
-  provider.speechModel = createSpeechModel;
-  provider.tools = openaiTools;
-  return provider;
-}
-var openai = createOpenAI();
 
 // node_modules/@ai-sdk/anthropic/dist/index.mjs
-var VERSION5 = "3.0.71";
+var VERSION4 = "3.0.71";
 var anthropicErrorDataSchema = lazySchema(() => zodSchema(exports_external.object({
   type: exports_external.literal("error"),
   error: exports_external.object({
@@ -58003,13 +47748,13 @@ async function convertToAnthropicMessagesPrompt({
   let system = undefined;
   const messages = [];
   async function shouldEnableCitations(providerMetadata) {
-    var _a25, _b23;
+    var _a24, _b23;
     const anthropicOptions = await parseProviderOptions({
       provider: "anthropic",
       providerOptions: providerMetadata,
       schema: anthropicFilePartProviderOptions
     });
-    return (_b23 = (_a25 = anthropicOptions == null ? undefined : anthropicOptions.citations) == null ? undefined : _a25.enabled) != null ? _b23 : false;
+    return (_b23 = (_a24 = anthropicOptions == null ? undefined : anthropicOptions.citations) == null ? undefined : _a24.enabled) != null ? _b23 : false;
   }
   async function getDocumentMetadata(providerMetadata) {
     const anthropicOptions = await parseProviderOptions({
@@ -58022,9 +47767,9 @@ async function convertToAnthropicMessagesPrompt({
       context: anthropicOptions == null ? undefined : anthropicOptions.context
     };
   }
-  for (let i2 = 0;i2 < blocks.length; i2++) {
-    const block = blocks[i2];
-    const isLastBlock = i2 === blocks.length - 1;
+  for (let i = 0;i < blocks.length; i++) {
+    const block = blocks[i];
+    const isLastBlock = i === blocks.length - 1;
     const type = block.type;
     switch (type) {
       case "system": {
@@ -58049,9 +47794,9 @@ async function convertToAnthropicMessagesPrompt({
           const { role, content } = message;
           switch (role) {
             case "user": {
-              for (let j2 = 0;j2 < content.length; j2++) {
-                const part = content[j2];
-                const isLastPart = j2 === content.length - 1;
+              for (let j = 0;j < content.length; j++) {
+                const part = content[j];
+                const isLastPart = j === content.length - 1;
                 const cacheControl = (_a21 = validator.getCacheControl(part.providerOptions, {
                   type: "user message part",
                   canCache: true
@@ -58135,12 +47880,12 @@ async function convertToAnthropicMessagesPrompt({
               break;
             }
             case "tool": {
-              for (let i22 = 0;i22 < content.length; i22++) {
-                const part = content[i22];
+              for (let i2 = 0;i2 < content.length; i2++) {
+                const part = content[i2];
                 if (part.type === "tool-approval-response") {
                   continue;
                 }
-                const isLastPart = i22 === content.length - 1;
+                const isLastPart = i2 === content.length - 1;
                 const cacheControl = (_d = validator.getCacheControl(part.providerOptions, {
                   type: "tool result part",
                   canCache: true
@@ -58153,7 +47898,7 @@ async function convertToAnthropicMessagesPrompt({
                 switch (output.type) {
                   case "content":
                     contentValue = output.value.map((contentPart) => {
-                      var _a25;
+                      var _a24;
                       switch (contentPart.type) {
                         case "text":
                           return {
@@ -58207,7 +47952,7 @@ async function convertToAnthropicMessagesPrompt({
                           return;
                         }
                         case "custom": {
-                          const anthropicOptions = (_a25 = contentPart.providerOptions) == null ? undefined : _a25.anthropic;
+                          const anthropicOptions = (_a24 = contentPart.providerOptions) == null ? undefined : _a24.anthropic;
                           if ((anthropicOptions == null ? undefined : anthropicOptions.type) === "tool-reference") {
                             return {
                               type: "tool_reference",
@@ -58265,13 +48010,13 @@ async function convertToAnthropicMessagesPrompt({
       case "assistant": {
         const anthropicContent = [];
         const mcpToolUseIds = /* @__PURE__ */ new Set;
-        for (let j2 = 0;j2 < block.messages.length; j2++) {
-          const message = block.messages[j2];
-          const isLastMessage = j2 === block.messages.length - 1;
+        for (let j = 0;j < block.messages.length; j++) {
+          const message = block.messages[j];
+          const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
-          for (let k2 = 0;k2 < content.length; k2++) {
-            const part = content[k2];
-            const isLastContentPart = k2 === content.length - 1;
+          for (let k = 0;k < content.length; k++) {
+            const part = content[k];
+            const isLastContentPart = k === content.length - 1;
             const cacheControl = (_f = validator.getCacheControl(part.providerOptions, {
               type: "assistant message part",
               canCache: true
@@ -58375,7 +48120,7 @@ async function convertToAnthropicMessagesPrompt({
                       cache_control: cacheControl
                     });
                   } else if (providerToolName === "code_execution" && part.input != null && typeof part.input === "object" && "type" in part.input && part.input.type === "programmatic-tool-call") {
-                    const { type: _2, ...inputWithoutType } = part.input;
+                    const { type: _, ...inputWithoutType } = part.input;
                     anthropicContent.push({
                       type: "server_tool_use",
                       id: part.toolCallId,
@@ -59507,11 +49252,11 @@ var AnthropicMessagesLanguageModel = class {
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName("web_search"),
               result: part.content.map((result) => {
-                var _a25;
+                var _a24;
                 return {
                   url: result.url,
                   title: result.title,
-                  pageAge: (_a25 = result.page_age) != null ? _a25 : null,
+                  pageAge: (_a24 = result.page_age) != null ? _a24 : null,
                   encryptedContent: result.encrypted_content,
                   type: result.type
                 };
@@ -59654,10 +49399,10 @@ var AnthropicMessagesLanguageModel = class {
       },
       warnings,
       providerMetadata: (() => {
-        var _a25, _b23, _c2, _d2, _e2;
+        var _a24, _b23, _c2, _d2, _e2;
         const anthropicMetadata = {
           usage: response.usage,
-          cacheCreationInputTokens: (_a25 = response.usage.cache_creation_input_tokens) != null ? _a25 : null,
+          cacheCreationInputTokens: (_a24 = response.usage.cache_creation_input_tokens) != null ? _a24 : null,
           stopSequence: (_b23 = response.stop_sequence) != null ? _b23 : null,
           iterations: response.usage.iterations ? response.usage.iterations.map((iter) => ({
             type: iter.type,
@@ -59741,7 +49486,7 @@ var AnthropicMessagesLanguageModel = class {
         controller.enqueue({ type: "stream-start", warnings });
       },
       transform(chunk, controller) {
-        var _a25, _b23, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
+        var _a24, _b23, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
         if (options.includeRawChunks) {
           controller.enqueue({ type: "raw", rawValue: chunk.rawValue });
         }
@@ -59889,7 +49634,7 @@ var AnthropicMessagesLanguageModel = class {
               case "web_fetch_tool_result": {
                 if (part.content.type === "web_fetch_result") {
                   citationDocuments.push({
-                    title: (_a25 = part.content.content.title) != null ? _a25 : part.content.url,
+                    title: (_a24 = part.content.content.title) != null ? _a24 : part.content.url,
                     mediaType: part.content.content.source.media_type
                   });
                   controller.enqueue({
@@ -60776,16 +50521,16 @@ function createAnthropic(options = {}) {
       "anthropic-version": "2023-06-01",
       ...authHeaders,
       ...options.headers
-    }, `ai-sdk/anthropic/${VERSION5}`);
+    }, `ai-sdk/anthropic/${VERSION4}`);
   };
   const createChatModel = (modelId) => {
-    var _a25;
+    var _a24;
     return new AnthropicMessagesLanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      generateId: (_a25 = options.generateId) != null ? _a25 : generateId,
+      generateId: (_a24 = options.generateId) != null ? _a24 : generateId,
       supportedUrls: () => ({
         "image/*": [/^https?:\/\/.*$/],
         "application/pdf": [/^https?:\/\/.*$/]
@@ -60815,7 +50560,7 @@ function createAnthropic(options = {}) {
 var anthropic = createAnthropic();
 
 // node_modules/@ai-sdk/google/dist/index.mjs
-var VERSION6 = "3.0.64";
+var VERSION5 = "3.0.64";
 var googleErrorDataSchema = lazySchema(() => zodSchema(exports_external.object({
   error: exports_external.object({
     code: exports_external.number().nullable(),
@@ -61037,11 +50782,11 @@ function convertJSONSchemaToOpenAPISchema(jsonSchema2, isRoot = true) {
   if (type) {
     if (Array.isArray(type)) {
       const hasNull = type.includes("null");
-      const nonNullTypes = type.filter((t2) => t2 !== "null");
+      const nonNullTypes = type.filter((t) => t !== "null");
       if (nonNullTypes.length === 0) {
         result.type = "null";
       } else {
-        result.anyOf = nonNullTypes.map((t2) => ({ type: t2 }));
+        result.anyOf = nonNullTypes.map((t) => ({ type: t }));
         if (hasNull) {
           result.nullable = true;
         }
@@ -61246,8 +50991,8 @@ function convertToGoogleGenerativeAIMessages(prompt, options) {
         contents.push({
           role: "model",
           parts: content.map((part) => {
-            var _a25, _b23, _c2, _d2;
-            const providerOpts = (_d2 = (_a25 = part.providerOptions) == null ? undefined : _a25[providerOptionsName]) != null ? _d2 : providerOptionsName !== "google" ? (_b23 = part.providerOptions) == null ? undefined : _b23.google : (_c2 = part.providerOptions) == null ? undefined : _c2.vertex;
+            var _a24, _b23, _c2, _d2;
+            const providerOpts = (_d2 = (_a24 = part.providerOptions) == null ? undefined : _a24[providerOptionsName]) != null ? _d2 : providerOptionsName !== "google" ? (_b23 = part.providerOptions) == null ? undefined : _b23.google : (_c2 = part.providerOptions) == null ? undefined : _c2.vertex;
             const thoughtSignature = (providerOpts == null ? undefined : providerOpts.thoughtSignature) != null ? String(providerOpts.thoughtSignature) : undefined;
             switch (part.type) {
               case "text": {
@@ -61776,8 +51521,8 @@ var GoogleJSONAccumulator = class {
   findCommonStackDepth(targetContainer) {
     const maxDepth = Math.min(this.pathStack.length - 1, targetContainer.length);
     let common = 0;
-    for (let i2 = 0;i2 < maxDepth; i2++) {
-      if (this.pathStack[i2 + 1].segment === targetContainer[i2]) {
+    for (let i = 0;i < maxDepth; i++) {
+      if (this.pathStack[i + 1].segment === targetContainer[i]) {
         common++;
       } else {
         break;
@@ -61796,8 +51541,8 @@ var GoogleJSONAccumulator = class {
   openDownTo(targetContainer, leafSegment) {
     let fragment = "";
     const startIdx = this.pathStack.length - 1;
-    for (let i2 = startIdx;i2 < targetContainer.length; i2++) {
-      const seg = targetContainer[i2];
+    for (let i = startIdx;i < targetContainer.length; i++) {
+      const seg = targetContainer[i];
       const parentEntry = this.pathStack[this.pathStack.length - 1];
       if (parentEntry.childCount > 0) {
         fragment += ",";
@@ -61806,7 +51551,7 @@ var GoogleJSONAccumulator = class {
       if (typeof seg === "string") {
         fragment += `${JSON.stringify(seg)}:`;
       }
-      const childSeg = i2 + 1 < targetContainer.length ? targetContainer[i2 + 1] : leafSegment;
+      const childSeg = i + 1 < targetContainer.length ? targetContainer[i + 1] : leafSegment;
       const isArray = typeof childSeg === "number";
       fragment += isArray ? "[" : "{";
       this.pathStack.push({ segment: seg, isArray, childCount: 0 });
@@ -61859,9 +51604,9 @@ function getNestedValue(obj, segments) {
 }
 function setNestedValue(obj, segments, value) {
   let current = obj;
-  for (let i2 = 0;i2 < segments.length - 1; i2++) {
-    const seg = segments[i2];
-    const nextSeg = segments[i2 + 1];
+  for (let i = 0;i < segments.length - 1; i++) {
+    const seg = segments[i];
+    const nextSeg = segments[i + 1];
     if (current[seg] == null) {
       current[seg] = typeof nextSeg === "number" ? [] : {};
     }
@@ -62859,10 +52604,10 @@ var fileSearchArgsBaseSchema = exports_external.object({
   topK: exports_external.number().int().positive().describe("The number of file search retrieval chunks to retrieve.").optional(),
   metadataFilter: exports_external.string().describe("Metadata filter to apply to the file search retrieval documents. See https://google.aip.dev/160 for the syntax of the filter expression.").optional()
 }).passthrough();
-var fileSearchArgsSchema2 = lazySchema(() => zodSchema(fileSearchArgsBaseSchema));
-var fileSearch2 = createProviderToolFactory({
+var fileSearchArgsSchema = lazySchema(() => zodSchema(fileSearchArgsBaseSchema));
+var fileSearch = createProviderToolFactory({
   id: "google.file_search",
-  inputSchema: fileSearchArgsSchema2
+  inputSchema: fileSearchArgsSchema
 });
 var googleMaps = createProviderToolFactory({
   id: "google.google_maps",
@@ -62899,7 +52644,7 @@ var googleTools = {
   enterpriseWebSearch,
   googleMaps,
   urlContext,
-  fileSearch: fileSearch2,
+  fileSearch,
   codeExecution,
   vertexRagStore
 };
@@ -62992,7 +52737,7 @@ var GoogleGenerativeAIImageModel = class {
       fetch: this.config.fetch
     });
     return {
-      images: response.predictions.map((p2) => p2.bytesBase64Encoded),
+      images: response.predictions.map((p) => p.bytesBase64Encoded),
       warnings,
       providerMetadata: {
         google: {
@@ -63249,7 +52994,7 @@ var GoogleGenerativeAIVideoModel = class {
           message: `Video generation timed out after ${pollTimeoutMs}ms`
         });
       }
-      await delay2(pollIntervalMs);
+      await delay(pollIntervalMs);
       if ((_f = options.abortSignal) == null ? undefined : _f.aborted) {
         throw new AISDKError({
           name: "GOOGLE_VIDEO_GENERATION_ABORTED",
@@ -63358,14 +53103,14 @@ function createGoogleGenerativeAI(options = {}) {
       description: "Google Generative AI"
     }),
     ...options.headers
-  }, `ai-sdk/google/${VERSION6}`);
+  }, `ai-sdk/google/${VERSION5}`);
   const createChatModel = (modelId) => {
-    var _a25;
+    var _a24;
     return new GoogleGenerativeAILanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
-      generateId: (_a25 = options.generateId) != null ? _a25 : generateId,
+      generateId: (_a24 = options.generateId) != null ? _a24 : generateId,
       supportedUrls: () => ({
         "*": [
           new RegExp(`^${baseURL}/files/.*$`),
@@ -63389,13 +53134,13 @@ function createGoogleGenerativeAI(options = {}) {
     fetch: options.fetch
   });
   const createVideoModel = (modelId) => {
-    var _a25;
+    var _a24;
     return new GoogleGenerativeAIVideoModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      generateId: (_a25 = options.generateId) != null ? _a25 : generateId
+      generateId: (_a24 = options.generateId) != null ? _a24 : generateId
     });
   };
   const provider = function(modelId) {
@@ -63421,6 +53166,5796 @@ function createGoogleGenerativeAI(options = {}) {
 }
 var google = createGoogleGenerativeAI();
 
+// node_modules/@ai-sdk/openai/dist/index.mjs
+var openaiErrorDataSchema = exports_external.object({
+  error: exports_external.object({
+    message: exports_external.string(),
+    type: exports_external.string().nullish(),
+    param: exports_external.any().nullish(),
+    code: exports_external.union([exports_external.string(), exports_external.number()]).nullish()
+  })
+});
+var openaiFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: openaiErrorDataSchema,
+  errorToMessage: (data) => data.error.message
+});
+function getOpenAILanguageModelCapabilities(modelId) {
+  const supportsFlexProcessing = modelId.startsWith("o3") || modelId.startsWith("o4-mini") || modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-chat");
+  const supportsPriorityProcessing = modelId.startsWith("gpt-4") || modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-nano") && !modelId.startsWith("gpt-5-chat") && !modelId.startsWith("gpt-5.4-nano") || modelId.startsWith("o3") || modelId.startsWith("o4-mini");
+  const isReasoningModel = modelId.startsWith("o1") || modelId.startsWith("o3") || modelId.startsWith("o4-mini") || modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-chat");
+  const supportsNonReasoningParameters = modelId.startsWith("gpt-5.1") || modelId.startsWith("gpt-5.2") || modelId.startsWith("gpt-5.3") || modelId.startsWith("gpt-5.4");
+  const systemMessageMode = isReasoningModel ? "developer" : "system";
+  return {
+    supportsFlexProcessing,
+    supportsPriorityProcessing,
+    isReasoningModel,
+    systemMessageMode,
+    supportsNonReasoningParameters
+  };
+}
+function convertOpenAIChatUsage(usage) {
+  var _a21, _b16, _c, _d, _e, _f;
+  if (usage == null) {
+    return {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined
+      },
+      raw: undefined
+    };
+  }
+  const promptTokens = (_a21 = usage.prompt_tokens) != null ? _a21 : 0;
+  const completionTokens = (_b16 = usage.completion_tokens) != null ? _b16 : 0;
+  const cachedTokens = (_d = (_c = usage.prompt_tokens_details) == null ? undefined : _c.cached_tokens) != null ? _d : 0;
+  const reasoningTokens = (_f = (_e = usage.completion_tokens_details) == null ? undefined : _e.reasoning_tokens) != null ? _f : 0;
+  return {
+    inputTokens: {
+      total: promptTokens,
+      noCache: promptTokens - cachedTokens,
+      cacheRead: cachedTokens,
+      cacheWrite: undefined
+    },
+    outputTokens: {
+      total: completionTokens,
+      text: completionTokens - reasoningTokens,
+      reasoning: reasoningTokens
+    },
+    raw: usage
+  };
+}
+function serializeToolCallArguments(input) {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+function convertToOpenAIChatMessages({
+  prompt,
+  systemMessageMode = "system"
+}) {
+  var _a21;
+  const messages = [];
+  const warnings = [];
+  for (const { role, content } of prompt) {
+    switch (role) {
+      case "system": {
+        switch (systemMessageMode) {
+          case "system": {
+            messages.push({ role: "system", content });
+            break;
+          }
+          case "developer": {
+            messages.push({ role: "developer", content });
+            break;
+          }
+          case "remove": {
+            warnings.push({
+              type: "other",
+              message: "system messages are removed for this model"
+            });
+            break;
+          }
+          default: {
+            const _exhaustiveCheck = systemMessageMode;
+            throw new Error(`Unsupported system message mode: ${_exhaustiveCheck}`);
+          }
+        }
+        break;
+      }
+      case "user": {
+        if (content.length === 1 && content[0].type === "text") {
+          messages.push({ role: "user", content: content[0].text });
+          break;
+        }
+        messages.push({
+          role: "user",
+          content: content.map((part, index) => {
+            var _a24, _b16, _c;
+            switch (part.type) {
+              case "text": {
+                return { type: "text", text: part.text };
+              }
+              case "file": {
+                if (part.mediaType.startsWith("image/")) {
+                  const mediaType = part.mediaType === "image/*" ? "image/jpeg" : part.mediaType;
+                  return {
+                    type: "image_url",
+                    image_url: {
+                      url: part.data instanceof URL ? part.data.toString() : `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                      detail: (_b16 = (_a24 = part.providerOptions) == null ? undefined : _a24.openai) == null ? undefined : _b16.imageDetail
+                    }
+                  };
+                } else if (part.mediaType.startsWith("audio/")) {
+                  if (part.data instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: "audio file parts with URLs"
+                    });
+                  }
+                  switch (part.mediaType) {
+                    case "audio/wav": {
+                      return {
+                        type: "input_audio",
+                        input_audio: {
+                          data: convertToBase64(part.data),
+                          format: "wav"
+                        }
+                      };
+                    }
+                    case "audio/mp3":
+                    case "audio/mpeg": {
+                      return {
+                        type: "input_audio",
+                        input_audio: {
+                          data: convertToBase64(part.data),
+                          format: "mp3"
+                        }
+                      };
+                    }
+                    default: {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `audio content parts with media type ${part.mediaType}`
+                      });
+                    }
+                  }
+                } else if (part.mediaType === "application/pdf") {
+                  if (part.data instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: "PDF file parts with URLs"
+                    });
+                  }
+                  return {
+                    type: "file",
+                    file: typeof part.data === "string" && part.data.startsWith("file-") ? { file_id: part.data } : {
+                      filename: (_c = part.filename) != null ? _c : `part-${index}.pdf`,
+                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`
+                    }
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `file part media type ${part.mediaType}`
+                  });
+                }
+              }
+            }
+          })
+        });
+        break;
+      }
+      case "assistant": {
+        let text2 = "";
+        const toolCalls = [];
+        for (const part of content) {
+          switch (part.type) {
+            case "text": {
+              text2 += part.text;
+              break;
+            }
+            case "tool-call": {
+              toolCalls.push({
+                id: part.toolCallId,
+                type: "function",
+                function: {
+                  name: part.toolName,
+                  arguments: serializeToolCallArguments(part.input)
+                }
+              });
+              break;
+            }
+          }
+        }
+        messages.push({
+          role: "assistant",
+          content: text2,
+          tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+        });
+        break;
+      }
+      case "tool": {
+        for (const toolResponse of content) {
+          if (toolResponse.type === "tool-approval-response") {
+            continue;
+          }
+          const output = toolResponse.output;
+          let contentValue;
+          switch (output.type) {
+            case "text":
+            case "error-text":
+              contentValue = output.value;
+              break;
+            case "execution-denied":
+              contentValue = (_a21 = output.reason) != null ? _a21 : "Tool execution denied.";
+              break;
+            case "content":
+            case "json":
+            case "error-json":
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+          messages.push({
+            role: "tool",
+            tool_call_id: toolResponse.toolCallId,
+            content: contentValue
+          });
+        }
+        break;
+      }
+      default: {
+        const _exhaustiveCheck = role;
+        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
+      }
+    }
+  }
+  return { messages, warnings };
+}
+function getResponseMetadata({
+  id,
+  model,
+  created
+}) {
+  return {
+    id: id != null ? id : undefined,
+    modelId: model != null ? model : undefined,
+    timestamp: created ? new Date(created * 1000) : undefined
+  };
+}
+function mapOpenAIFinishReason(finishReason) {
+  switch (finishReason) {
+    case "stop":
+      return "stop";
+    case "length":
+      return "length";
+    case "content_filter":
+      return "content-filter";
+    case "function_call":
+    case "tool_calls":
+      return "tool-calls";
+    default:
+      return "other";
+  }
+}
+var openaiChatResponseSchema = lazySchema(() => zodSchema(exports_external.object({
+  id: exports_external.string().nullish(),
+  created: exports_external.number().nullish(),
+  model: exports_external.string().nullish(),
+  choices: exports_external.array(exports_external.object({
+    message: exports_external.object({
+      role: exports_external.literal("assistant").nullish(),
+      content: exports_external.string().nullish(),
+      tool_calls: exports_external.array(exports_external.object({
+        id: exports_external.string().nullish(),
+        type: exports_external.literal("function"),
+        function: exports_external.object({
+          name: exports_external.string(),
+          arguments: exports_external.string()
+        })
+      })).nullish(),
+      annotations: exports_external.array(exports_external.object({
+        type: exports_external.literal("url_citation"),
+        url_citation: exports_external.object({
+          start_index: exports_external.number(),
+          end_index: exports_external.number(),
+          url: exports_external.string(),
+          title: exports_external.string()
+        })
+      })).nullish()
+    }),
+    index: exports_external.number(),
+    logprobs: exports_external.object({
+      content: exports_external.array(exports_external.object({
+        token: exports_external.string(),
+        logprob: exports_external.number(),
+        top_logprobs: exports_external.array(exports_external.object({
+          token: exports_external.string(),
+          logprob: exports_external.number()
+        }))
+      })).nullish()
+    }).nullish(),
+    finish_reason: exports_external.string().nullish()
+  })),
+  usage: exports_external.object({
+    prompt_tokens: exports_external.number().nullish(),
+    completion_tokens: exports_external.number().nullish(),
+    total_tokens: exports_external.number().nullish(),
+    prompt_tokens_details: exports_external.object({
+      cached_tokens: exports_external.number().nullish()
+    }).nullish(),
+    completion_tokens_details: exports_external.object({
+      reasoning_tokens: exports_external.number().nullish(),
+      accepted_prediction_tokens: exports_external.number().nullish(),
+      rejected_prediction_tokens: exports_external.number().nullish()
+    }).nullish()
+  }).nullish()
+})));
+var openaiChatChunkSchema = lazySchema(() => zodSchema(exports_external.union([
+  exports_external.object({
+    id: exports_external.string().nullish(),
+    created: exports_external.number().nullish(),
+    model: exports_external.string().nullish(),
+    choices: exports_external.array(exports_external.object({
+      delta: exports_external.object({
+        role: exports_external.enum(["assistant"]).nullish(),
+        content: exports_external.string().nullish(),
+        tool_calls: exports_external.array(exports_external.object({
+          index: exports_external.number(),
+          id: exports_external.string().nullish(),
+          type: exports_external.literal("function").nullish(),
+          function: exports_external.object({
+            name: exports_external.string().nullish(),
+            arguments: exports_external.string().nullish()
+          })
+        })).nullish(),
+        annotations: exports_external.array(exports_external.object({
+          type: exports_external.literal("url_citation"),
+          url_citation: exports_external.object({
+            start_index: exports_external.number(),
+            end_index: exports_external.number(),
+            url: exports_external.string(),
+            title: exports_external.string()
+          })
+        })).nullish()
+      }).nullish(),
+      logprobs: exports_external.object({
+        content: exports_external.array(exports_external.object({
+          token: exports_external.string(),
+          logprob: exports_external.number(),
+          top_logprobs: exports_external.array(exports_external.object({
+            token: exports_external.string(),
+            logprob: exports_external.number()
+          }))
+        })).nullish()
+      }).nullish(),
+      finish_reason: exports_external.string().nullish(),
+      index: exports_external.number()
+    })),
+    usage: exports_external.object({
+      prompt_tokens: exports_external.number().nullish(),
+      completion_tokens: exports_external.number().nullish(),
+      total_tokens: exports_external.number().nullish(),
+      prompt_tokens_details: exports_external.object({
+        cached_tokens: exports_external.number().nullish()
+      }).nullish(),
+      completion_tokens_details: exports_external.object({
+        reasoning_tokens: exports_external.number().nullish(),
+        accepted_prediction_tokens: exports_external.number().nullish(),
+        rejected_prediction_tokens: exports_external.number().nullish()
+      }).nullish()
+    }).nullish()
+  }),
+  openaiErrorDataSchema
+])));
+var openaiLanguageModelChatOptions = lazySchema(() => zodSchema(exports_external.object({
+  logitBias: exports_external.record(exports_external.coerce.number(), exports_external.number()).optional(),
+  logprobs: exports_external.union([exports_external.boolean(), exports_external.number()]).optional(),
+  parallelToolCalls: exports_external.boolean().optional(),
+  user: exports_external.string().optional(),
+  reasoningEffort: exports_external.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  maxCompletionTokens: exports_external.number().optional(),
+  store: exports_external.boolean().optional(),
+  metadata: exports_external.record(exports_external.string().max(64), exports_external.string().max(512)).optional(),
+  prediction: exports_external.record(exports_external.string(), exports_external.any()).optional(),
+  serviceTier: exports_external.enum(["auto", "flex", "priority", "default"]).optional(),
+  strictJsonSchema: exports_external.boolean().optional(),
+  textVerbosity: exports_external.enum(["low", "medium", "high"]).optional(),
+  promptCacheKey: exports_external.string().optional(),
+  promptCacheRetention: exports_external.enum(["in_memory", "24h"]).optional(),
+  safetyIdentifier: exports_external.string().optional(),
+  systemMessageMode: exports_external.enum(["system", "developer", "remove"]).optional(),
+  forceReasoning: exports_external.boolean().optional()
+})));
+function prepareChatTools({
+  tools,
+  toolChoice
+}) {
+  tools = (tools == null ? undefined : tools.length) ? tools : undefined;
+  const toolWarnings = [];
+  if (tools == null) {
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
+  }
+  const openaiTools2 = [];
+  for (const tool2 of tools) {
+    switch (tool2.type) {
+      case "function":
+        openaiTools2.push({
+          type: "function",
+          function: {
+            name: tool2.name,
+            description: tool2.description,
+            parameters: tool2.inputSchema,
+            ...tool2.strict != null ? { strict: tool2.strict } : {}
+          }
+        });
+        break;
+      default:
+        toolWarnings.push({
+          type: "unsupported",
+          feature: `tool type: ${tool2.type}`
+        });
+        break;
+    }
+  }
+  if (toolChoice == null) {
+    return { tools: openaiTools2, toolChoice: undefined, toolWarnings };
+  }
+  const type = toolChoice.type;
+  switch (type) {
+    case "auto":
+    case "none":
+    case "required":
+      return { tools: openaiTools2, toolChoice: type, toolWarnings };
+    case "tool":
+      return {
+        tools: openaiTools2,
+        toolChoice: {
+          type: "function",
+          function: {
+            name: toolChoice.toolName
+          }
+        },
+        toolWarnings
+      };
+    default: {
+      const _exhaustiveCheck = type;
+      throw new UnsupportedFunctionalityError({
+        functionality: `tool choice type: ${_exhaustiveCheck}`
+      });
+    }
+  }
+}
+var OpenAIChatLanguageModel = class {
+  constructor(modelId, config2) {
+    this.specificationVersion = "v3";
+    this.supportedUrls = {
+      "image/*": [/^https?:\/\/.*$/]
+    };
+    this.modelId = modelId;
+    this.config = config2;
+  }
+  get provider() {
+    return this.config.provider;
+  }
+  async getArgs({
+    prompt,
+    maxOutputTokens,
+    temperature,
+    topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
+    stopSequences,
+    responseFormat,
+    seed,
+    tools,
+    toolChoice,
+    providerOptions
+  }) {
+    var _a21, _b16, _c, _d, _e;
+    const warnings = [];
+    const openaiOptions = (_a21 = await parseProviderOptions({
+      provider: "openai",
+      providerOptions,
+      schema: openaiLanguageModelChatOptions
+    })) != null ? _a21 : {};
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    const isReasoningModel = (_b16 = openaiOptions.forceReasoning) != null ? _b16 : modelCapabilities.isReasoningModel;
+    if (topK != null) {
+      warnings.push({ type: "unsupported", feature: "topK" });
+    }
+    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages({
+      prompt,
+      systemMessageMode: (_c = openaiOptions.systemMessageMode) != null ? _c : isReasoningModel ? "developer" : modelCapabilities.systemMessageMode
+    });
+    warnings.push(...messageWarnings);
+    const strictJsonSchema = (_d = openaiOptions.strictJsonSchema) != null ? _d : true;
+    const baseArgs = {
+      model: this.modelId,
+      logit_bias: openaiOptions.logitBias,
+      logprobs: openaiOptions.logprobs === true || typeof openaiOptions.logprobs === "number" ? true : undefined,
+      top_logprobs: typeof openaiOptions.logprobs === "number" ? openaiOptions.logprobs : typeof openaiOptions.logprobs === "boolean" ? openaiOptions.logprobs ? 0 : undefined : undefined,
+      user: openaiOptions.user,
+      parallel_tool_calls: openaiOptions.parallelToolCalls,
+      max_tokens: maxOutputTokens,
+      temperature,
+      top_p: topP,
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
+      response_format: (responseFormat == null ? undefined : responseFormat.type) === "json" ? responseFormat.schema != null ? {
+        type: "json_schema",
+        json_schema: {
+          schema: responseFormat.schema,
+          strict: strictJsonSchema,
+          name: (_e = responseFormat.name) != null ? _e : "response",
+          description: responseFormat.description
+        }
+      } : { type: "json_object" } : undefined,
+      stop: stopSequences,
+      seed,
+      verbosity: openaiOptions.textVerbosity,
+      max_completion_tokens: openaiOptions.maxCompletionTokens,
+      store: openaiOptions.store,
+      metadata: openaiOptions.metadata,
+      prediction: openaiOptions.prediction,
+      reasoning_effort: openaiOptions.reasoningEffort,
+      service_tier: openaiOptions.serviceTier,
+      prompt_cache_key: openaiOptions.promptCacheKey,
+      prompt_cache_retention: openaiOptions.promptCacheRetention,
+      safety_identifier: openaiOptions.safetyIdentifier,
+      messages
+    };
+    if (isReasoningModel) {
+      if (openaiOptions.reasoningEffort !== "none" || !modelCapabilities.supportsNonReasoningParameters) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: "unsupported",
+            feature: "temperature",
+            details: "temperature is not supported for reasoning models"
+          });
+        }
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: "unsupported",
+            feature: "topP",
+            details: "topP is not supported for reasoning models"
+          });
+        }
+        if (baseArgs.logprobs != null) {
+          baseArgs.logprobs = undefined;
+          warnings.push({
+            type: "other",
+            message: "logprobs is not supported for reasoning models"
+          });
+        }
+      }
+      if (baseArgs.frequency_penalty != null) {
+        baseArgs.frequency_penalty = undefined;
+        warnings.push({
+          type: "unsupported",
+          feature: "frequencyPenalty",
+          details: "frequencyPenalty is not supported for reasoning models"
+        });
+      }
+      if (baseArgs.presence_penalty != null) {
+        baseArgs.presence_penalty = undefined;
+        warnings.push({
+          type: "unsupported",
+          feature: "presencePenalty",
+          details: "presencePenalty is not supported for reasoning models"
+        });
+      }
+      if (baseArgs.logit_bias != null) {
+        baseArgs.logit_bias = undefined;
+        warnings.push({
+          type: "other",
+          message: "logitBias is not supported for reasoning models"
+        });
+      }
+      if (baseArgs.top_logprobs != null) {
+        baseArgs.top_logprobs = undefined;
+        warnings.push({
+          type: "other",
+          message: "topLogprobs is not supported for reasoning models"
+        });
+      }
+      if (baseArgs.max_tokens != null) {
+        if (baseArgs.max_completion_tokens == null) {
+          baseArgs.max_completion_tokens = baseArgs.max_tokens;
+        }
+        baseArgs.max_tokens = undefined;
+      }
+    } else if (this.modelId.startsWith("gpt-4o-search-preview") || this.modelId.startsWith("gpt-4o-mini-search-preview")) {
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: "unsupported",
+          feature: "temperature",
+          details: "temperature is not supported for the search preview models and has been removed."
+        });
+      }
+    }
+    if (openaiOptions.serviceTier === "flex" && !modelCapabilities.supportsFlexProcessing) {
+      warnings.push({
+        type: "unsupported",
+        feature: "serviceTier",
+        details: "flex processing is only available for o3, o4-mini, and gpt-5 models"
+      });
+      baseArgs.service_tier = undefined;
+    }
+    if (openaiOptions.serviceTier === "priority" && !modelCapabilities.supportsPriorityProcessing) {
+      warnings.push({
+        type: "unsupported",
+        feature: "serviceTier",
+        details: "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported"
+      });
+      baseArgs.service_tier = undefined;
+    }
+    const {
+      tools: openaiTools2,
+      toolChoice: openaiToolChoice,
+      toolWarnings
+    } = prepareChatTools({
+      tools,
+      toolChoice
+    });
+    return {
+      args: {
+        ...baseArgs,
+        tools: openaiTools2,
+        tool_choice: openaiToolChoice
+      },
+      warnings: [...warnings, ...toolWarnings]
+    };
+  }
+  async doGenerate(options) {
+    var _a21, _b16, _c, _d, _e, _f, _g;
+    const { args: body, warnings } = await this.getArgs(options);
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse
+    } = await postJsonToApi({
+      url: this.config.url({
+        path: "/chat/completions",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(openaiChatResponseSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    const choice2 = response.choices[0];
+    const content = [];
+    const text2 = choice2.message.content;
+    if (text2 != null && text2.length > 0) {
+      content.push({ type: "text", text: text2 });
+    }
+    for (const toolCall of (_a21 = choice2.message.tool_calls) != null ? _a21 : []) {
+      content.push({
+        type: "tool-call",
+        toolCallId: (_b16 = toolCall.id) != null ? _b16 : generateId(),
+        toolName: toolCall.function.name,
+        input: toolCall.function.arguments
+      });
+    }
+    for (const annotation of (_c = choice2.message.annotations) != null ? _c : []) {
+      content.push({
+        type: "source",
+        sourceType: "url",
+        id: generateId(),
+        url: annotation.url_citation.url,
+        title: annotation.url_citation.title
+      });
+    }
+    const completionTokenDetails = (_d = response.usage) == null ? undefined : _d.completion_tokens_details;
+    const promptTokenDetails = (_e = response.usage) == null ? undefined : _e.prompt_tokens_details;
+    const providerMetadata = { openai: {} };
+    if ((completionTokenDetails == null ? undefined : completionTokenDetails.accepted_prediction_tokens) != null) {
+      providerMetadata.openai.acceptedPredictionTokens = completionTokenDetails == null ? undefined : completionTokenDetails.accepted_prediction_tokens;
+    }
+    if ((completionTokenDetails == null ? undefined : completionTokenDetails.rejected_prediction_tokens) != null) {
+      providerMetadata.openai.rejectedPredictionTokens = completionTokenDetails == null ? undefined : completionTokenDetails.rejected_prediction_tokens;
+    }
+    if (((_f = choice2.logprobs) == null ? undefined : _f.content) != null) {
+      providerMetadata.openai.logprobs = choice2.logprobs.content;
+    }
+    return {
+      content,
+      finishReason: {
+        unified: mapOpenAIFinishReason(choice2.finish_reason),
+        raw: (_g = choice2.finish_reason) != null ? _g : undefined
+      },
+      usage: convertOpenAIChatUsage(response.usage),
+      request: { body },
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse
+      },
+      warnings,
+      providerMetadata
+    };
+  }
+  async doStream(options) {
+    const { args, warnings } = await this.getArgs(options);
+    const body = {
+      ...args,
+      stream: true,
+      stream_options: {
+        include_usage: true
+      }
+    };
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: this.config.url({
+        path: "/chat/completions",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(openaiChatChunkSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    const toolCalls = [];
+    let finishReason = {
+      unified: "other",
+      raw: undefined
+    };
+    let usage = undefined;
+    let metadataExtracted = false;
+    let isActiveText = false;
+    const providerMetadata = { openai: {} };
+    return {
+      stream: response.pipeThrough(new TransformStream({
+        start(controller) {
+          controller.enqueue({ type: "stream-start", warnings });
+        },
+        transform(chunk, controller) {
+          var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q;
+          if (options.includeRawChunks) {
+            controller.enqueue({ type: "raw", rawValue: chunk.rawValue });
+          }
+          if (!chunk.success) {
+            finishReason = { unified: "error", raw: undefined };
+            controller.enqueue({ type: "error", error: chunk.error });
+            return;
+          }
+          const value = chunk.value;
+          if ("error" in value) {
+            finishReason = { unified: "error", raw: undefined };
+            controller.enqueue({ type: "error", error: value.error });
+            return;
+          }
+          if (!metadataExtracted) {
+            const metadata = getResponseMetadata(value);
+            if (Object.values(metadata).some(Boolean)) {
+              metadataExtracted = true;
+              controller.enqueue({
+                type: "response-metadata",
+                ...getResponseMetadata(value)
+              });
+            }
+          }
+          if (value.usage != null) {
+            usage = value.usage;
+            if (((_a21 = value.usage.completion_tokens_details) == null ? undefined : _a21.accepted_prediction_tokens) != null) {
+              providerMetadata.openai.acceptedPredictionTokens = (_b16 = value.usage.completion_tokens_details) == null ? undefined : _b16.accepted_prediction_tokens;
+            }
+            if (((_c = value.usage.completion_tokens_details) == null ? undefined : _c.rejected_prediction_tokens) != null) {
+              providerMetadata.openai.rejectedPredictionTokens = (_d = value.usage.completion_tokens_details) == null ? undefined : _d.rejected_prediction_tokens;
+            }
+          }
+          const choice2 = value.choices[0];
+          if ((choice2 == null ? undefined : choice2.finish_reason) != null) {
+            finishReason = {
+              unified: mapOpenAIFinishReason(choice2.finish_reason),
+              raw: choice2.finish_reason
+            };
+          }
+          if (((_e = choice2 == null ? undefined : choice2.logprobs) == null ? undefined : _e.content) != null) {
+            providerMetadata.openai.logprobs = choice2.logprobs.content;
+          }
+          if ((choice2 == null ? undefined : choice2.delta) == null) {
+            return;
+          }
+          const delta = choice2.delta;
+          if (delta.content != null) {
+            if (!isActiveText) {
+              controller.enqueue({ type: "text-start", id: "0" });
+              isActiveText = true;
+            }
+            controller.enqueue({
+              type: "text-delta",
+              id: "0",
+              delta: delta.content
+            });
+          }
+          if (delta.tool_calls != null) {
+            for (const toolCallDelta of delta.tool_calls) {
+              const index = toolCallDelta.index;
+              if (toolCalls[index] == null) {
+                if (toolCallDelta.type != null && toolCallDelta.type !== "function") {
+                  throw new InvalidResponseDataError({
+                    data: toolCallDelta,
+                    message: `Expected 'function' type.`
+                  });
+                }
+                if (toolCallDelta.id == null) {
+                  throw new InvalidResponseDataError({
+                    data: toolCallDelta,
+                    message: `Expected 'id' to be a string.`
+                  });
+                }
+                if (((_f = toolCallDelta.function) == null ? undefined : _f.name) == null) {
+                  throw new InvalidResponseDataError({
+                    data: toolCallDelta,
+                    message: `Expected 'function.name' to be a string.`
+                  });
+                }
+                controller.enqueue({
+                  type: "tool-input-start",
+                  id: toolCallDelta.id,
+                  toolName: toolCallDelta.function.name
+                });
+                toolCalls[index] = {
+                  id: toolCallDelta.id,
+                  type: "function",
+                  function: {
+                    name: toolCallDelta.function.name,
+                    arguments: (_g = toolCallDelta.function.arguments) != null ? _g : ""
+                  },
+                  hasFinished: false
+                };
+                const toolCall2 = toolCalls[index];
+                if (((_h = toolCall2.function) == null ? undefined : _h.name) != null && ((_i = toolCall2.function) == null ? undefined : _i.arguments) != null) {
+                  if (toolCall2.function.arguments.length > 0) {
+                    controller.enqueue({
+                      type: "tool-input-delta",
+                      id: toolCall2.id,
+                      delta: toolCall2.function.arguments
+                    });
+                  }
+                  if (isParsableJson(toolCall2.function.arguments)) {
+                    controller.enqueue({
+                      type: "tool-input-end",
+                      id: toolCall2.id
+                    });
+                    controller.enqueue({
+                      type: "tool-call",
+                      toolCallId: (_j = toolCall2.id) != null ? _j : generateId(),
+                      toolName: toolCall2.function.name,
+                      input: toolCall2.function.arguments
+                    });
+                    toolCall2.hasFinished = true;
+                  }
+                }
+                continue;
+              }
+              const toolCall = toolCalls[index];
+              if (toolCall.hasFinished) {
+                continue;
+              }
+              if (((_k = toolCallDelta.function) == null ? undefined : _k.arguments) != null) {
+                toolCall.function.arguments += (_m = (_l = toolCallDelta.function) == null ? undefined : _l.arguments) != null ? _m : "";
+              }
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: toolCall.id,
+                delta: (_n = toolCallDelta.function.arguments) != null ? _n : ""
+              });
+              if (((_o = toolCall.function) == null ? undefined : _o.name) != null && ((_p = toolCall.function) == null ? undefined : _p.arguments) != null && isParsableJson(toolCall.function.arguments)) {
+                controller.enqueue({
+                  type: "tool-input-end",
+                  id: toolCall.id
+                });
+                controller.enqueue({
+                  type: "tool-call",
+                  toolCallId: (_q = toolCall.id) != null ? _q : generateId(),
+                  toolName: toolCall.function.name,
+                  input: toolCall.function.arguments
+                });
+                toolCall.hasFinished = true;
+              }
+            }
+          }
+          if (delta.annotations != null) {
+            for (const annotation of delta.annotations) {
+              controller.enqueue({
+                type: "source",
+                sourceType: "url",
+                id: generateId(),
+                url: annotation.url_citation.url,
+                title: annotation.url_citation.title
+              });
+            }
+          }
+        },
+        flush(controller) {
+          if (isActiveText) {
+            controller.enqueue({ type: "text-end", id: "0" });
+          }
+          controller.enqueue({
+            type: "finish",
+            finishReason,
+            usage: convertOpenAIChatUsage(usage),
+            ...providerMetadata != null ? { providerMetadata } : {}
+          });
+        }
+      })),
+      request: { body },
+      response: { headers: responseHeaders }
+    };
+  }
+};
+function convertOpenAICompletionUsage(usage) {
+  var _a21, _b16, _c, _d;
+  if (usage == null) {
+    return {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined
+      },
+      raw: undefined
+    };
+  }
+  const promptTokens = (_a21 = usage.prompt_tokens) != null ? _a21 : 0;
+  const completionTokens = (_b16 = usage.completion_tokens) != null ? _b16 : 0;
+  return {
+    inputTokens: {
+      total: (_c = usage.prompt_tokens) != null ? _c : undefined,
+      noCache: promptTokens,
+      cacheRead: undefined,
+      cacheWrite: undefined
+    },
+    outputTokens: {
+      total: (_d = usage.completion_tokens) != null ? _d : undefined,
+      text: completionTokens,
+      reasoning: undefined
+    },
+    raw: usage
+  };
+}
+function convertToOpenAICompletionPrompt({
+  prompt,
+  user = "user",
+  assistant = "assistant"
+}) {
+  let text2 = "";
+  if (prompt[0].role === "system") {
+    text2 += `${prompt[0].content}
+
+`;
+    prompt = prompt.slice(1);
+  }
+  for (const { role, content } of prompt) {
+    switch (role) {
+      case "system": {
+        throw new InvalidPromptError({
+          message: "Unexpected system message in prompt: ${content}",
+          prompt
+        });
+      }
+      case "user": {
+        const userMessage = content.map((part) => {
+          switch (part.type) {
+            case "text": {
+              return part.text;
+            }
+          }
+        }).filter(Boolean).join("");
+        text2 += `${user}:
+${userMessage}
+
+`;
+        break;
+      }
+      case "assistant": {
+        const assistantMessage = content.map((part) => {
+          switch (part.type) {
+            case "text": {
+              return part.text;
+            }
+            case "tool-call": {
+              throw new UnsupportedFunctionalityError({
+                functionality: "tool-call messages"
+              });
+            }
+          }
+        }).join("");
+        text2 += `${assistant}:
+${assistantMessage}
+
+`;
+        break;
+      }
+      case "tool": {
+        throw new UnsupportedFunctionalityError({
+          functionality: "tool messages"
+        });
+      }
+      default: {
+        const _exhaustiveCheck = role;
+        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
+      }
+    }
+  }
+  text2 += `${assistant}:
+`;
+  return {
+    prompt: text2,
+    stopSequences: [`
+${user}:`]
+  };
+}
+function getResponseMetadata2({
+  id,
+  model,
+  created
+}) {
+  return {
+    id: id != null ? id : undefined,
+    modelId: model != null ? model : undefined,
+    timestamp: created != null ? new Date(created * 1000) : undefined
+  };
+}
+function mapOpenAIFinishReason2(finishReason) {
+  switch (finishReason) {
+    case "stop":
+      return "stop";
+    case "length":
+      return "length";
+    case "content_filter":
+      return "content-filter";
+    case "function_call":
+    case "tool_calls":
+      return "tool-calls";
+    default:
+      return "other";
+  }
+}
+var openaiCompletionResponseSchema = lazySchema(() => zodSchema(exports_external.object({
+  id: exports_external.string().nullish(),
+  created: exports_external.number().nullish(),
+  model: exports_external.string().nullish(),
+  choices: exports_external.array(exports_external.object({
+    text: exports_external.string(),
+    finish_reason: exports_external.string(),
+    logprobs: exports_external.object({
+      tokens: exports_external.array(exports_external.string()),
+      token_logprobs: exports_external.array(exports_external.number()),
+      top_logprobs: exports_external.array(exports_external.record(exports_external.string(), exports_external.number())).nullish()
+    }).nullish()
+  })),
+  usage: exports_external.object({
+    prompt_tokens: exports_external.number(),
+    completion_tokens: exports_external.number(),
+    total_tokens: exports_external.number()
+  }).nullish()
+})));
+var openaiCompletionChunkSchema = lazySchema(() => zodSchema(exports_external.union([
+  exports_external.object({
+    id: exports_external.string().nullish(),
+    created: exports_external.number().nullish(),
+    model: exports_external.string().nullish(),
+    choices: exports_external.array(exports_external.object({
+      text: exports_external.string(),
+      finish_reason: exports_external.string().nullish(),
+      index: exports_external.number(),
+      logprobs: exports_external.object({
+        tokens: exports_external.array(exports_external.string()),
+        token_logprobs: exports_external.array(exports_external.number()),
+        top_logprobs: exports_external.array(exports_external.record(exports_external.string(), exports_external.number())).nullish()
+      }).nullish()
+    })),
+    usage: exports_external.object({
+      prompt_tokens: exports_external.number(),
+      completion_tokens: exports_external.number(),
+      total_tokens: exports_external.number()
+    }).nullish()
+  }),
+  openaiErrorDataSchema
+])));
+var openaiLanguageModelCompletionOptions = lazySchema(() => zodSchema(exports_external.object({
+  echo: exports_external.boolean().optional(),
+  logitBias: exports_external.record(exports_external.string(), exports_external.number()).optional(),
+  suffix: exports_external.string().optional(),
+  user: exports_external.string().optional(),
+  logprobs: exports_external.union([exports_external.boolean(), exports_external.number()]).optional()
+})));
+var OpenAICompletionLanguageModel = class {
+  constructor(modelId, config2) {
+    this.specificationVersion = "v3";
+    this.supportedUrls = {};
+    this.modelId = modelId;
+    this.config = config2;
+  }
+  get providerOptionsName() {
+    return this.config.provider.split(".")[0].trim();
+  }
+  get provider() {
+    return this.config.provider;
+  }
+  async getArgs({
+    prompt,
+    maxOutputTokens,
+    temperature,
+    topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
+    stopSequences: userStopSequences,
+    responseFormat,
+    tools,
+    toolChoice,
+    seed,
+    providerOptions
+  }) {
+    const warnings = [];
+    const openaiOptions = {
+      ...await parseProviderOptions({
+        provider: "openai",
+        providerOptions,
+        schema: openaiLanguageModelCompletionOptions
+      }),
+      ...await parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiLanguageModelCompletionOptions
+      })
+    };
+    if (topK != null) {
+      warnings.push({ type: "unsupported", feature: "topK" });
+    }
+    if (tools == null ? undefined : tools.length) {
+      warnings.push({ type: "unsupported", feature: "tools" });
+    }
+    if (toolChoice != null) {
+      warnings.push({ type: "unsupported", feature: "toolChoice" });
+    }
+    if (responseFormat != null && responseFormat.type !== "text") {
+      warnings.push({
+        type: "unsupported",
+        feature: "responseFormat",
+        details: "JSON response format is not supported."
+      });
+    }
+    const { prompt: completionPrompt, stopSequences } = convertToOpenAICompletionPrompt({ prompt });
+    const stop = [...stopSequences != null ? stopSequences : [], ...userStopSequences != null ? userStopSequences : []];
+    return {
+      args: {
+        model: this.modelId,
+        echo: openaiOptions.echo,
+        logit_bias: openaiOptions.logitBias,
+        logprobs: (openaiOptions == null ? undefined : openaiOptions.logprobs) === true ? 0 : (openaiOptions == null ? undefined : openaiOptions.logprobs) === false ? undefined : openaiOptions == null ? undefined : openaiOptions.logprobs,
+        suffix: openaiOptions.suffix,
+        user: openaiOptions.user,
+        max_tokens: maxOutputTokens,
+        temperature,
+        top_p: topP,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        seed,
+        prompt: completionPrompt,
+        stop: stop.length > 0 ? stop : undefined
+      },
+      warnings
+    };
+  }
+  async doGenerate(options) {
+    var _a21;
+    const { args, warnings } = await this.getArgs(options);
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse
+    } = await postJsonToApi({
+      url: this.config.url({
+        path: "/completions",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: args,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(openaiCompletionResponseSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    const choice2 = response.choices[0];
+    const providerMetadata = { openai: {} };
+    if (choice2.logprobs != null) {
+      providerMetadata.openai.logprobs = choice2.logprobs;
+    }
+    return {
+      content: [{ type: "text", text: choice2.text }],
+      usage: convertOpenAICompletionUsage(response.usage),
+      finishReason: {
+        unified: mapOpenAIFinishReason2(choice2.finish_reason),
+        raw: (_a21 = choice2.finish_reason) != null ? _a21 : undefined
+      },
+      request: { body: args },
+      response: {
+        ...getResponseMetadata2(response),
+        headers: responseHeaders,
+        body: rawResponse
+      },
+      providerMetadata,
+      warnings
+    };
+  }
+  async doStream(options) {
+    const { args, warnings } = await this.getArgs(options);
+    const body = {
+      ...args,
+      stream: true,
+      stream_options: {
+        include_usage: true
+      }
+    };
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: this.config.url({
+        path: "/completions",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(openaiCompletionChunkSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    let finishReason = {
+      unified: "other",
+      raw: undefined
+    };
+    const providerMetadata = { openai: {} };
+    let usage = undefined;
+    let isFirstChunk = true;
+    return {
+      stream: response.pipeThrough(new TransformStream({
+        start(controller) {
+          controller.enqueue({ type: "stream-start", warnings });
+        },
+        transform(chunk, controller) {
+          if (options.includeRawChunks) {
+            controller.enqueue({ type: "raw", rawValue: chunk.rawValue });
+          }
+          if (!chunk.success) {
+            finishReason = { unified: "error", raw: undefined };
+            controller.enqueue({ type: "error", error: chunk.error });
+            return;
+          }
+          const value = chunk.value;
+          if ("error" in value) {
+            finishReason = { unified: "error", raw: undefined };
+            controller.enqueue({ type: "error", error: value.error });
+            return;
+          }
+          if (isFirstChunk) {
+            isFirstChunk = false;
+            controller.enqueue({
+              type: "response-metadata",
+              ...getResponseMetadata2(value)
+            });
+            controller.enqueue({ type: "text-start", id: "0" });
+          }
+          if (value.usage != null) {
+            usage = value.usage;
+          }
+          const choice2 = value.choices[0];
+          if ((choice2 == null ? undefined : choice2.finish_reason) != null) {
+            finishReason = {
+              unified: mapOpenAIFinishReason2(choice2.finish_reason),
+              raw: choice2.finish_reason
+            };
+          }
+          if ((choice2 == null ? undefined : choice2.logprobs) != null) {
+            providerMetadata.openai.logprobs = choice2.logprobs;
+          }
+          if ((choice2 == null ? undefined : choice2.text) != null && choice2.text.length > 0) {
+            controller.enqueue({
+              type: "text-delta",
+              id: "0",
+              delta: choice2.text
+            });
+          }
+        },
+        flush(controller) {
+          if (!isFirstChunk) {
+            controller.enqueue({ type: "text-end", id: "0" });
+          }
+          controller.enqueue({
+            type: "finish",
+            finishReason,
+            providerMetadata,
+            usage: convertOpenAICompletionUsage(usage)
+          });
+        }
+      })),
+      request: { body },
+      response: { headers: responseHeaders }
+    };
+  }
+};
+var openaiEmbeddingModelOptions = lazySchema(() => zodSchema(exports_external.object({
+  dimensions: exports_external.number().optional(),
+  user: exports_external.string().optional()
+})));
+var openaiTextEmbeddingResponseSchema = lazySchema(() => zodSchema(exports_external.object({
+  data: exports_external.array(exports_external.object({ embedding: exports_external.array(exports_external.number()) })),
+  usage: exports_external.object({ prompt_tokens: exports_external.number() }).nullish()
+})));
+var OpenAIEmbeddingModel = class {
+  constructor(modelId, config2) {
+    this.specificationVersion = "v3";
+    this.maxEmbeddingsPerCall = 2048;
+    this.supportsParallelCalls = true;
+    this.modelId = modelId;
+    this.config = config2;
+  }
+  get provider() {
+    return this.config.provider;
+  }
+  async doEmbed({
+    values,
+    headers,
+    abortSignal,
+    providerOptions
+  }) {
+    var _a21;
+    if (values.length > this.maxEmbeddingsPerCall) {
+      throw new TooManyEmbeddingValuesForCallError({
+        provider: this.provider,
+        modelId: this.modelId,
+        maxEmbeddingsPerCall: this.maxEmbeddingsPerCall,
+        values
+      });
+    }
+    const openaiOptions = (_a21 = await parseProviderOptions({
+      provider: "openai",
+      providerOptions,
+      schema: openaiEmbeddingModelOptions
+    })) != null ? _a21 : {};
+    const {
+      responseHeaders,
+      value: response,
+      rawValue
+    } = await postJsonToApi({
+      url: this.config.url({
+        path: "/embeddings",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), headers),
+      body: {
+        model: this.modelId,
+        input: values,
+        encoding_format: "float",
+        dimensions: openaiOptions.dimensions,
+        user: openaiOptions.user
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(openaiTextEmbeddingResponseSchema),
+      abortSignal,
+      fetch: this.config.fetch
+    });
+    return {
+      warnings: [],
+      embeddings: response.data.map((item) => item.embedding),
+      usage: response.usage ? { tokens: response.usage.prompt_tokens } : undefined,
+      response: { headers: responseHeaders, body: rawValue }
+    };
+  }
+};
+var openaiImageResponseSchema = lazySchema(() => zodSchema(exports_external.object({
+  created: exports_external.number().nullish(),
+  data: exports_external.array(exports_external.object({
+    b64_json: exports_external.string(),
+    revised_prompt: exports_external.string().nullish()
+  })),
+  background: exports_external.string().nullish(),
+  output_format: exports_external.string().nullish(),
+  size: exports_external.string().nullish(),
+  quality: exports_external.string().nullish(),
+  usage: exports_external.object({
+    input_tokens: exports_external.number().nullish(),
+    output_tokens: exports_external.number().nullish(),
+    total_tokens: exports_external.number().nullish(),
+    input_tokens_details: exports_external.object({
+      image_tokens: exports_external.number().nullish(),
+      text_tokens: exports_external.number().nullish()
+    }).nullish()
+  }).nullish()
+})));
+var modelMaxImagesPerCall = {
+  "dall-e-3": 1,
+  "dall-e-2": 10,
+  "gpt-image-1": 10,
+  "gpt-image-1-mini": 10,
+  "gpt-image-1.5": 10,
+  "chatgpt-image-latest": 10
+};
+var defaultResponseFormatPrefixes = [
+  "chatgpt-image-",
+  "gpt-image-1-mini",
+  "gpt-image-1.5",
+  "gpt-image-1"
+];
+function hasDefaultResponseFormat(modelId) {
+  return defaultResponseFormatPrefixes.some((prefix) => modelId.startsWith(prefix));
+}
+var OpenAIImageModel = class {
+  constructor(modelId, config2) {
+    this.modelId = modelId;
+    this.config = config2;
+    this.specificationVersion = "v3";
+  }
+  get maxImagesPerCall() {
+    var _a21;
+    return (_a21 = modelMaxImagesPerCall[this.modelId]) != null ? _a21 : 1;
+  }
+  get provider() {
+    return this.config.provider;
+  }
+  async doGenerate({
+    prompt,
+    files,
+    mask,
+    n,
+    size,
+    aspectRatio,
+    seed,
+    providerOptions,
+    headers,
+    abortSignal
+  }) {
+    var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k;
+    const warnings = [];
+    if (aspectRatio != null) {
+      warnings.push({
+        type: "unsupported",
+        feature: "aspectRatio",
+        details: "This model does not support aspect ratio. Use `size` instead."
+      });
+    }
+    if (seed != null) {
+      warnings.push({ type: "unsupported", feature: "seed" });
+    }
+    const currentDate = (_c = (_b16 = (_a21 = this.config._internal) == null ? undefined : _a21.currentDate) == null ? undefined : _b16.call(_a21)) != null ? _c : /* @__PURE__ */ new Date;
+    if (files != null) {
+      const { value: response2, responseHeaders: responseHeaders2 } = await postFormDataToApi({
+        url: this.config.url({
+          path: "/images/edits",
+          modelId: this.modelId
+        }),
+        headers: combineHeaders(this.config.headers(), headers),
+        formData: convertToFormData({
+          model: this.modelId,
+          prompt,
+          image: await Promise.all(files.map((file2) => file2.type === "file" ? new Blob([
+            file2.data instanceof Uint8Array ? new Blob([file2.data], {
+              type: file2.mediaType
+            }) : new Blob([convertBase64ToUint8Array(file2.data)], {
+              type: file2.mediaType
+            })
+          ], { type: file2.mediaType }) : downloadBlob(file2.url))),
+          mask: mask != null ? await fileToBlob(mask) : undefined,
+          n,
+          size,
+          ...(_d = providerOptions.openai) != null ? _d : {}
+        }),
+        failedResponseHandler: openaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(openaiImageResponseSchema),
+        abortSignal,
+        fetch: this.config.fetch
+      });
+      return {
+        images: response2.data.map((item) => item.b64_json),
+        warnings,
+        usage: response2.usage != null ? {
+          inputTokens: (_e = response2.usage.input_tokens) != null ? _e : undefined,
+          outputTokens: (_f = response2.usage.output_tokens) != null ? _f : undefined,
+          totalTokens: (_g = response2.usage.total_tokens) != null ? _g : undefined
+        } : undefined,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders2
+        },
+        providerMetadata: {
+          openai: {
+            images: response2.data.map((item, index) => {
+              var _a24, _b23, _c2, _d2, _e2, _f2;
+              return {
+                ...item.revised_prompt ? { revisedPrompt: item.revised_prompt } : {},
+                created: (_a24 = response2.created) != null ? _a24 : undefined,
+                size: (_b23 = response2.size) != null ? _b23 : undefined,
+                quality: (_c2 = response2.quality) != null ? _c2 : undefined,
+                background: (_d2 = response2.background) != null ? _d2 : undefined,
+                outputFormat: (_e2 = response2.output_format) != null ? _e2 : undefined,
+                ...distributeTokenDetails((_f2 = response2.usage) == null ? undefined : _f2.input_tokens_details, index, response2.data.length)
+              };
+            })
+          }
+        }
+      };
+    }
+    const { value: response, responseHeaders } = await postJsonToApi({
+      url: this.config.url({
+        path: "/images/generations",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), headers),
+      body: {
+        model: this.modelId,
+        prompt,
+        n,
+        size,
+        ...(_h = providerOptions.openai) != null ? _h : {},
+        ...!hasDefaultResponseFormat(this.modelId) ? { response_format: "b64_json" } : {}
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(openaiImageResponseSchema),
+      abortSignal,
+      fetch: this.config.fetch
+    });
+    return {
+      images: response.data.map((item) => item.b64_json),
+      warnings,
+      usage: response.usage != null ? {
+        inputTokens: (_i = response.usage.input_tokens) != null ? _i : undefined,
+        outputTokens: (_j = response.usage.output_tokens) != null ? _j : undefined,
+        totalTokens: (_k = response.usage.total_tokens) != null ? _k : undefined
+      } : undefined,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders
+      },
+      providerMetadata: {
+        openai: {
+          images: response.data.map((item, index) => {
+            var _a24, _b23, _c2, _d2, _e2, _f2;
+            return {
+              ...item.revised_prompt ? { revisedPrompt: item.revised_prompt } : {},
+              created: (_a24 = response.created) != null ? _a24 : undefined,
+              size: (_b23 = response.size) != null ? _b23 : undefined,
+              quality: (_c2 = response.quality) != null ? _c2 : undefined,
+              background: (_d2 = response.background) != null ? _d2 : undefined,
+              outputFormat: (_e2 = response.output_format) != null ? _e2 : undefined,
+              ...distributeTokenDetails((_f2 = response.usage) == null ? undefined : _f2.input_tokens_details, index, response.data.length)
+            };
+          })
+        }
+      }
+    };
+  }
+};
+function distributeTokenDetails(details, index, total) {
+  if (details == null) {
+    return {};
+  }
+  const result = {};
+  if (details.image_tokens != null) {
+    const base = Math.floor(details.image_tokens / total);
+    const remainder = details.image_tokens - base * (total - 1);
+    result.imageTokens = index === total - 1 ? remainder : base;
+  }
+  if (details.text_tokens != null) {
+    const base = Math.floor(details.text_tokens / total);
+    const remainder = details.text_tokens - base * (total - 1);
+    result.textTokens = index === total - 1 ? remainder : base;
+  }
+  return result;
+}
+async function fileToBlob(file2) {
+  if (!file2)
+    return;
+  if (file2.type === "url") {
+    return downloadBlob(file2.url);
+  }
+  const data = file2.data instanceof Uint8Array ? file2.data : convertBase64ToUint8Array(file2.data);
+  return new Blob([data], { type: file2.mediaType });
+}
+var applyPatchInputSchema = lazySchema(() => zodSchema(exports_external.object({
+  callId: exports_external.string(),
+  operation: exports_external.discriminatedUnion("type", [
+    exports_external.object({
+      type: exports_external.literal("create_file"),
+      path: exports_external.string(),
+      diff: exports_external.string()
+    }),
+    exports_external.object({
+      type: exports_external.literal("delete_file"),
+      path: exports_external.string()
+    }),
+    exports_external.object({
+      type: exports_external.literal("update_file"),
+      path: exports_external.string(),
+      diff: exports_external.string()
+    })
+  ])
+})));
+var applyPatchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  status: exports_external.enum(["completed", "failed"]),
+  output: exports_external.string().optional()
+})));
+var applyPatchArgsSchema = lazySchema(() => zodSchema(exports_external.object({})));
+var applyPatchToolFactory = createProviderToolFactoryWithOutputSchema({
+  id: "openai.apply_patch",
+  inputSchema: applyPatchInputSchema,
+  outputSchema: applyPatchOutputSchema
+});
+var applyPatch = applyPatchToolFactory;
+var codeInterpreterInputSchema = lazySchema(() => zodSchema(exports_external.object({
+  code: exports_external.string().nullish(),
+  containerId: exports_external.string()
+})));
+var codeInterpreterOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  outputs: exports_external.array(exports_external.discriminatedUnion("type", [
+    exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
+    exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
+  ])).nullish()
+})));
+var codeInterpreterArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  container: exports_external.union([
+    exports_external.string(),
+    exports_external.object({
+      fileIds: exports_external.array(exports_external.string()).optional()
+    })
+  ]).optional()
+})));
+var codeInterpreterToolFactory = createProviderToolFactoryWithOutputSchema({
+  id: "openai.code_interpreter",
+  inputSchema: codeInterpreterInputSchema,
+  outputSchema: codeInterpreterOutputSchema
+});
+var codeInterpreter = (args = {}) => {
+  return codeInterpreterToolFactory(args);
+};
+var customArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  name: exports_external.string(),
+  description: exports_external.string().optional(),
+  format: exports_external.union([
+    exports_external.object({
+      type: exports_external.literal("grammar"),
+      syntax: exports_external.enum(["regex", "lark"]),
+      definition: exports_external.string()
+    }),
+    exports_external.object({
+      type: exports_external.literal("text")
+    })
+  ]).optional()
+})));
+var customInputSchema = lazySchema(() => zodSchema(exports_external.string()));
+var customToolFactory = createProviderToolFactory({
+  id: "openai.custom",
+  inputSchema: customInputSchema
+});
+var customTool = (args) => customToolFactory(args);
+var comparisonFilterSchema = exports_external.object({
+  key: exports_external.string(),
+  type: exports_external.enum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin"]),
+  value: exports_external.union([exports_external.string(), exports_external.number(), exports_external.boolean(), exports_external.array(exports_external.string())])
+});
+var compoundFilterSchema = exports_external.object({
+  type: exports_external.enum(["and", "or"]),
+  filters: exports_external.array(exports_external.union([comparisonFilterSchema, exports_external.lazy(() => compoundFilterSchema)]))
+});
+var fileSearchArgsSchema2 = lazySchema(() => zodSchema(exports_external.object({
+  vectorStoreIds: exports_external.array(exports_external.string()),
+  maxNumResults: exports_external.number().optional(),
+  ranking: exports_external.object({
+    ranker: exports_external.string().optional(),
+    scoreThreshold: exports_external.number().optional()
+  }).optional(),
+  filters: exports_external.union([comparisonFilterSchema, compoundFilterSchema]).optional()
+})));
+var fileSearchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  queries: exports_external.array(exports_external.string()),
+  results: exports_external.array(exports_external.object({
+    attributes: exports_external.record(exports_external.string(), exports_external.unknown()),
+    fileId: exports_external.string(),
+    filename: exports_external.string(),
+    score: exports_external.number(),
+    text: exports_external.string()
+  })).nullable()
+})));
+var fileSearch2 = createProviderToolFactoryWithOutputSchema({
+  id: "openai.file_search",
+  inputSchema: exports_external.object({}),
+  outputSchema: fileSearchOutputSchema
+});
+var imageGenerationArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  background: exports_external.enum(["auto", "opaque", "transparent"]).optional(),
+  inputFidelity: exports_external.enum(["low", "high"]).optional(),
+  inputImageMask: exports_external.object({
+    fileId: exports_external.string().optional(),
+    imageUrl: exports_external.string().optional()
+  }).optional(),
+  model: exports_external.string().optional(),
+  moderation: exports_external.enum(["auto"]).optional(),
+  outputCompression: exports_external.number().int().min(0).max(100).optional(),
+  outputFormat: exports_external.enum(["png", "jpeg", "webp"]).optional(),
+  partialImages: exports_external.number().int().min(0).max(3).optional(),
+  quality: exports_external.enum(["auto", "low", "medium", "high"]).optional(),
+  size: exports_external.enum(["1024x1024", "1024x1536", "1536x1024", "auto"]).optional()
+}).strict()));
+var imageGenerationInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
+var imageGenerationOutputSchema = lazySchema(() => zodSchema(exports_external.object({ result: exports_external.string() })));
+var imageGenerationToolFactory = createProviderToolFactoryWithOutputSchema({
+  id: "openai.image_generation",
+  inputSchema: imageGenerationInputSchema,
+  outputSchema: imageGenerationOutputSchema
+});
+var imageGeneration = (args = {}) => {
+  return imageGenerationToolFactory(args);
+};
+var localShellInputSchema = lazySchema(() => zodSchema(exports_external.object({
+  action: exports_external.object({
+    type: exports_external.literal("exec"),
+    command: exports_external.array(exports_external.string()),
+    timeoutMs: exports_external.number().optional(),
+    user: exports_external.string().optional(),
+    workingDirectory: exports_external.string().optional(),
+    env: exports_external.record(exports_external.string(), exports_external.string()).optional()
+  })
+})));
+var localShellOutputSchema = lazySchema(() => zodSchema(exports_external.object({ output: exports_external.string() })));
+var localShell = createProviderToolFactoryWithOutputSchema({
+  id: "openai.local_shell",
+  inputSchema: localShellInputSchema,
+  outputSchema: localShellOutputSchema
+});
+var shellInputSchema = lazySchema(() => zodSchema(exports_external.object({
+  action: exports_external.object({
+    commands: exports_external.array(exports_external.string()),
+    timeoutMs: exports_external.number().optional(),
+    maxOutputLength: exports_external.number().optional()
+  })
+})));
+var shellOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  output: exports_external.array(exports_external.object({
+    stdout: exports_external.string(),
+    stderr: exports_external.string(),
+    outcome: exports_external.discriminatedUnion("type", [
+      exports_external.object({ type: exports_external.literal("timeout") }),
+      exports_external.object({ type: exports_external.literal("exit"), exitCode: exports_external.number() })
+    ])
+  }))
+})));
+var shellSkillsSchema = exports_external.array(exports_external.discriminatedUnion("type", [
+  exports_external.object({
+    type: exports_external.literal("skillReference"),
+    skillId: exports_external.string(),
+    version: exports_external.string().optional()
+  }),
+  exports_external.object({
+    type: exports_external.literal("inline"),
+    name: exports_external.string(),
+    description: exports_external.string(),
+    source: exports_external.object({
+      type: exports_external.literal("base64"),
+      mediaType: exports_external.literal("application/zip"),
+      data: exports_external.string()
+    })
+  })
+])).optional();
+var shellArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  environment: exports_external.union([
+    exports_external.object({
+      type: exports_external.literal("containerAuto"),
+      fileIds: exports_external.array(exports_external.string()).optional(),
+      memoryLimit: exports_external.enum(["1g", "4g", "16g", "64g"]).optional(),
+      networkPolicy: exports_external.discriminatedUnion("type", [
+        exports_external.object({ type: exports_external.literal("disabled") }),
+        exports_external.object({
+          type: exports_external.literal("allowlist"),
+          allowedDomains: exports_external.array(exports_external.string()),
+          domainSecrets: exports_external.array(exports_external.object({
+            domain: exports_external.string(),
+            name: exports_external.string(),
+            value: exports_external.string()
+          })).optional()
+        })
+      ]).optional(),
+      skills: shellSkillsSchema
+    }),
+    exports_external.object({
+      type: exports_external.literal("containerReference"),
+      containerId: exports_external.string()
+    }),
+    exports_external.object({
+      type: exports_external.literal("local").optional(),
+      skills: exports_external.array(exports_external.object({
+        name: exports_external.string(),
+        description: exports_external.string(),
+        path: exports_external.string()
+      })).optional()
+    })
+  ]).optional()
+})));
+var shell = createProviderToolFactoryWithOutputSchema({
+  id: "openai.shell",
+  inputSchema: shellInputSchema,
+  outputSchema: shellOutputSchema
+});
+var toolSearchArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  execution: exports_external.enum(["server", "client"]).optional(),
+  description: exports_external.string().optional(),
+  parameters: exports_external.record(exports_external.string(), exports_external.unknown()).optional()
+})));
+var toolSearchInputSchema = lazySchema(() => zodSchema(exports_external.object({
+  arguments: exports_external.unknown().optional(),
+  call_id: exports_external.string().nullish()
+})));
+var toolSearchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  tools: exports_external.array(exports_external.record(exports_external.string(), exports_external.unknown()))
+})));
+var toolSearchToolFactory = createProviderToolFactoryWithOutputSchema({
+  id: "openai.tool_search",
+  inputSchema: toolSearchInputSchema,
+  outputSchema: toolSearchOutputSchema
+});
+var toolSearch = (args = {}) => toolSearchToolFactory(args);
+var webSearchArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  externalWebAccess: exports_external.boolean().optional(),
+  filters: exports_external.object({ allowedDomains: exports_external.array(exports_external.string()).optional() }).optional(),
+  searchContextSize: exports_external.enum(["low", "medium", "high"]).optional(),
+  userLocation: exports_external.object({
+    type: exports_external.literal("approximate"),
+    country: exports_external.string().optional(),
+    city: exports_external.string().optional(),
+    region: exports_external.string().optional(),
+    timezone: exports_external.string().optional()
+  }).optional()
+})));
+var webSearchInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
+var webSearchOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  action: exports_external.discriminatedUnion("type", [
+    exports_external.object({
+      type: exports_external.literal("search"),
+      query: exports_external.string().optional()
+    }),
+    exports_external.object({
+      type: exports_external.literal("openPage"),
+      url: exports_external.string().nullish()
+    }),
+    exports_external.object({
+      type: exports_external.literal("findInPage"),
+      url: exports_external.string().nullish(),
+      pattern: exports_external.string().nullish()
+    })
+  ]).optional(),
+  sources: exports_external.array(exports_external.discriminatedUnion("type", [
+    exports_external.object({ type: exports_external.literal("url"), url: exports_external.string() }),
+    exports_external.object({ type: exports_external.literal("api"), name: exports_external.string() })
+  ])).optional()
+})));
+var webSearchToolFactory = createProviderToolFactoryWithOutputSchema({
+  id: "openai.web_search",
+  inputSchema: webSearchInputSchema,
+  outputSchema: webSearchOutputSchema
+});
+var webSearch = (args = {}) => webSearchToolFactory(args);
+var webSearchPreviewArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  searchContextSize: exports_external.enum(["low", "medium", "high"]).optional(),
+  userLocation: exports_external.object({
+    type: exports_external.literal("approximate"),
+    country: exports_external.string().optional(),
+    city: exports_external.string().optional(),
+    region: exports_external.string().optional(),
+    timezone: exports_external.string().optional()
+  }).optional()
+})));
+var webSearchPreviewInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
+var webSearchPreviewOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  action: exports_external.discriminatedUnion("type", [
+    exports_external.object({
+      type: exports_external.literal("search"),
+      query: exports_external.string().optional()
+    }),
+    exports_external.object({
+      type: exports_external.literal("openPage"),
+      url: exports_external.string().nullish()
+    }),
+    exports_external.object({
+      type: exports_external.literal("findInPage"),
+      url: exports_external.string().nullish(),
+      pattern: exports_external.string().nullish()
+    })
+  ]).optional()
+})));
+var webSearchPreview = createProviderToolFactoryWithOutputSchema({
+  id: "openai.web_search_preview",
+  inputSchema: webSearchPreviewInputSchema,
+  outputSchema: webSearchPreviewOutputSchema
+});
+var jsonValueSchema2 = exports_external.lazy(() => exports_external.union([
+  exports_external.string(),
+  exports_external.number(),
+  exports_external.boolean(),
+  exports_external.null(),
+  exports_external.array(jsonValueSchema2),
+  exports_external.record(exports_external.string(), jsonValueSchema2)
+]));
+var mcpArgsSchema = lazySchema(() => zodSchema(exports_external.object({
+  serverLabel: exports_external.string(),
+  allowedTools: exports_external.union([
+    exports_external.array(exports_external.string()),
+    exports_external.object({
+      readOnly: exports_external.boolean().optional(),
+      toolNames: exports_external.array(exports_external.string()).optional()
+    })
+  ]).optional(),
+  authorization: exports_external.string().optional(),
+  connectorId: exports_external.string().optional(),
+  headers: exports_external.record(exports_external.string(), exports_external.string()).optional(),
+  requireApproval: exports_external.union([
+    exports_external.enum(["always", "never"]),
+    exports_external.object({
+      never: exports_external.object({
+        toolNames: exports_external.array(exports_external.string()).optional()
+      }).optional()
+    })
+  ]).optional(),
+  serverDescription: exports_external.string().optional(),
+  serverUrl: exports_external.string().optional()
+}).refine((v) => v.serverUrl != null || v.connectorId != null, "One of serverUrl or connectorId must be provided.")));
+var mcpInputSchema = lazySchema(() => zodSchema(exports_external.object({})));
+var mcpOutputSchema = lazySchema(() => zodSchema(exports_external.object({
+  type: exports_external.literal("call"),
+  serverLabel: exports_external.string(),
+  name: exports_external.string(),
+  arguments: exports_external.string(),
+  output: exports_external.string().nullish(),
+  error: exports_external.union([exports_external.string(), jsonValueSchema2]).optional()
+})));
+var mcpToolFactory = createProviderToolFactoryWithOutputSchema({
+  id: "openai.mcp",
+  inputSchema: mcpInputSchema,
+  outputSchema: mcpOutputSchema
+});
+var mcp = (args) => mcpToolFactory(args);
+var openaiTools = {
+  applyPatch,
+  customTool,
+  codeInterpreter,
+  fileSearch: fileSearch2,
+  imageGeneration,
+  localShell,
+  shell,
+  webSearchPreview,
+  webSearch,
+  mcp,
+  toolSearch
+};
+function convertOpenAIResponsesUsage(usage) {
+  var _a21, _b16, _c, _d;
+  if (usage == null) {
+    return {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined
+      },
+      raw: undefined
+    };
+  }
+  const inputTokens = usage.input_tokens;
+  const outputTokens = usage.output_tokens;
+  const cachedTokens = (_b16 = (_a21 = usage.input_tokens_details) == null ? undefined : _a21.cached_tokens) != null ? _b16 : 0;
+  const reasoningTokens = (_d = (_c = usage.output_tokens_details) == null ? undefined : _c.reasoning_tokens) != null ? _d : 0;
+  return {
+    inputTokens: {
+      total: inputTokens,
+      noCache: inputTokens - cachedTokens,
+      cacheRead: cachedTokens,
+      cacheWrite: undefined
+    },
+    outputTokens: {
+      total: outputTokens,
+      text: outputTokens - reasoningTokens,
+      reasoning: reasoningTokens
+    },
+    raw: usage
+  };
+}
+function serializeToolCallArguments2(input) {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+function isFileId(data, prefixes) {
+  if (!prefixes)
+    return false;
+  return prefixes.some((prefix) => data.startsWith(prefix));
+}
+async function convertToOpenAIResponsesInput({
+  prompt,
+  toolNameMapping,
+  systemMessageMode,
+  providerOptionsName,
+  fileIdPrefixes,
+  store,
+  hasConversation = false,
+  hasLocalShellTool = false,
+  hasShellTool = false,
+  hasApplyPatchTool = false,
+  customProviderToolNames
+}) {
+  var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q;
+  let input = [];
+  const warnings = [];
+  const processedApprovalIds = /* @__PURE__ */ new Set;
+  for (const { role, content } of prompt) {
+    switch (role) {
+      case "system": {
+        switch (systemMessageMode) {
+          case "system": {
+            input.push({ role: "system", content });
+            break;
+          }
+          case "developer": {
+            input.push({ role: "developer", content });
+            break;
+          }
+          case "remove": {
+            warnings.push({
+              type: "other",
+              message: "system messages are removed for this model"
+            });
+            break;
+          }
+          default: {
+            const _exhaustiveCheck = systemMessageMode;
+            throw new Error(`Unsupported system message mode: ${_exhaustiveCheck}`);
+          }
+        }
+        break;
+      }
+      case "user": {
+        input.push({
+          role: "user",
+          content: content.map((part, index) => {
+            var _a24, _b23, _c2;
+            switch (part.type) {
+              case "text": {
+                return { type: "input_text", text: part.text };
+              }
+              case "file": {
+                if (part.mediaType.startsWith("image/")) {
+                  const mediaType = part.mediaType === "image/*" ? "image/jpeg" : part.mediaType;
+                  return {
+                    type: "input_image",
+                    ...part.data instanceof URL ? { image_url: part.data.toString() } : typeof part.data === "string" && isFileId(part.data, fileIdPrefixes) ? { file_id: part.data } : {
+                      image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`
+                    },
+                    detail: (_b23 = (_a24 = part.providerOptions) == null ? undefined : _a24[providerOptionsName]) == null ? undefined : _b23.imageDetail
+                  };
+                } else if (part.mediaType === "application/pdf") {
+                  if (part.data instanceof URL) {
+                    return {
+                      type: "input_file",
+                      file_url: part.data.toString()
+                    };
+                  }
+                  return {
+                    type: "input_file",
+                    ...typeof part.data === "string" && isFileId(part.data, fileIdPrefixes) ? { file_id: part.data } : {
+                      filename: (_c2 = part.filename) != null ? _c2 : `part-${index}.pdf`,
+                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`
+                    }
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `file part media type ${part.mediaType}`
+                  });
+                }
+              }
+            }
+          })
+        });
+        break;
+      }
+      case "assistant": {
+        const reasoningMessages = {};
+        for (const part of content) {
+          switch (part.type) {
+            case "text": {
+              const providerOpts = (_a21 = part.providerOptions) == null ? undefined : _a21[providerOptionsName];
+              const id = providerOpts == null ? undefined : providerOpts.itemId;
+              const phase = providerOpts == null ? undefined : providerOpts.phase;
+              if (hasConversation && id != null) {
+                break;
+              }
+              if (store && id != null) {
+                input.push({ type: "item_reference", id });
+                break;
+              }
+              input.push({
+                role: "assistant",
+                content: [{ type: "output_text", text: part.text }],
+                id,
+                ...phase != null && { phase }
+              });
+              break;
+            }
+            case "tool-call": {
+              const id = (_f = (_c = (_b16 = part.providerOptions) == null ? undefined : _b16[providerOptionsName]) == null ? undefined : _c.itemId) != null ? _f : (_e = (_d = part.providerMetadata) == null ? undefined : _d[providerOptionsName]) == null ? undefined : _e.itemId;
+              if (hasConversation && id != null) {
+                break;
+              }
+              const resolvedToolName = toolNameMapping.toProviderToolName(part.toolName);
+              if (resolvedToolName === "tool_search") {
+                if (store && id != null) {
+                  input.push({ type: "item_reference", id });
+                  break;
+                }
+                const parsedInput = typeof part.input === "string" ? await parseJSON({
+                  text: part.input,
+                  schema: toolSearchInputSchema
+                }) : await validateTypes({
+                  value: part.input,
+                  schema: toolSearchInputSchema
+                });
+                const execution = parsedInput.call_id != null ? "client" : "server";
+                input.push({
+                  type: "tool_search_call",
+                  id: id != null ? id : part.toolCallId,
+                  execution,
+                  call_id: (_g = parsedInput.call_id) != null ? _g : null,
+                  status: "completed",
+                  arguments: parsedInput.arguments
+                });
+                break;
+              }
+              if (part.providerExecuted) {
+                if (store && id != null) {
+                  input.push({ type: "item_reference", id });
+                }
+                break;
+              }
+              if (store && id != null) {
+                input.push({ type: "item_reference", id });
+                break;
+              }
+              if (hasLocalShellTool && resolvedToolName === "local_shell") {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: localShellInputSchema
+                });
+                input.push({
+                  type: "local_shell_call",
+                  call_id: part.toolCallId,
+                  id,
+                  action: {
+                    type: "exec",
+                    command: parsedInput.action.command,
+                    timeout_ms: parsedInput.action.timeoutMs,
+                    user: parsedInput.action.user,
+                    working_directory: parsedInput.action.workingDirectory,
+                    env: parsedInput.action.env
+                  }
+                });
+                break;
+              }
+              if (hasShellTool && resolvedToolName === "shell") {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: shellInputSchema
+                });
+                input.push({
+                  type: "shell_call",
+                  call_id: part.toolCallId,
+                  id,
+                  status: "completed",
+                  action: {
+                    commands: parsedInput.action.commands,
+                    timeout_ms: parsedInput.action.timeoutMs,
+                    max_output_length: parsedInput.action.maxOutputLength
+                  }
+                });
+                break;
+              }
+              if (hasApplyPatchTool && resolvedToolName === "apply_patch") {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: applyPatchInputSchema
+                });
+                input.push({
+                  type: "apply_patch_call",
+                  call_id: parsedInput.callId,
+                  id,
+                  status: "completed",
+                  operation: parsedInput.operation
+                });
+                break;
+              }
+              if (customProviderToolNames == null ? undefined : customProviderToolNames.has(resolvedToolName)) {
+                input.push({
+                  type: "custom_tool_call",
+                  call_id: part.toolCallId,
+                  name: resolvedToolName,
+                  input: typeof part.input === "string" ? part.input : JSON.stringify(part.input),
+                  id
+                });
+                break;
+              }
+              input.push({
+                type: "function_call",
+                call_id: part.toolCallId,
+                name: resolvedToolName,
+                arguments: serializeToolCallArguments2(part.input),
+                id
+              });
+              break;
+            }
+            case "tool-result": {
+              if (part.output.type === "execution-denied" || part.output.type === "json" && typeof part.output.value === "object" && part.output.value != null && "type" in part.output.value && part.output.value.type === "execution-denied") {
+                break;
+              }
+              if (hasConversation) {
+                break;
+              }
+              const resolvedResultToolName = toolNameMapping.toProviderToolName(part.toolName);
+              if (resolvedResultToolName === "tool_search") {
+                const itemId = (_j = (_i = (_h = part.providerOptions) == null ? undefined : _h[providerOptionsName]) == null ? undefined : _i.itemId) != null ? _j : part.toolCallId;
+                if (store) {
+                  input.push({ type: "item_reference", id: itemId });
+                } else if (part.output.type === "json") {
+                  const parsedOutput = await validateTypes({
+                    value: part.output.value,
+                    schema: toolSearchOutputSchema
+                  });
+                  input.push({
+                    type: "tool_search_output",
+                    id: itemId,
+                    execution: "server",
+                    call_id: null,
+                    status: "completed",
+                    tools: parsedOutput.tools
+                  });
+                }
+                break;
+              }
+              if (hasShellTool && resolvedResultToolName === "shell") {
+                if (part.output.type === "json") {
+                  const parsedOutput = await validateTypes({
+                    value: part.output.value,
+                    schema: shellOutputSchema
+                  });
+                  input.push({
+                    type: "shell_call_output",
+                    call_id: part.toolCallId,
+                    output: parsedOutput.output.map((item) => ({
+                      stdout: item.stdout,
+                      stderr: item.stderr,
+                      outcome: item.outcome.type === "timeout" ? { type: "timeout" } : {
+                        type: "exit",
+                        exit_code: item.outcome.exitCode
+                      }
+                    }))
+                  });
+                }
+                break;
+              }
+              if (store) {
+                const itemId = (_m = (_l = (_k = part.providerOptions) == null ? undefined : _k[providerOptionsName]) == null ? undefined : _l.itemId) != null ? _m : part.toolCallId;
+                input.push({ type: "item_reference", id: itemId });
+              } else {
+                warnings.push({
+                  type: "other",
+                  message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`
+                });
+              }
+              break;
+            }
+            case "reasoning": {
+              const providerOptions = await parseProviderOptions({
+                provider: providerOptionsName,
+                providerOptions: part.providerOptions,
+                schema: openaiResponsesReasoningProviderOptionsSchema
+              });
+              const reasoningId = providerOptions == null ? undefined : providerOptions.itemId;
+              if (hasConversation && reasoningId != null) {
+                break;
+              }
+              if (reasoningId != null) {
+                const reasoningMessage = reasoningMessages[reasoningId];
+                if (store) {
+                  if (reasoningMessage === undefined) {
+                    input.push({ type: "item_reference", id: reasoningId });
+                    reasoningMessages[reasoningId] = {
+                      type: "reasoning",
+                      id: reasoningId,
+                      summary: []
+                    };
+                  }
+                } else {
+                  const summaryParts = [];
+                  if (part.text.length > 0) {
+                    summaryParts.push({
+                      type: "summary_text",
+                      text: part.text
+                    });
+                  } else if (reasoningMessage !== undefined) {
+                    warnings.push({
+                      type: "other",
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`
+                    });
+                  }
+                  if (reasoningMessage === undefined) {
+                    reasoningMessages[reasoningId] = {
+                      type: "reasoning",
+                      id: reasoningId,
+                      encrypted_content: providerOptions == null ? undefined : providerOptions.reasoningEncryptedContent,
+                      summary: summaryParts
+                    };
+                    input.push(reasoningMessages[reasoningId]);
+                  } else {
+                    reasoningMessage.summary.push(...summaryParts);
+                    if ((providerOptions == null ? undefined : providerOptions.reasoningEncryptedContent) != null) {
+                      reasoningMessage.encrypted_content = providerOptions.reasoningEncryptedContent;
+                    }
+                  }
+                }
+              } else {
+                const encryptedContent = providerOptions == null ? undefined : providerOptions.reasoningEncryptedContent;
+                if (encryptedContent != null) {
+                  const summaryParts = [];
+                  if (part.text.length > 0) {
+                    summaryParts.push({
+                      type: "summary_text",
+                      text: part.text
+                    });
+                  }
+                  input.push({
+                    type: "reasoning",
+                    encrypted_content: encryptedContent,
+                    summary: summaryParts
+                  });
+                } else {
+                  warnings.push({
+                    type: "other",
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`
+                  });
+                }
+              }
+              break;
+            }
+          }
+        }
+        break;
+      }
+      case "tool": {
+        for (const part of content) {
+          if (part.type === "tool-approval-response") {
+            const approvalResponse = part;
+            if (processedApprovalIds.has(approvalResponse.approvalId)) {
+              continue;
+            }
+            processedApprovalIds.add(approvalResponse.approvalId);
+            if (store) {
+              input.push({
+                type: "item_reference",
+                id: approvalResponse.approvalId
+              });
+            }
+            input.push({
+              type: "mcp_approval_response",
+              approval_request_id: approvalResponse.approvalId,
+              approve: approvalResponse.approved
+            });
+            continue;
+          }
+          const output = part.output;
+          if (output.type === "execution-denied") {
+            const approvalId = (_o = (_n = output.providerOptions) == null ? undefined : _n.openai) == null ? undefined : _o.approvalId;
+            if (approvalId) {
+              continue;
+            }
+          }
+          const resolvedToolName = toolNameMapping.toProviderToolName(part.toolName);
+          if (resolvedToolName === "tool_search" && output.type === "json") {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: toolSearchOutputSchema
+            });
+            input.push({
+              type: "tool_search_output",
+              execution: "client",
+              call_id: part.toolCallId,
+              status: "completed",
+              tools: parsedOutput.tools
+            });
+            continue;
+          }
+          if (hasLocalShellTool && resolvedToolName === "local_shell" && output.type === "json") {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: localShellOutputSchema
+            });
+            input.push({
+              type: "local_shell_call_output",
+              call_id: part.toolCallId,
+              output: parsedOutput.output
+            });
+            continue;
+          }
+          if (hasShellTool && resolvedToolName === "shell" && output.type === "json") {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: shellOutputSchema
+            });
+            input.push({
+              type: "shell_call_output",
+              call_id: part.toolCallId,
+              output: parsedOutput.output.map((item) => ({
+                stdout: item.stdout,
+                stderr: item.stderr,
+                outcome: item.outcome.type === "timeout" ? { type: "timeout" } : {
+                  type: "exit",
+                  exit_code: item.outcome.exitCode
+                }
+              }))
+            });
+            continue;
+          }
+          if (hasApplyPatchTool && part.toolName === "apply_patch" && output.type === "json") {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: applyPatchOutputSchema
+            });
+            input.push({
+              type: "apply_patch_call_output",
+              call_id: part.toolCallId,
+              status: parsedOutput.status,
+              output: parsedOutput.output
+            });
+            continue;
+          }
+          if (customProviderToolNames == null ? undefined : customProviderToolNames.has(resolvedToolName)) {
+            let outputValue;
+            switch (output.type) {
+              case "text":
+              case "error-text":
+                outputValue = output.value;
+                break;
+              case "execution-denied":
+                outputValue = (_p = output.reason) != null ? _p : "Tool execution denied.";
+                break;
+              case "json":
+              case "error-json":
+                outputValue = JSON.stringify(output.value);
+                break;
+              case "content":
+                outputValue = output.value.map((item) => {
+                  var _a24;
+                  switch (item.type) {
+                    case "text":
+                      return { type: "input_text", text: item.text };
+                    case "image-data":
+                      return {
+                        type: "input_image",
+                        image_url: `data:${item.mediaType};base64,${item.data}`
+                      };
+                    case "image-url":
+                      return {
+                        type: "input_image",
+                        image_url: item.url
+                      };
+                    case "file-data":
+                      return {
+                        type: "input_file",
+                        filename: (_a24 = item.filename) != null ? _a24 : "data",
+                        file_data: `data:${item.mediaType};base64,${item.data}`
+                      };
+                    case "file-url":
+                      return {
+                        type: "input_file",
+                        file_url: item.url
+                      };
+                    default:
+                      warnings.push({
+                        type: "other",
+                        message: `unsupported custom tool content part type: ${item.type}`
+                      });
+                      return;
+                  }
+                }).filter(isNonNullable);
+                break;
+              default:
+                outputValue = "";
+            }
+            input.push({
+              type: "custom_tool_call_output",
+              call_id: part.toolCallId,
+              output: outputValue
+            });
+            continue;
+          }
+          let contentValue;
+          switch (output.type) {
+            case "text":
+            case "error-text":
+              contentValue = output.value;
+              break;
+            case "execution-denied":
+              contentValue = (_q = output.reason) != null ? _q : "Tool execution denied.";
+              break;
+            case "json":
+            case "error-json":
+              contentValue = JSON.stringify(output.value);
+              break;
+            case "content":
+              contentValue = output.value.map((item) => {
+                var _a24;
+                switch (item.type) {
+                  case "text": {
+                    return { type: "input_text", text: item.text };
+                  }
+                  case "image-data": {
+                    return {
+                      type: "input_image",
+                      image_url: `data:${item.mediaType};base64,${item.data}`
+                    };
+                  }
+                  case "image-url": {
+                    return {
+                      type: "input_image",
+                      image_url: item.url
+                    };
+                  }
+                  case "file-data": {
+                    return {
+                      type: "input_file",
+                      filename: (_a24 = item.filename) != null ? _a24 : "data",
+                      file_data: `data:${item.mediaType};base64,${item.data}`
+                    };
+                  }
+                  case "file-url": {
+                    return {
+                      type: "input_file",
+                      file_url: item.url
+                    };
+                  }
+                  default: {
+                    warnings.push({
+                      type: "other",
+                      message: `unsupported tool content part type: ${item.type}`
+                    });
+                    return;
+                  }
+                }
+              }).filter(isNonNullable);
+              break;
+          }
+          input.push({
+            type: "function_call_output",
+            call_id: part.toolCallId,
+            output: contentValue
+          });
+        }
+        break;
+      }
+      default: {
+        const _exhaustiveCheck = role;
+        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
+      }
+    }
+  }
+  if (!store && input.some((item) => ("type" in item) && item.type === "reasoning" && item.encrypted_content == null)) {
+    warnings.push({
+      type: "other",
+      message: "Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts."
+    });
+    input = input.filter((item) => !("type" in item) || item.type !== "reasoning" || item.encrypted_content != null);
+  }
+  return { input, warnings };
+}
+var openaiResponsesReasoningProviderOptionsSchema = exports_external.object({
+  itemId: exports_external.string().nullish(),
+  reasoningEncryptedContent: exports_external.string().nullish()
+});
+function mapOpenAIResponseFinishReason({
+  finishReason,
+  hasFunctionCall
+}) {
+  switch (finishReason) {
+    case undefined:
+    case null:
+      return hasFunctionCall ? "tool-calls" : "stop";
+    case "max_output_tokens":
+      return "length";
+    case "content_filter":
+      return "content-filter";
+    default:
+      return hasFunctionCall ? "tool-calls" : "other";
+  }
+}
+var jsonValueSchema22 = exports_external.lazy(() => exports_external.union([
+  exports_external.string(),
+  exports_external.number(),
+  exports_external.boolean(),
+  exports_external.null(),
+  exports_external.array(jsonValueSchema22),
+  exports_external.record(exports_external.string(), jsonValueSchema22.optional())
+]));
+var openaiResponsesChunkSchema = lazySchema(() => zodSchema(exports_external.union([
+  exports_external.object({
+    type: exports_external.literal("response.output_text.delta"),
+    item_id: exports_external.string(),
+    delta: exports_external.string(),
+    logprobs: exports_external.array(exports_external.object({
+      token: exports_external.string(),
+      logprob: exports_external.number(),
+      top_logprobs: exports_external.array(exports_external.object({
+        token: exports_external.string(),
+        logprob: exports_external.number()
+      }))
+    })).nullish()
+  }),
+  exports_external.object({
+    type: exports_external.enum(["response.completed", "response.incomplete"]),
+    response: exports_external.object({
+      incomplete_details: exports_external.object({ reason: exports_external.string() }).nullish(),
+      usage: exports_external.object({
+        input_tokens: exports_external.number(),
+        input_tokens_details: exports_external.object({ cached_tokens: exports_external.number().nullish() }).nullish(),
+        output_tokens: exports_external.number(),
+        output_tokens_details: exports_external.object({ reasoning_tokens: exports_external.number().nullish() }).nullish()
+      }),
+      service_tier: exports_external.string().nullish()
+    })
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.failed"),
+    response: exports_external.object({
+      error: exports_external.object({
+        code: exports_external.string().nullish(),
+        message: exports_external.string()
+      }).nullish(),
+      incomplete_details: exports_external.object({ reason: exports_external.string() }).nullish(),
+      usage: exports_external.object({
+        input_tokens: exports_external.number(),
+        input_tokens_details: exports_external.object({ cached_tokens: exports_external.number().nullish() }).nullish(),
+        output_tokens: exports_external.number(),
+        output_tokens_details: exports_external.object({ reasoning_tokens: exports_external.number().nullish() }).nullish()
+      }).nullish(),
+      service_tier: exports_external.string().nullish()
+    })
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.created"),
+    response: exports_external.object({
+      id: exports_external.string(),
+      created_at: exports_external.number(),
+      model: exports_external.string(),
+      service_tier: exports_external.string().nullish()
+    })
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.output_item.added"),
+    output_index: exports_external.number(),
+    item: exports_external.discriminatedUnion("type", [
+      exports_external.object({
+        type: exports_external.literal("message"),
+        id: exports_external.string(),
+        phase: exports_external.enum(["commentary", "final_answer"]).nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("reasoning"),
+        id: exports_external.string(),
+        encrypted_content: exports_external.string().nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("function_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        name: exports_external.string(),
+        arguments: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("web_search_call"),
+        id: exports_external.string(),
+        status: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("computer_call"),
+        id: exports_external.string(),
+        status: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("file_search_call"),
+        id: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("image_generation_call"),
+        id: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("code_interpreter_call"),
+        id: exports_external.string(),
+        container_id: exports_external.string(),
+        code: exports_external.string().nullable(),
+        outputs: exports_external.array(exports_external.discriminatedUnion("type", [
+          exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
+          exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
+        ])).nullable(),
+        status: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("mcp_call"),
+        id: exports_external.string(),
+        status: exports_external.string(),
+        approval_request_id: exports_external.string().nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("mcp_list_tools"),
+        id: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("mcp_approval_request"),
+        id: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("apply_patch_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        status: exports_external.enum(["in_progress", "completed"]),
+        operation: exports_external.discriminatedUnion("type", [
+          exports_external.object({
+            type: exports_external.literal("create_file"),
+            path: exports_external.string(),
+            diff: exports_external.string()
+          }),
+          exports_external.object({
+            type: exports_external.literal("delete_file"),
+            path: exports_external.string()
+          }),
+          exports_external.object({
+            type: exports_external.literal("update_file"),
+            path: exports_external.string(),
+            diff: exports_external.string()
+          })
+        ])
+      }),
+      exports_external.object({
+        type: exports_external.literal("custom_tool_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        name: exports_external.string(),
+        input: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("shell_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        action: exports_external.object({
+          commands: exports_external.array(exports_external.string())
+        })
+      }),
+      exports_external.object({
+        type: exports_external.literal("shell_call_output"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        output: exports_external.array(exports_external.object({
+          stdout: exports_external.string(),
+          stderr: exports_external.string(),
+          outcome: exports_external.discriminatedUnion("type", [
+            exports_external.object({ type: exports_external.literal("timeout") }),
+            exports_external.object({
+              type: exports_external.literal("exit"),
+              exit_code: exports_external.number()
+            })
+          ])
+        }))
+      }),
+      exports_external.object({
+        type: exports_external.literal("tool_search_call"),
+        id: exports_external.string(),
+        execution: exports_external.enum(["server", "client"]),
+        call_id: exports_external.string().nullable(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        arguments: exports_external.unknown()
+      }),
+      exports_external.object({
+        type: exports_external.literal("tool_search_output"),
+        id: exports_external.string(),
+        execution: exports_external.enum(["server", "client"]),
+        call_id: exports_external.string().nullable(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        tools: exports_external.array(exports_external.record(exports_external.string(), jsonValueSchema22.optional()))
+      })
+    ])
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.output_item.done"),
+    output_index: exports_external.number(),
+    item: exports_external.discriminatedUnion("type", [
+      exports_external.object({
+        type: exports_external.literal("message"),
+        id: exports_external.string(),
+        phase: exports_external.enum(["commentary", "final_answer"]).nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("reasoning"),
+        id: exports_external.string(),
+        encrypted_content: exports_external.string().nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("function_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        name: exports_external.string(),
+        arguments: exports_external.string(),
+        status: exports_external.literal("completed")
+      }),
+      exports_external.object({
+        type: exports_external.literal("custom_tool_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        name: exports_external.string(),
+        input: exports_external.string(),
+        status: exports_external.literal("completed")
+      }),
+      exports_external.object({
+        type: exports_external.literal("code_interpreter_call"),
+        id: exports_external.string(),
+        code: exports_external.string().nullable(),
+        container_id: exports_external.string(),
+        outputs: exports_external.array(exports_external.discriminatedUnion("type", [
+          exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
+          exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
+        ])).nullable()
+      }),
+      exports_external.object({
+        type: exports_external.literal("image_generation_call"),
+        id: exports_external.string(),
+        result: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("web_search_call"),
+        id: exports_external.string(),
+        status: exports_external.string(),
+        action: exports_external.discriminatedUnion("type", [
+          exports_external.object({
+            type: exports_external.literal("search"),
+            query: exports_external.string().nullish(),
+            sources: exports_external.array(exports_external.discriminatedUnion("type", [
+              exports_external.object({ type: exports_external.literal("url"), url: exports_external.string() }),
+              exports_external.object({ type: exports_external.literal("api"), name: exports_external.string() })
+            ])).nullish()
+          }),
+          exports_external.object({
+            type: exports_external.literal("open_page"),
+            url: exports_external.string().nullish()
+          }),
+          exports_external.object({
+            type: exports_external.literal("find_in_page"),
+            url: exports_external.string().nullish(),
+            pattern: exports_external.string().nullish()
+          })
+        ]).nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("file_search_call"),
+        id: exports_external.string(),
+        queries: exports_external.array(exports_external.string()),
+        results: exports_external.array(exports_external.object({
+          attributes: exports_external.record(exports_external.string(), exports_external.union([exports_external.string(), exports_external.number(), exports_external.boolean()])),
+          file_id: exports_external.string(),
+          filename: exports_external.string(),
+          score: exports_external.number(),
+          text: exports_external.string()
+        })).nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("local_shell_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        action: exports_external.object({
+          type: exports_external.literal("exec"),
+          command: exports_external.array(exports_external.string()),
+          timeout_ms: exports_external.number().optional(),
+          user: exports_external.string().optional(),
+          working_directory: exports_external.string().optional(),
+          env: exports_external.record(exports_external.string(), exports_external.string()).optional()
+        })
+      }),
+      exports_external.object({
+        type: exports_external.literal("computer_call"),
+        id: exports_external.string(),
+        status: exports_external.literal("completed")
+      }),
+      exports_external.object({
+        type: exports_external.literal("mcp_call"),
+        id: exports_external.string(),
+        status: exports_external.string(),
+        arguments: exports_external.string(),
+        name: exports_external.string(),
+        server_label: exports_external.string(),
+        output: exports_external.string().nullish(),
+        error: exports_external.union([
+          exports_external.string(),
+          exports_external.object({
+            type: exports_external.string().optional(),
+            code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
+            message: exports_external.string().optional()
+          }).loose()
+        ]).nullish(),
+        approval_request_id: exports_external.string().nullish()
+      }),
+      exports_external.object({
+        type: exports_external.literal("mcp_list_tools"),
+        id: exports_external.string(),
+        server_label: exports_external.string(),
+        tools: exports_external.array(exports_external.object({
+          name: exports_external.string(),
+          description: exports_external.string().optional(),
+          input_schema: exports_external.any(),
+          annotations: exports_external.record(exports_external.string(), exports_external.unknown()).optional()
+        })),
+        error: exports_external.union([
+          exports_external.string(),
+          exports_external.object({
+            type: exports_external.string().optional(),
+            code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
+            message: exports_external.string().optional()
+          }).loose()
+        ]).optional()
+      }),
+      exports_external.object({
+        type: exports_external.literal("mcp_approval_request"),
+        id: exports_external.string(),
+        server_label: exports_external.string(),
+        name: exports_external.string(),
+        arguments: exports_external.string(),
+        approval_request_id: exports_external.string().optional()
+      }),
+      exports_external.object({
+        type: exports_external.literal("apply_patch_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        status: exports_external.enum(["in_progress", "completed"]),
+        operation: exports_external.discriminatedUnion("type", [
+          exports_external.object({
+            type: exports_external.literal("create_file"),
+            path: exports_external.string(),
+            diff: exports_external.string()
+          }),
+          exports_external.object({
+            type: exports_external.literal("delete_file"),
+            path: exports_external.string()
+          }),
+          exports_external.object({
+            type: exports_external.literal("update_file"),
+            path: exports_external.string(),
+            diff: exports_external.string()
+          })
+        ])
+      }),
+      exports_external.object({
+        type: exports_external.literal("shell_call"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        action: exports_external.object({
+          commands: exports_external.array(exports_external.string())
+        })
+      }),
+      exports_external.object({
+        type: exports_external.literal("shell_call_output"),
+        id: exports_external.string(),
+        call_id: exports_external.string(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        output: exports_external.array(exports_external.object({
+          stdout: exports_external.string(),
+          stderr: exports_external.string(),
+          outcome: exports_external.discriminatedUnion("type", [
+            exports_external.object({ type: exports_external.literal("timeout") }),
+            exports_external.object({
+              type: exports_external.literal("exit"),
+              exit_code: exports_external.number()
+            })
+          ])
+        }))
+      }),
+      exports_external.object({
+        type: exports_external.literal("tool_search_call"),
+        id: exports_external.string(),
+        execution: exports_external.enum(["server", "client"]),
+        call_id: exports_external.string().nullable(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        arguments: exports_external.unknown()
+      }),
+      exports_external.object({
+        type: exports_external.literal("tool_search_output"),
+        id: exports_external.string(),
+        execution: exports_external.enum(["server", "client"]),
+        call_id: exports_external.string().nullable(),
+        status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+        tools: exports_external.array(exports_external.record(exports_external.string(), jsonValueSchema22.optional()))
+      })
+    ])
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.function_call_arguments.delta"),
+    item_id: exports_external.string(),
+    output_index: exports_external.number(),
+    delta: exports_external.string()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.custom_tool_call_input.delta"),
+    item_id: exports_external.string(),
+    output_index: exports_external.number(),
+    delta: exports_external.string()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.image_generation_call.partial_image"),
+    item_id: exports_external.string(),
+    output_index: exports_external.number(),
+    partial_image_b64: exports_external.string()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.code_interpreter_call_code.delta"),
+    item_id: exports_external.string(),
+    output_index: exports_external.number(),
+    delta: exports_external.string()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.code_interpreter_call_code.done"),
+    item_id: exports_external.string(),
+    output_index: exports_external.number(),
+    code: exports_external.string()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.output_text.annotation.added"),
+    annotation: exports_external.discriminatedUnion("type", [
+      exports_external.object({
+        type: exports_external.literal("url_citation"),
+        start_index: exports_external.number(),
+        end_index: exports_external.number(),
+        url: exports_external.string(),
+        title: exports_external.string()
+      }),
+      exports_external.object({
+        type: exports_external.literal("file_citation"),
+        file_id: exports_external.string(),
+        filename: exports_external.string(),
+        index: exports_external.number()
+      }),
+      exports_external.object({
+        type: exports_external.literal("container_file_citation"),
+        container_id: exports_external.string(),
+        file_id: exports_external.string(),
+        filename: exports_external.string(),
+        start_index: exports_external.number(),
+        end_index: exports_external.number()
+      }),
+      exports_external.object({
+        type: exports_external.literal("file_path"),
+        file_id: exports_external.string(),
+        index: exports_external.number()
+      })
+    ])
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.reasoning_summary_part.added"),
+    item_id: exports_external.string(),
+    summary_index: exports_external.number()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.reasoning_summary_text.delta"),
+    item_id: exports_external.string(),
+    summary_index: exports_external.number(),
+    delta: exports_external.string()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.reasoning_summary_part.done"),
+    item_id: exports_external.string(),
+    summary_index: exports_external.number()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.apply_patch_call_operation_diff.delta"),
+    item_id: exports_external.string(),
+    output_index: exports_external.number(),
+    delta: exports_external.string(),
+    obfuscation: exports_external.string().nullish()
+  }),
+  exports_external.object({
+    type: exports_external.literal("response.apply_patch_call_operation_diff.done"),
+    item_id: exports_external.string(),
+    output_index: exports_external.number(),
+    diff: exports_external.string()
+  }),
+  exports_external.object({
+    type: exports_external.literal("error"),
+    sequence_number: exports_external.number(),
+    error: exports_external.object({
+      type: exports_external.string(),
+      code: exports_external.string(),
+      message: exports_external.string(),
+      param: exports_external.string().nullish()
+    })
+  }),
+  exports_external.object({ type: exports_external.string() }).loose().transform((value) => ({
+    type: "unknown_chunk",
+    message: value.type
+  }))
+])));
+var openaiResponsesResponseSchema = lazySchema(() => zodSchema(exports_external.object({
+  id: exports_external.string().optional(),
+  created_at: exports_external.number().optional(),
+  error: exports_external.object({
+    message: exports_external.string(),
+    type: exports_external.string(),
+    param: exports_external.string().nullish(),
+    code: exports_external.string()
+  }).nullish(),
+  model: exports_external.string().optional(),
+  output: exports_external.array(exports_external.discriminatedUnion("type", [
+    exports_external.object({
+      type: exports_external.literal("message"),
+      role: exports_external.literal("assistant"),
+      id: exports_external.string(),
+      phase: exports_external.enum(["commentary", "final_answer"]).nullish(),
+      content: exports_external.array(exports_external.object({
+        type: exports_external.literal("output_text"),
+        text: exports_external.string(),
+        logprobs: exports_external.array(exports_external.object({
+          token: exports_external.string(),
+          logprob: exports_external.number(),
+          top_logprobs: exports_external.array(exports_external.object({
+            token: exports_external.string(),
+            logprob: exports_external.number()
+          }))
+        })).nullish(),
+        annotations: exports_external.array(exports_external.discriminatedUnion("type", [
+          exports_external.object({
+            type: exports_external.literal("url_citation"),
+            start_index: exports_external.number(),
+            end_index: exports_external.number(),
+            url: exports_external.string(),
+            title: exports_external.string()
+          }),
+          exports_external.object({
+            type: exports_external.literal("file_citation"),
+            file_id: exports_external.string(),
+            filename: exports_external.string(),
+            index: exports_external.number()
+          }),
+          exports_external.object({
+            type: exports_external.literal("container_file_citation"),
+            container_id: exports_external.string(),
+            file_id: exports_external.string(),
+            filename: exports_external.string(),
+            start_index: exports_external.number(),
+            end_index: exports_external.number()
+          }),
+          exports_external.object({
+            type: exports_external.literal("file_path"),
+            file_id: exports_external.string(),
+            index: exports_external.number()
+          })
+        ]))
+      }))
+    }),
+    exports_external.object({
+      type: exports_external.literal("web_search_call"),
+      id: exports_external.string(),
+      status: exports_external.string(),
+      action: exports_external.discriminatedUnion("type", [
+        exports_external.object({
+          type: exports_external.literal("search"),
+          query: exports_external.string().nullish(),
+          sources: exports_external.array(exports_external.discriminatedUnion("type", [
+            exports_external.object({ type: exports_external.literal("url"), url: exports_external.string() }),
+            exports_external.object({
+              type: exports_external.literal("api"),
+              name: exports_external.string()
+            })
+          ])).nullish()
+        }),
+        exports_external.object({
+          type: exports_external.literal("open_page"),
+          url: exports_external.string().nullish()
+        }),
+        exports_external.object({
+          type: exports_external.literal("find_in_page"),
+          url: exports_external.string().nullish(),
+          pattern: exports_external.string().nullish()
+        })
+      ]).nullish()
+    }),
+    exports_external.object({
+      type: exports_external.literal("file_search_call"),
+      id: exports_external.string(),
+      queries: exports_external.array(exports_external.string()),
+      results: exports_external.array(exports_external.object({
+        attributes: exports_external.record(exports_external.string(), exports_external.union([exports_external.string(), exports_external.number(), exports_external.boolean()])),
+        file_id: exports_external.string(),
+        filename: exports_external.string(),
+        score: exports_external.number(),
+        text: exports_external.string()
+      })).nullish()
+    }),
+    exports_external.object({
+      type: exports_external.literal("code_interpreter_call"),
+      id: exports_external.string(),
+      code: exports_external.string().nullable(),
+      container_id: exports_external.string(),
+      outputs: exports_external.array(exports_external.discriminatedUnion("type", [
+        exports_external.object({ type: exports_external.literal("logs"), logs: exports_external.string() }),
+        exports_external.object({ type: exports_external.literal("image"), url: exports_external.string() })
+      ])).nullable()
+    }),
+    exports_external.object({
+      type: exports_external.literal("image_generation_call"),
+      id: exports_external.string(),
+      result: exports_external.string()
+    }),
+    exports_external.object({
+      type: exports_external.literal("local_shell_call"),
+      id: exports_external.string(),
+      call_id: exports_external.string(),
+      action: exports_external.object({
+        type: exports_external.literal("exec"),
+        command: exports_external.array(exports_external.string()),
+        timeout_ms: exports_external.number().optional(),
+        user: exports_external.string().optional(),
+        working_directory: exports_external.string().optional(),
+        env: exports_external.record(exports_external.string(), exports_external.string()).optional()
+      })
+    }),
+    exports_external.object({
+      type: exports_external.literal("function_call"),
+      call_id: exports_external.string(),
+      name: exports_external.string(),
+      arguments: exports_external.string(),
+      id: exports_external.string()
+    }),
+    exports_external.object({
+      type: exports_external.literal("custom_tool_call"),
+      call_id: exports_external.string(),
+      name: exports_external.string(),
+      input: exports_external.string(),
+      id: exports_external.string()
+    }),
+    exports_external.object({
+      type: exports_external.literal("computer_call"),
+      id: exports_external.string(),
+      status: exports_external.string().optional()
+    }),
+    exports_external.object({
+      type: exports_external.literal("reasoning"),
+      id: exports_external.string(),
+      encrypted_content: exports_external.string().nullish(),
+      summary: exports_external.array(exports_external.object({
+        type: exports_external.literal("summary_text"),
+        text: exports_external.string()
+      }))
+    }),
+    exports_external.object({
+      type: exports_external.literal("mcp_call"),
+      id: exports_external.string(),
+      status: exports_external.string(),
+      arguments: exports_external.string(),
+      name: exports_external.string(),
+      server_label: exports_external.string(),
+      output: exports_external.string().nullish(),
+      error: exports_external.union([
+        exports_external.string(),
+        exports_external.object({
+          type: exports_external.string().optional(),
+          code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
+          message: exports_external.string().optional()
+        }).loose()
+      ]).nullish(),
+      approval_request_id: exports_external.string().nullish()
+    }),
+    exports_external.object({
+      type: exports_external.literal("mcp_list_tools"),
+      id: exports_external.string(),
+      server_label: exports_external.string(),
+      tools: exports_external.array(exports_external.object({
+        name: exports_external.string(),
+        description: exports_external.string().optional(),
+        input_schema: exports_external.any(),
+        annotations: exports_external.record(exports_external.string(), exports_external.unknown()).optional()
+      })),
+      error: exports_external.union([
+        exports_external.string(),
+        exports_external.object({
+          type: exports_external.string().optional(),
+          code: exports_external.union([exports_external.number(), exports_external.string()]).optional(),
+          message: exports_external.string().optional()
+        }).loose()
+      ]).optional()
+    }),
+    exports_external.object({
+      type: exports_external.literal("mcp_approval_request"),
+      id: exports_external.string(),
+      server_label: exports_external.string(),
+      name: exports_external.string(),
+      arguments: exports_external.string(),
+      approval_request_id: exports_external.string().optional()
+    }),
+    exports_external.object({
+      type: exports_external.literal("apply_patch_call"),
+      id: exports_external.string(),
+      call_id: exports_external.string(),
+      status: exports_external.enum(["in_progress", "completed"]),
+      operation: exports_external.discriminatedUnion("type", [
+        exports_external.object({
+          type: exports_external.literal("create_file"),
+          path: exports_external.string(),
+          diff: exports_external.string()
+        }),
+        exports_external.object({
+          type: exports_external.literal("delete_file"),
+          path: exports_external.string()
+        }),
+        exports_external.object({
+          type: exports_external.literal("update_file"),
+          path: exports_external.string(),
+          diff: exports_external.string()
+        })
+      ])
+    }),
+    exports_external.object({
+      type: exports_external.literal("shell_call"),
+      id: exports_external.string(),
+      call_id: exports_external.string(),
+      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+      action: exports_external.object({
+        commands: exports_external.array(exports_external.string())
+      })
+    }),
+    exports_external.object({
+      type: exports_external.literal("shell_call_output"),
+      id: exports_external.string(),
+      call_id: exports_external.string(),
+      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+      output: exports_external.array(exports_external.object({
+        stdout: exports_external.string(),
+        stderr: exports_external.string(),
+        outcome: exports_external.discriminatedUnion("type", [
+          exports_external.object({ type: exports_external.literal("timeout") }),
+          exports_external.object({
+            type: exports_external.literal("exit"),
+            exit_code: exports_external.number()
+          })
+        ])
+      }))
+    }),
+    exports_external.object({
+      type: exports_external.literal("tool_search_call"),
+      id: exports_external.string(),
+      execution: exports_external.enum(["server", "client"]),
+      call_id: exports_external.string().nullable(),
+      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+      arguments: exports_external.unknown()
+    }),
+    exports_external.object({
+      type: exports_external.literal("tool_search_output"),
+      id: exports_external.string(),
+      execution: exports_external.enum(["server", "client"]),
+      call_id: exports_external.string().nullable(),
+      status: exports_external.enum(["in_progress", "completed", "incomplete"]),
+      tools: exports_external.array(exports_external.record(exports_external.string(), jsonValueSchema22.optional()))
+    })
+  ])).optional(),
+  service_tier: exports_external.string().nullish(),
+  incomplete_details: exports_external.object({ reason: exports_external.string() }).nullish(),
+  usage: exports_external.object({
+    input_tokens: exports_external.number(),
+    input_tokens_details: exports_external.object({ cached_tokens: exports_external.number().nullish() }).nullish(),
+    output_tokens: exports_external.number(),
+    output_tokens_details: exports_external.object({ reasoning_tokens: exports_external.number().nullish() }).nullish()
+  }).optional()
+})));
+var TOP_LOGPROBS_MAX = 20;
+var openaiResponsesReasoningModelIds = [
+  "o1",
+  "o1-2024-12-17",
+  "o3",
+  "o3-2025-04-16",
+  "o3-mini",
+  "o3-mini-2025-01-31",
+  "o4-mini",
+  "o4-mini-2025-04-16",
+  "gpt-5",
+  "gpt-5-2025-08-07",
+  "gpt-5-codex",
+  "gpt-5-mini",
+  "gpt-5-mini-2025-08-07",
+  "gpt-5-nano",
+  "gpt-5-nano-2025-08-07",
+  "gpt-5-pro",
+  "gpt-5-pro-2025-10-06",
+  "gpt-5.1",
+  "gpt-5.1-chat-latest",
+  "gpt-5.1-codex-mini",
+  "gpt-5.1-codex",
+  "gpt-5.1-codex-max",
+  "gpt-5.2",
+  "gpt-5.2-chat-latest",
+  "gpt-5.2-pro",
+  "gpt-5.2-codex",
+  "gpt-5.3-chat-latest",
+  "gpt-5.3-codex",
+  "gpt-5.4",
+  "gpt-5.4-2026-03-05",
+  "gpt-5.4-mini",
+  "gpt-5.4-mini-2026-03-17",
+  "gpt-5.4-nano",
+  "gpt-5.4-nano-2026-03-17",
+  "gpt-5.4-pro",
+  "gpt-5.4-pro-2026-03-05"
+];
+var openaiResponsesModelIds = [
+  "gpt-4.1",
+  "gpt-4.1-2025-04-14",
+  "gpt-4.1-mini",
+  "gpt-4.1-mini-2025-04-14",
+  "gpt-4.1-nano",
+  "gpt-4.1-nano-2025-04-14",
+  "gpt-4o",
+  "gpt-4o-2024-05-13",
+  "gpt-4o-2024-08-06",
+  "gpt-4o-2024-11-20",
+  "gpt-4o-audio-preview",
+  "gpt-4o-audio-preview-2024-12-17",
+  "gpt-4o-search-preview",
+  "gpt-4o-search-preview-2025-03-11",
+  "gpt-4o-mini-search-preview",
+  "gpt-4o-mini-search-preview-2025-03-11",
+  "gpt-4o-mini",
+  "gpt-4o-mini-2024-07-18",
+  "gpt-3.5-turbo-0125",
+  "gpt-3.5-turbo",
+  "gpt-3.5-turbo-1106",
+  "gpt-5-chat-latest",
+  ...openaiResponsesReasoningModelIds
+];
+var openaiLanguageModelResponsesOptionsSchema = lazySchema(() => zodSchema(exports_external.object({
+  conversation: exports_external.string().nullish(),
+  include: exports_external.array(exports_external.enum([
+    "reasoning.encrypted_content",
+    "file_search_call.results",
+    "message.output_text.logprobs"
+  ])).nullish(),
+  instructions: exports_external.string().nullish(),
+  logprobs: exports_external.union([exports_external.boolean(), exports_external.number().min(1).max(TOP_LOGPROBS_MAX)]).optional(),
+  maxToolCalls: exports_external.number().nullish(),
+  metadata: exports_external.any().nullish(),
+  parallelToolCalls: exports_external.boolean().nullish(),
+  previousResponseId: exports_external.string().nullish(),
+  promptCacheKey: exports_external.string().nullish(),
+  promptCacheRetention: exports_external.enum(["in_memory", "24h"]).nullish(),
+  reasoningEffort: exports_external.string().nullish(),
+  reasoningSummary: exports_external.string().nullish(),
+  safetyIdentifier: exports_external.string().nullish(),
+  serviceTier: exports_external.enum(["auto", "flex", "priority", "default"]).nullish(),
+  store: exports_external.boolean().nullish(),
+  strictJsonSchema: exports_external.boolean().nullish(),
+  textVerbosity: exports_external.enum(["low", "medium", "high"]).nullish(),
+  truncation: exports_external.enum(["auto", "disabled"]).nullish(),
+  user: exports_external.string().nullish(),
+  systemMessageMode: exports_external.enum(["system", "developer", "remove"]).optional(),
+  forceReasoning: exports_external.boolean().optional()
+})));
+async function prepareResponsesTools({
+  tools,
+  toolChoice,
+  toolNameMapping,
+  customProviderToolNames
+}) {
+  var _a21, _b16;
+  tools = (tools == null ? undefined : tools.length) ? tools : undefined;
+  const toolWarnings = [];
+  if (tools == null) {
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
+  }
+  const openaiTools2 = [];
+  const resolvedCustomProviderToolNames = customProviderToolNames != null ? customProviderToolNames : /* @__PURE__ */ new Set;
+  for (const tool2 of tools) {
+    switch (tool2.type) {
+      case "function": {
+        const openaiOptions = (_a21 = tool2.providerOptions) == null ? undefined : _a21.openai;
+        const deferLoading = openaiOptions == null ? undefined : openaiOptions.deferLoading;
+        openaiTools2.push({
+          type: "function",
+          name: tool2.name,
+          description: tool2.description,
+          parameters: tool2.inputSchema,
+          ...tool2.strict != null ? { strict: tool2.strict } : {},
+          ...deferLoading != null ? { defer_loading: deferLoading } : {}
+        });
+        break;
+      }
+      case "provider": {
+        switch (tool2.id) {
+          case "openai.file_search": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: fileSearchArgsSchema2
+            });
+            openaiTools2.push({
+              type: "file_search",
+              vector_store_ids: args.vectorStoreIds,
+              max_num_results: args.maxNumResults,
+              ranking_options: args.ranking ? {
+                ranker: args.ranking.ranker,
+                score_threshold: args.ranking.scoreThreshold
+              } : undefined,
+              filters: args.filters
+            });
+            break;
+          }
+          case "openai.local_shell": {
+            openaiTools2.push({
+              type: "local_shell"
+            });
+            break;
+          }
+          case "openai.shell": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: shellArgsSchema
+            });
+            openaiTools2.push({
+              type: "shell",
+              ...args.environment && {
+                environment: mapShellEnvironment(args.environment)
+              }
+            });
+            break;
+          }
+          case "openai.apply_patch": {
+            openaiTools2.push({
+              type: "apply_patch"
+            });
+            break;
+          }
+          case "openai.web_search_preview": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: webSearchPreviewArgsSchema
+            });
+            openaiTools2.push({
+              type: "web_search_preview",
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation
+            });
+            break;
+          }
+          case "openai.web_search": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: webSearchArgsSchema
+            });
+            openaiTools2.push({
+              type: "web_search",
+              filters: args.filters != null ? { allowed_domains: args.filters.allowedDomains } : undefined,
+              external_web_access: args.externalWebAccess,
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation
+            });
+            break;
+          }
+          case "openai.code_interpreter": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: codeInterpreterArgsSchema
+            });
+            openaiTools2.push({
+              type: "code_interpreter",
+              container: args.container == null ? { type: "auto", file_ids: undefined } : typeof args.container === "string" ? args.container : { type: "auto", file_ids: args.container.fileIds }
+            });
+            break;
+          }
+          case "openai.image_generation": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: imageGenerationArgsSchema
+            });
+            openaiTools2.push({
+              type: "image_generation",
+              background: args.background,
+              input_fidelity: args.inputFidelity,
+              input_image_mask: args.inputImageMask ? {
+                file_id: args.inputImageMask.fileId,
+                image_url: args.inputImageMask.imageUrl
+              } : undefined,
+              model: args.model,
+              moderation: args.moderation,
+              partial_images: args.partialImages,
+              quality: args.quality,
+              output_compression: args.outputCompression,
+              output_format: args.outputFormat,
+              size: args.size
+            });
+            break;
+          }
+          case "openai.mcp": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: mcpArgsSchema
+            });
+            const mapApprovalFilter = (filter2) => ({
+              tool_names: filter2.toolNames
+            });
+            const requireApproval = args.requireApproval;
+            const requireApprovalParam = requireApproval == null ? undefined : typeof requireApproval === "string" ? requireApproval : requireApproval.never != null ? { never: mapApprovalFilter(requireApproval.never) } : undefined;
+            openaiTools2.push({
+              type: "mcp",
+              server_label: args.serverLabel,
+              allowed_tools: Array.isArray(args.allowedTools) ? args.allowedTools : args.allowedTools ? {
+                read_only: args.allowedTools.readOnly,
+                tool_names: args.allowedTools.toolNames
+              } : undefined,
+              authorization: args.authorization,
+              connector_id: args.connectorId,
+              headers: args.headers,
+              require_approval: requireApprovalParam != null ? requireApprovalParam : "never",
+              server_description: args.serverDescription,
+              server_url: args.serverUrl
+            });
+            break;
+          }
+          case "openai.custom": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: customArgsSchema
+            });
+            openaiTools2.push({
+              type: "custom",
+              name: args.name,
+              description: args.description,
+              format: args.format
+            });
+            resolvedCustomProviderToolNames.add(args.name);
+            break;
+          }
+          case "openai.tool_search": {
+            const args = await validateTypes({
+              value: tool2.args,
+              schema: toolSearchArgsSchema
+            });
+            openaiTools2.push({
+              type: "tool_search",
+              ...args.execution != null ? { execution: args.execution } : {},
+              ...args.description != null ? { description: args.description } : {},
+              ...args.parameters != null ? { parameters: args.parameters } : {}
+            });
+            break;
+          }
+        }
+        break;
+      }
+      default:
+        toolWarnings.push({
+          type: "unsupported",
+          feature: `function tool ${tool2}`
+        });
+        break;
+    }
+  }
+  if (toolChoice == null) {
+    return { tools: openaiTools2, toolChoice: undefined, toolWarnings };
+  }
+  const type = toolChoice.type;
+  switch (type) {
+    case "auto":
+    case "none":
+    case "required":
+      return { tools: openaiTools2, toolChoice: type, toolWarnings };
+    case "tool": {
+      const resolvedToolName = (_b16 = toolNameMapping == null ? undefined : toolNameMapping.toProviderToolName(toolChoice.toolName)) != null ? _b16 : toolChoice.toolName;
+      return {
+        tools: openaiTools2,
+        toolChoice: resolvedToolName === "code_interpreter" || resolvedToolName === "file_search" || resolvedToolName === "image_generation" || resolvedToolName === "web_search_preview" || resolvedToolName === "web_search" || resolvedToolName === "mcp" || resolvedToolName === "apply_patch" ? { type: resolvedToolName } : resolvedCustomProviderToolNames.has(resolvedToolName) ? { type: "custom", name: resolvedToolName } : { type: "function", name: resolvedToolName },
+        toolWarnings
+      };
+    }
+    default: {
+      const _exhaustiveCheck = type;
+      throw new UnsupportedFunctionalityError({
+        functionality: `tool choice type: ${_exhaustiveCheck}`
+      });
+    }
+  }
+}
+function mapShellEnvironment(environment) {
+  if (environment.type === "containerReference") {
+    const env2 = environment;
+    return {
+      type: "container_reference",
+      container_id: env2.containerId
+    };
+  }
+  if (environment.type === "containerAuto") {
+    const env2 = environment;
+    return {
+      type: "container_auto",
+      file_ids: env2.fileIds,
+      memory_limit: env2.memoryLimit,
+      network_policy: env2.networkPolicy == null ? undefined : env2.networkPolicy.type === "disabled" ? { type: "disabled" } : {
+        type: "allowlist",
+        allowed_domains: env2.networkPolicy.allowedDomains,
+        domain_secrets: env2.networkPolicy.domainSecrets
+      },
+      skills: mapShellSkills(env2.skills)
+    };
+  }
+  const env = environment;
+  return {
+    type: "local",
+    skills: env.skills
+  };
+}
+function mapShellSkills(skills) {
+  return skills == null ? undefined : skills.map((skill) => skill.type === "skillReference" ? {
+    type: "skill_reference",
+    skill_id: skill.skillId,
+    version: skill.version
+  } : {
+    type: "inline",
+    name: skill.name,
+    description: skill.description,
+    source: {
+      type: "base64",
+      media_type: skill.source.mediaType,
+      data: skill.source.data
+    }
+  });
+}
+function extractApprovalRequestIdToToolCallIdMapping(prompt) {
+  var _a21, _b16;
+  const mapping = {};
+  for (const message of prompt) {
+    if (message.role !== "assistant")
+      continue;
+    for (const part of message.content) {
+      if (part.type !== "tool-call")
+        continue;
+      const approvalRequestId = (_b16 = (_a21 = part.providerOptions) == null ? undefined : _a21.openai) == null ? undefined : _b16.approvalRequestId;
+      if (approvalRequestId != null) {
+        mapping[approvalRequestId] = part.toolCallId;
+      }
+    }
+  }
+  return mapping;
+}
+var OpenAIResponsesLanguageModel = class {
+  constructor(modelId, config2) {
+    this.specificationVersion = "v3";
+    this.supportedUrls = {
+      "image/*": [/^https?:\/\/.*$/],
+      "application/pdf": [/^https?:\/\/.*$/]
+    };
+    this.modelId = modelId;
+    this.config = config2;
+  }
+  get provider() {
+    return this.config.provider;
+  }
+  async getArgs({
+    maxOutputTokens,
+    temperature,
+    stopSequences,
+    topP,
+    topK,
+    presencePenalty,
+    frequencyPenalty,
+    seed,
+    prompt,
+    providerOptions,
+    tools,
+    toolChoice,
+    responseFormat
+  }) {
+    var _a21, _b16, _c, _d, _e, _f, _g, _h, _i;
+    const warnings = [];
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    if (topK != null) {
+      warnings.push({ type: "unsupported", feature: "topK" });
+    }
+    if (seed != null) {
+      warnings.push({ type: "unsupported", feature: "seed" });
+    }
+    if (presencePenalty != null) {
+      warnings.push({ type: "unsupported", feature: "presencePenalty" });
+    }
+    if (frequencyPenalty != null) {
+      warnings.push({ type: "unsupported", feature: "frequencyPenalty" });
+    }
+    if (stopSequences != null) {
+      warnings.push({ type: "unsupported", feature: "stopSequences" });
+    }
+    const providerOptionsName = this.config.provider.includes("azure") ? "azure" : "openai";
+    let openaiOptions = await parseProviderOptions({
+      provider: providerOptionsName,
+      providerOptions,
+      schema: openaiLanguageModelResponsesOptionsSchema
+    });
+    if (openaiOptions == null && providerOptionsName !== "openai") {
+      openaiOptions = await parseProviderOptions({
+        provider: "openai",
+        providerOptions,
+        schema: openaiLanguageModelResponsesOptionsSchema
+      });
+    }
+    const isReasoningModel = (_a21 = openaiOptions == null ? undefined : openaiOptions.forceReasoning) != null ? _a21 : modelCapabilities.isReasoningModel;
+    if ((openaiOptions == null ? undefined : openaiOptions.conversation) && (openaiOptions == null ? undefined : openaiOptions.previousResponseId)) {
+      warnings.push({
+        type: "unsupported",
+        feature: "conversation",
+        details: "conversation and previousResponseId cannot be used together"
+      });
+    }
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        "openai.code_interpreter": "code_interpreter",
+        "openai.file_search": "file_search",
+        "openai.image_generation": "image_generation",
+        "openai.local_shell": "local_shell",
+        "openai.shell": "shell",
+        "openai.web_search": "web_search",
+        "openai.web_search_preview": "web_search_preview",
+        "openai.mcp": "mcp",
+        "openai.apply_patch": "apply_patch",
+        "openai.tool_search": "tool_search"
+      },
+      resolveProviderToolName: (tool2) => tool2.id === "openai.custom" ? tool2.args.name : undefined
+    });
+    const customProviderToolNames = /* @__PURE__ */ new Set;
+    const {
+      tools: openaiTools2,
+      toolChoice: openaiToolChoice,
+      toolWarnings
+    } = await prepareResponsesTools({
+      tools,
+      toolChoice,
+      toolNameMapping,
+      customProviderToolNames
+    });
+    const { input, warnings: inputWarnings } = await convertToOpenAIResponsesInput({
+      prompt,
+      toolNameMapping,
+      systemMessageMode: (_b16 = openaiOptions == null ? undefined : openaiOptions.systemMessageMode) != null ? _b16 : isReasoningModel ? "developer" : modelCapabilities.systemMessageMode,
+      providerOptionsName,
+      fileIdPrefixes: this.config.fileIdPrefixes,
+      store: (_c = openaiOptions == null ? undefined : openaiOptions.store) != null ? _c : true,
+      hasConversation: (openaiOptions == null ? undefined : openaiOptions.conversation) != null,
+      hasLocalShellTool: hasOpenAITool("openai.local_shell"),
+      hasShellTool: hasOpenAITool("openai.shell"),
+      hasApplyPatchTool: hasOpenAITool("openai.apply_patch"),
+      customProviderToolNames: customProviderToolNames.size > 0 ? customProviderToolNames : undefined
+    });
+    warnings.push(...inputWarnings);
+    const strictJsonSchema = (_d = openaiOptions == null ? undefined : openaiOptions.strictJsonSchema) != null ? _d : true;
+    let include = openaiOptions == null ? undefined : openaiOptions.include;
+    function addInclude(key) {
+      if (include == null) {
+        include = [key];
+      } else if (!include.includes(key)) {
+        include = [...include, key];
+      }
+    }
+    function hasOpenAITool(id) {
+      return (tools == null ? undefined : tools.find((tool2) => tool2.type === "provider" && tool2.id === id)) != null;
+    }
+    const topLogprobs = typeof (openaiOptions == null ? undefined : openaiOptions.logprobs) === "number" ? openaiOptions == null ? undefined : openaiOptions.logprobs : (openaiOptions == null ? undefined : openaiOptions.logprobs) === true ? TOP_LOGPROBS_MAX : undefined;
+    if (topLogprobs) {
+      addInclude("message.output_text.logprobs");
+    }
+    const webSearchToolName = (_e = tools == null ? undefined : tools.find((tool2) => tool2.type === "provider" && (tool2.id === "openai.web_search" || tool2.id === "openai.web_search_preview"))) == null ? undefined : _e.name;
+    if (webSearchToolName) {
+      addInclude("web_search_call.action.sources");
+    }
+    if (hasOpenAITool("openai.code_interpreter")) {
+      addInclude("code_interpreter_call.outputs");
+    }
+    const store = openaiOptions == null ? undefined : openaiOptions.store;
+    if (store === false && isReasoningModel) {
+      addInclude("reasoning.encrypted_content");
+    }
+    const baseArgs = {
+      model: this.modelId,
+      input,
+      temperature,
+      top_p: topP,
+      max_output_tokens: maxOutputTokens,
+      ...((responseFormat == null ? undefined : responseFormat.type) === "json" || (openaiOptions == null ? undefined : openaiOptions.textVerbosity)) && {
+        text: {
+          ...(responseFormat == null ? undefined : responseFormat.type) === "json" && {
+            format: responseFormat.schema != null ? {
+              type: "json_schema",
+              strict: strictJsonSchema,
+              name: (_f = responseFormat.name) != null ? _f : "response",
+              description: responseFormat.description,
+              schema: responseFormat.schema
+            } : { type: "json_object" }
+          },
+          ...(openaiOptions == null ? undefined : openaiOptions.textVerbosity) && {
+            verbosity: openaiOptions.textVerbosity
+          }
+        }
+      },
+      conversation: openaiOptions == null ? undefined : openaiOptions.conversation,
+      max_tool_calls: openaiOptions == null ? undefined : openaiOptions.maxToolCalls,
+      metadata: openaiOptions == null ? undefined : openaiOptions.metadata,
+      parallel_tool_calls: openaiOptions == null ? undefined : openaiOptions.parallelToolCalls,
+      previous_response_id: openaiOptions == null ? undefined : openaiOptions.previousResponseId,
+      store,
+      user: openaiOptions == null ? undefined : openaiOptions.user,
+      instructions: openaiOptions == null ? undefined : openaiOptions.instructions,
+      service_tier: openaiOptions == null ? undefined : openaiOptions.serviceTier,
+      include,
+      prompt_cache_key: openaiOptions == null ? undefined : openaiOptions.promptCacheKey,
+      prompt_cache_retention: openaiOptions == null ? undefined : openaiOptions.promptCacheRetention,
+      safety_identifier: openaiOptions == null ? undefined : openaiOptions.safetyIdentifier,
+      top_logprobs: topLogprobs,
+      truncation: openaiOptions == null ? undefined : openaiOptions.truncation,
+      ...isReasoningModel && ((openaiOptions == null ? undefined : openaiOptions.reasoningEffort) != null || (openaiOptions == null ? undefined : openaiOptions.reasoningSummary) != null) && {
+        reasoning: {
+          ...(openaiOptions == null ? undefined : openaiOptions.reasoningEffort) != null && {
+            effort: openaiOptions.reasoningEffort
+          },
+          ...(openaiOptions == null ? undefined : openaiOptions.reasoningSummary) != null && {
+            summary: openaiOptions.reasoningSummary
+          }
+        }
+      }
+    };
+    if (isReasoningModel) {
+      if (!((openaiOptions == null ? undefined : openaiOptions.reasoningEffort) === "none" && modelCapabilities.supportsNonReasoningParameters)) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: "unsupported",
+            feature: "temperature",
+            details: "temperature is not supported for reasoning models"
+          });
+        }
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: "unsupported",
+            feature: "topP",
+            details: "topP is not supported for reasoning models"
+          });
+        }
+      }
+    } else {
+      if ((openaiOptions == null ? undefined : openaiOptions.reasoningEffort) != null) {
+        warnings.push({
+          type: "unsupported",
+          feature: "reasoningEffort",
+          details: "reasoningEffort is not supported for non-reasoning models"
+        });
+      }
+      if ((openaiOptions == null ? undefined : openaiOptions.reasoningSummary) != null) {
+        warnings.push({
+          type: "unsupported",
+          feature: "reasoningSummary",
+          details: "reasoningSummary is not supported for non-reasoning models"
+        });
+      }
+    }
+    if ((openaiOptions == null ? undefined : openaiOptions.serviceTier) === "flex" && !modelCapabilities.supportsFlexProcessing) {
+      warnings.push({
+        type: "unsupported",
+        feature: "serviceTier",
+        details: "flex processing is only available for o3, o4-mini, and gpt-5 models"
+      });
+      delete baseArgs.service_tier;
+    }
+    if ((openaiOptions == null ? undefined : openaiOptions.serviceTier) === "priority" && !modelCapabilities.supportsPriorityProcessing) {
+      warnings.push({
+        type: "unsupported",
+        feature: "serviceTier",
+        details: "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported"
+      });
+      delete baseArgs.service_tier;
+    }
+    const shellToolEnvType = (_i = (_h = (_g = tools == null ? undefined : tools.find((tool2) => tool2.type === "provider" && tool2.id === "openai.shell")) == null ? undefined : _g.args) == null ? undefined : _h.environment) == null ? undefined : _i.type;
+    const isShellProviderExecuted = shellToolEnvType === "containerAuto" || shellToolEnvType === "containerReference";
+    return {
+      webSearchToolName,
+      args: {
+        ...baseArgs,
+        tools: openaiTools2,
+        tool_choice: openaiToolChoice
+      },
+      warnings: [...warnings, ...toolWarnings],
+      store,
+      toolNameMapping,
+      providerOptionsName,
+      isShellProviderExecuted
+    };
+  }
+  async doGenerate(options) {
+    var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B;
+    const {
+      args: body,
+      warnings,
+      webSearchToolName,
+      toolNameMapping,
+      providerOptionsName,
+      isShellProviderExecuted
+    } = await this.getArgs(options);
+    const url2 = this.config.url({
+      path: "/responses",
+      modelId: this.modelId
+    });
+    const approvalRequestIdToDummyToolCallIdFromPrompt = extractApprovalRequestIdToToolCallIdMapping(options.prompt);
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse
+    } = await postJsonToApi({
+      url: url2,
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(openaiResponsesResponseSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    if (response.error) {
+      throw new APICallError({
+        message: response.error.message,
+        url: url2,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: rawResponse,
+        isRetryable: false
+      });
+    }
+    const content = [];
+    const logprobs = [];
+    let hasFunctionCall = false;
+    const hostedToolSearchCallIds = [];
+    for (const part of response.output) {
+      switch (part.type) {
+        case "reasoning": {
+          if (part.summary.length === 0) {
+            part.summary.push({ type: "summary_text", text: "" });
+          }
+          for (const summary2 of part.summary) {
+            content.push({
+              type: "reasoning",
+              text: summary2.text,
+              providerMetadata: {
+                [providerOptionsName]: {
+                  itemId: part.id,
+                  reasoningEncryptedContent: (_a21 = part.encrypted_content) != null ? _a21 : null
+                }
+              }
+            });
+          }
+          break;
+        }
+        case "image_generation_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("image_generation"),
+            input: "{}",
+            providerExecuted: true
+          });
+          content.push({
+            type: "tool-result",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("image_generation"),
+            result: {
+              result: part.result
+            }
+          });
+          break;
+        }
+        case "tool_search_call": {
+          const toolCallId = (_b16 = part.call_id) != null ? _b16 : part.id;
+          const isHosted = part.execution === "server";
+          if (isHosted) {
+            hostedToolSearchCallIds.push(toolCallId);
+          }
+          content.push({
+            type: "tool-call",
+            toolCallId,
+            toolName: toolNameMapping.toCustomToolName("tool_search"),
+            input: JSON.stringify({
+              arguments: part.arguments,
+              call_id: part.call_id
+            }),
+            ...isHosted ? { providerExecuted: true } : {},
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+        case "tool_search_output": {
+          const toolCallId = (_d = (_c = part.call_id) != null ? _c : hostedToolSearchCallIds.shift()) != null ? _d : part.id;
+          content.push({
+            type: "tool-result",
+            toolCallId,
+            toolName: toolNameMapping.toCustomToolName("tool_search"),
+            result: {
+              tools: part.tools
+            },
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+        case "local_shell_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName("local_shell"),
+            input: JSON.stringify({
+              action: part.action
+            }),
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+        case "shell_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName("shell"),
+            input: JSON.stringify({
+              action: {
+                commands: part.action.commands
+              }
+            }),
+            ...isShellProviderExecuted && { providerExecuted: true },
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+        case "shell_call_output": {
+          content.push({
+            type: "tool-result",
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName("shell"),
+            result: {
+              output: part.output.map((item) => ({
+                stdout: item.stdout,
+                stderr: item.stderr,
+                outcome: item.outcome.type === "exit" ? {
+                  type: "exit",
+                  exitCode: item.outcome.exit_code
+                } : { type: "timeout" }
+              }))
+            }
+          });
+          break;
+        }
+        case "message": {
+          for (const contentPart of part.content) {
+            if (((_f = (_e = options.providerOptions) == null ? undefined : _e[providerOptionsName]) == null ? undefined : _f.logprobs) && contentPart.logprobs) {
+              logprobs.push(contentPart.logprobs);
+            }
+            const providerMetadata2 = {
+              itemId: part.id,
+              ...part.phase != null && { phase: part.phase },
+              ...contentPart.annotations.length > 0 && {
+                annotations: contentPart.annotations
+              }
+            };
+            content.push({
+              type: "text",
+              text: contentPart.text,
+              providerMetadata: {
+                [providerOptionsName]: providerMetadata2
+              }
+            });
+            for (const annotation of contentPart.annotations) {
+              if (annotation.type === "url_citation") {
+                content.push({
+                  type: "source",
+                  sourceType: "url",
+                  id: (_i = (_h = (_g = this.config).generateId) == null ? undefined : _h.call(_g)) != null ? _i : generateId(),
+                  url: annotation.url,
+                  title: annotation.title
+                });
+              } else if (annotation.type === "file_citation") {
+                content.push({
+                  type: "source",
+                  sourceType: "document",
+                  id: (_l = (_k = (_j = this.config).generateId) == null ? undefined : _k.call(_j)) != null ? _l : generateId(),
+                  mediaType: "text/plain",
+                  title: annotation.filename,
+                  filename: annotation.filename,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      type: annotation.type,
+                      fileId: annotation.file_id,
+                      index: annotation.index
+                    }
+                  }
+                });
+              } else if (annotation.type === "container_file_citation") {
+                content.push({
+                  type: "source",
+                  sourceType: "document",
+                  id: (_o = (_n = (_m = this.config).generateId) == null ? undefined : _n.call(_m)) != null ? _o : generateId(),
+                  mediaType: "text/plain",
+                  title: annotation.filename,
+                  filename: annotation.filename,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      type: annotation.type,
+                      fileId: annotation.file_id,
+                      containerId: annotation.container_id
+                    }
+                  }
+                });
+              } else if (annotation.type === "file_path") {
+                content.push({
+                  type: "source",
+                  sourceType: "document",
+                  id: (_r = (_q = (_p = this.config).generateId) == null ? undefined : _q.call(_p)) != null ? _r : generateId(),
+                  mediaType: "application/octet-stream",
+                  title: annotation.file_id,
+                  filename: annotation.file_id,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      type: annotation.type,
+                      fileId: annotation.file_id,
+                      index: annotation.index
+                    }
+                  }
+                });
+              }
+            }
+          }
+          break;
+        }
+        case "function_call": {
+          hasFunctionCall = true;
+          content.push({
+            type: "tool-call",
+            toolCallId: part.call_id,
+            toolName: part.name,
+            input: part.arguments,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+        case "custom_tool_call": {
+          hasFunctionCall = true;
+          const toolName = toolNameMapping.toCustomToolName(part.name);
+          content.push({
+            type: "tool-call",
+            toolCallId: part.call_id,
+            toolName,
+            input: JSON.stringify(part.input),
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+        case "web_search_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
+            input: JSON.stringify({}),
+            providerExecuted: true
+          });
+          content.push({
+            type: "tool-result",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
+            result: mapWebSearchOutput(part.action)
+          });
+          break;
+        }
+        case "mcp_call": {
+          const toolCallId = part.approval_request_id != null ? (_s = approvalRequestIdToDummyToolCallIdFromPrompt[part.approval_request_id]) != null ? _s : part.id : part.id;
+          const toolName = `mcp.${part.name}`;
+          content.push({
+            type: "tool-call",
+            toolCallId,
+            toolName,
+            input: part.arguments,
+            providerExecuted: true,
+            dynamic: true
+          });
+          content.push({
+            type: "tool-result",
+            toolCallId,
+            toolName,
+            result: {
+              type: "call",
+              serverLabel: part.server_label,
+              name: part.name,
+              arguments: part.arguments,
+              ...part.output != null ? { output: part.output } : {},
+              ...part.error != null ? { error: part.error } : {}
+            },
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+        case "mcp_list_tools": {
+          break;
+        }
+        case "mcp_approval_request": {
+          const approvalRequestId = (_t = part.approval_request_id) != null ? _t : part.id;
+          const dummyToolCallId = (_w = (_v = (_u = this.config).generateId) == null ? undefined : _v.call(_u)) != null ? _w : generateId();
+          const toolName = `mcp.${part.name}`;
+          content.push({
+            type: "tool-call",
+            toolCallId: dummyToolCallId,
+            toolName,
+            input: part.arguments,
+            providerExecuted: true,
+            dynamic: true
+          });
+          content.push({
+            type: "tool-approval-request",
+            approvalId: approvalRequestId,
+            toolCallId: dummyToolCallId
+          });
+          break;
+        }
+        case "computer_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("computer_use"),
+            input: "",
+            providerExecuted: true
+          });
+          content.push({
+            type: "tool-result",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("computer_use"),
+            result: {
+              type: "computer_use_tool_result",
+              status: part.status || "completed"
+            }
+          });
+          break;
+        }
+        case "file_search_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("file_search"),
+            input: "{}",
+            providerExecuted: true
+          });
+          content.push({
+            type: "tool-result",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("file_search"),
+            result: {
+              queries: part.queries,
+              results: (_y = (_x = part.results) == null ? undefined : _x.map((result) => ({
+                attributes: result.attributes,
+                fileId: result.file_id,
+                filename: result.filename,
+                score: result.score,
+                text: result.text
+              }))) != null ? _y : null
+            }
+          });
+          break;
+        }
+        case "code_interpreter_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("code_interpreter"),
+            input: JSON.stringify({
+              code: part.code,
+              containerId: part.container_id
+            }),
+            providerExecuted: true
+          });
+          content.push({
+            type: "tool-result",
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName("code_interpreter"),
+            result: {
+              outputs: part.outputs
+            }
+          });
+          break;
+        }
+        case "apply_patch_call": {
+          content.push({
+            type: "tool-call",
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName("apply_patch"),
+            input: JSON.stringify({
+              callId: part.call_id,
+              operation: part.operation
+            }),
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id
+              }
+            }
+          });
+          break;
+        }
+      }
+    }
+    const providerMetadata = {
+      [providerOptionsName]: {
+        responseId: response.id,
+        ...logprobs.length > 0 ? { logprobs } : {},
+        ...typeof response.service_tier === "string" ? { serviceTier: response.service_tier } : {}
+      }
+    };
+    const usage = response.usage;
+    return {
+      content,
+      finishReason: {
+        unified: mapOpenAIResponseFinishReason({
+          finishReason: (_z = response.incomplete_details) == null ? undefined : _z.reason,
+          hasFunctionCall
+        }),
+        raw: (_B = (_A = response.incomplete_details) == null ? undefined : _A.reason) != null ? _B : undefined
+      },
+      usage: convertOpenAIResponsesUsage(usage),
+      request: { body },
+      response: {
+        id: response.id,
+        timestamp: new Date(response.created_at * 1000),
+        modelId: response.model,
+        headers: responseHeaders,
+        body: rawResponse
+      },
+      providerMetadata,
+      warnings
+    };
+  }
+  async doStream(options) {
+    const {
+      args: body,
+      warnings,
+      webSearchToolName,
+      toolNameMapping,
+      store,
+      providerOptionsName,
+      isShellProviderExecuted
+    } = await this.getArgs(options);
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: this.config.url({
+        path: "/responses",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: {
+        ...body,
+        stream: true
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(openaiResponsesChunkSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    const self = this;
+    const approvalRequestIdToDummyToolCallIdFromPrompt = extractApprovalRequestIdToToolCallIdMapping(options.prompt);
+    const approvalRequestIdToDummyToolCallIdFromStream = /* @__PURE__ */ new Map;
+    let finishReason = {
+      unified: "other",
+      raw: undefined
+    };
+    let usage = undefined;
+    const logprobs = [];
+    let responseId = null;
+    const ongoingToolCalls = {};
+    const ongoingAnnotations = [];
+    let activeMessagePhase;
+    let hasFunctionCall = false;
+    const activeReasoning = {};
+    let serviceTier;
+    const hostedToolSearchCallIds = [];
+    return {
+      stream: response.pipeThrough(new TransformStream({
+        start(controller) {
+          controller.enqueue({ type: "stream-start", warnings });
+        },
+        transform(chunk, controller) {
+          var _a21, _b16, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L;
+          if (options.includeRawChunks) {
+            controller.enqueue({ type: "raw", rawValue: chunk.rawValue });
+          }
+          if (!chunk.success) {
+            finishReason = { unified: "error", raw: undefined };
+            controller.enqueue({ type: "error", error: chunk.error });
+            return;
+          }
+          const value = chunk.value;
+          if (isResponseOutputItemAddedChunk(value)) {
+            if (value.item.type === "function_call") {
+              ongoingToolCalls[value.output_index] = {
+                toolName: value.item.name,
+                toolCallId: value.item.call_id
+              };
+              controller.enqueue({
+                type: "tool-input-start",
+                id: value.item.call_id,
+                toolName: value.item.name
+              });
+            } else if (value.item.type === "custom_tool_call") {
+              const toolName = toolNameMapping.toCustomToolName(value.item.name);
+              ongoingToolCalls[value.output_index] = {
+                toolName,
+                toolCallId: value.item.call_id
+              };
+              controller.enqueue({
+                type: "tool-input-start",
+                id: value.item.call_id,
+                toolName
+              });
+            } else if (value.item.type === "web_search_call") {
+              ongoingToolCalls[value.output_index] = {
+                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
+                toolCallId: value.item.id
+              };
+              controller.enqueue({
+                type: "tool-input-start",
+                id: value.item.id,
+                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
+                providerExecuted: true
+              });
+              controller.enqueue({
+                type: "tool-input-end",
+                id: value.item.id
+              });
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
+                input: JSON.stringify({}),
+                providerExecuted: true
+              });
+            } else if (value.item.type === "computer_call") {
+              ongoingToolCalls[value.output_index] = {
+                toolName: toolNameMapping.toCustomToolName("computer_use"),
+                toolCallId: value.item.id
+              };
+              controller.enqueue({
+                type: "tool-input-start",
+                id: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("computer_use"),
+                providerExecuted: true
+              });
+            } else if (value.item.type === "code_interpreter_call") {
+              ongoingToolCalls[value.output_index] = {
+                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
+                toolCallId: value.item.id,
+                codeInterpreter: {
+                  containerId: value.item.container_id
+                }
+              };
+              controller.enqueue({
+                type: "tool-input-start",
+                id: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
+                providerExecuted: true
+              });
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: value.item.id,
+                delta: `{"containerId":"${value.item.container_id}","code":"`
+              });
+            } else if (value.item.type === "file_search_call") {
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("file_search"),
+                input: "{}",
+                providerExecuted: true
+              });
+            } else if (value.item.type === "image_generation_call") {
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("image_generation"),
+                input: "{}",
+                providerExecuted: true
+              });
+            } else if (value.item.type === "tool_search_call") {
+              const toolCallId = value.item.id;
+              const toolName = toolNameMapping.toCustomToolName("tool_search");
+              const isHosted = value.item.execution === "server";
+              ongoingToolCalls[value.output_index] = {
+                toolName,
+                toolCallId,
+                toolSearchExecution: (_a21 = value.item.execution) != null ? _a21 : "server"
+              };
+              if (isHosted) {
+                controller.enqueue({
+                  type: "tool-input-start",
+                  id: toolCallId,
+                  toolName,
+                  providerExecuted: true
+                });
+              }
+            } else if (value.item.type === "tool_search_output") {} else if (value.item.type === "mcp_call" || value.item.type === "mcp_list_tools" || value.item.type === "mcp_approval_request") {} else if (value.item.type === "apply_patch_call") {
+              const { call_id: callId, operation } = value.item;
+              ongoingToolCalls[value.output_index] = {
+                toolName: toolNameMapping.toCustomToolName("apply_patch"),
+                toolCallId: callId,
+                applyPatch: {
+                  hasDiff: operation.type === "delete_file",
+                  endEmitted: operation.type === "delete_file"
+                }
+              };
+              controller.enqueue({
+                type: "tool-input-start",
+                id: callId,
+                toolName: toolNameMapping.toCustomToolName("apply_patch")
+              });
+              if (operation.type === "delete_file") {
+                const inputString = JSON.stringify({
+                  callId,
+                  operation
+                });
+                controller.enqueue({
+                  type: "tool-input-delta",
+                  id: callId,
+                  delta: inputString
+                });
+                controller.enqueue({
+                  type: "tool-input-end",
+                  id: callId
+                });
+              } else {
+                controller.enqueue({
+                  type: "tool-input-delta",
+                  id: callId,
+                  delta: `{"callId":"${escapeJSONDelta(callId)}","operation":{"type":"${escapeJSONDelta(operation.type)}","path":"${escapeJSONDelta(operation.path)}","diff":"`
+                });
+              }
+            } else if (value.item.type === "shell_call") {
+              ongoingToolCalls[value.output_index] = {
+                toolName: toolNameMapping.toCustomToolName("shell"),
+                toolCallId: value.item.call_id
+              };
+            } else if (value.item.type === "shell_call_output") {} else if (value.item.type === "message") {
+              ongoingAnnotations.splice(0, ongoingAnnotations.length);
+              activeMessagePhase = (_b16 = value.item.phase) != null ? _b16 : undefined;
+              controller.enqueue({
+                type: "text-start",
+                id: value.item.id,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item.id,
+                    ...value.item.phase != null && {
+                      phase: value.item.phase
+                    }
+                  }
+                }
+              });
+            } else if (isResponseOutputItemAddedChunk(value) && value.item.type === "reasoning") {
+              activeReasoning[value.item.id] = {
+                encryptedContent: value.item.encrypted_content,
+                summaryParts: { 0: "active" }
+              };
+              controller.enqueue({
+                type: "reasoning-start",
+                id: `${value.item.id}:0`,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item.id,
+                    reasoningEncryptedContent: (_c = value.item.encrypted_content) != null ? _c : null
+                  }
+                }
+              });
+            }
+          } else if (isResponseOutputItemDoneChunk(value)) {
+            if (value.item.type === "message") {
+              const phase = (_d = value.item.phase) != null ? _d : activeMessagePhase;
+              activeMessagePhase = undefined;
+              controller.enqueue({
+                type: "text-end",
+                id: value.item.id,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item.id,
+                    ...phase != null && { phase },
+                    ...ongoingAnnotations.length > 0 && {
+                      annotations: ongoingAnnotations
+                    }
+                  }
+                }
+              });
+            } else if (value.item.type === "function_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              hasFunctionCall = true;
+              controller.enqueue({
+                type: "tool-input-end",
+                id: value.item.call_id
+              });
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.call_id,
+                toolName: value.item.name,
+                input: value.item.arguments,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item.id
+                  }
+                }
+              });
+            } else if (value.item.type === "custom_tool_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              hasFunctionCall = true;
+              const toolName = toolNameMapping.toCustomToolName(value.item.name);
+              controller.enqueue({
+                type: "tool-input-end",
+                id: value.item.call_id
+              });
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.call_id,
+                toolName,
+                input: JSON.stringify(value.item.input),
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item.id
+                  }
+                }
+              });
+            } else if (value.item.type === "web_search_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName(webSearchToolName != null ? webSearchToolName : "web_search"),
+                result: mapWebSearchOutput(value.item.action)
+              });
+            } else if (value.item.type === "computer_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              controller.enqueue({
+                type: "tool-input-end",
+                id: value.item.id
+              });
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("computer_use"),
+                input: "",
+                providerExecuted: true
+              });
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("computer_use"),
+                result: {
+                  type: "computer_use_tool_result",
+                  status: value.item.status || "completed"
+                }
+              });
+            } else if (value.item.type === "file_search_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("file_search"),
+                result: {
+                  queries: value.item.queries,
+                  results: (_f = (_e = value.item.results) == null ? undefined : _e.map((result) => ({
+                    attributes: result.attributes,
+                    fileId: result.file_id,
+                    filename: result.filename,
+                    score: result.score,
+                    text: result.text
+                  }))) != null ? _f : null
+                }
+              });
+            } else if (value.item.type === "code_interpreter_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
+                result: {
+                  outputs: value.item.outputs
+                }
+              });
+            } else if (value.item.type === "image_generation_call") {
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: value.item.id,
+                toolName: toolNameMapping.toCustomToolName("image_generation"),
+                result: {
+                  result: value.item.result
+                }
+              });
+            } else if (value.item.type === "tool_search_call") {
+              const toolCall = ongoingToolCalls[value.output_index];
+              const isHosted = value.item.execution === "server";
+              if (toolCall != null) {
+                const toolCallId = isHosted ? toolCall.toolCallId : (_g = value.item.call_id) != null ? _g : value.item.id;
+                if (isHosted) {
+                  hostedToolSearchCallIds.push(toolCallId);
+                } else {
+                  controller.enqueue({
+                    type: "tool-input-start",
+                    id: toolCallId,
+                    toolName: toolCall.toolName
+                  });
+                }
+                controller.enqueue({
+                  type: "tool-input-end",
+                  id: toolCallId
+                });
+                controller.enqueue({
+                  type: "tool-call",
+                  toolCallId,
+                  toolName: toolCall.toolName,
+                  input: JSON.stringify({
+                    arguments: value.item.arguments,
+                    call_id: isHosted ? null : toolCallId
+                  }),
+                  ...isHosted ? { providerExecuted: true } : {},
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id
+                    }
+                  }
+                });
+              }
+              ongoingToolCalls[value.output_index] = undefined;
+            } else if (value.item.type === "tool_search_output") {
+              const toolCallId = (_i = (_h = value.item.call_id) != null ? _h : hostedToolSearchCallIds.shift()) != null ? _i : value.item.id;
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId,
+                toolName: toolNameMapping.toCustomToolName("tool_search"),
+                result: {
+                  tools: value.item.tools
+                },
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item.id
+                  }
+                }
+              });
+            } else if (value.item.type === "mcp_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              const approvalRequestId = (_j = value.item.approval_request_id) != null ? _j : undefined;
+              const aliasedToolCallId = approvalRequestId != null ? (_l = (_k = approvalRequestIdToDummyToolCallIdFromStream.get(approvalRequestId)) != null ? _k : approvalRequestIdToDummyToolCallIdFromPrompt[approvalRequestId]) != null ? _l : value.item.id : value.item.id;
+              const toolName = `mcp.${value.item.name}`;
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: aliasedToolCallId,
+                toolName,
+                input: value.item.arguments,
+                providerExecuted: true,
+                dynamic: true
+              });
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: aliasedToolCallId,
+                toolName,
+                result: {
+                  type: "call",
+                  serverLabel: value.item.server_label,
+                  name: value.item.name,
+                  arguments: value.item.arguments,
+                  ...value.item.output != null ? { output: value.item.output } : {},
+                  ...value.item.error != null ? { error: value.item.error } : {}
+                },
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item.id
+                  }
+                }
+              });
+            } else if (value.item.type === "mcp_list_tools") {
+              ongoingToolCalls[value.output_index] = undefined;
+            } else if (value.item.type === "apply_patch_call") {
+              const toolCall = ongoingToolCalls[value.output_index];
+              if ((toolCall == null ? undefined : toolCall.applyPatch) && !toolCall.applyPatch.endEmitted && value.item.operation.type !== "delete_file") {
+                if (!toolCall.applyPatch.hasDiff) {
+                  controller.enqueue({
+                    type: "tool-input-delta",
+                    id: toolCall.toolCallId,
+                    delta: escapeJSONDelta(value.item.operation.diff)
+                  });
+                }
+                controller.enqueue({
+                  type: "tool-input-delta",
+                  id: toolCall.toolCallId,
+                  delta: '"}}'
+                });
+                controller.enqueue({
+                  type: "tool-input-end",
+                  id: toolCall.toolCallId
+                });
+                toolCall.applyPatch.endEmitted = true;
+              }
+              if (toolCall && value.item.status === "completed") {
+                controller.enqueue({
+                  type: "tool-call",
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolNameMapping.toCustomToolName("apply_patch"),
+                  input: JSON.stringify({
+                    callId: value.item.call_id,
+                    operation: value.item.operation
+                  }),
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id
+                    }
+                  }
+                });
+              }
+              ongoingToolCalls[value.output_index] = undefined;
+            } else if (value.item.type === "mcp_approval_request") {
+              ongoingToolCalls[value.output_index] = undefined;
+              const dummyToolCallId = (_o = (_n = (_m = self.config).generateId) == null ? undefined : _n.call(_m)) != null ? _o : generateId();
+              const approvalRequestId = (_p = value.item.approval_request_id) != null ? _p : value.item.id;
+              approvalRequestIdToDummyToolCallIdFromStream.set(approvalRequestId, dummyToolCallId);
+              const toolName = `mcp.${value.item.name}`;
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: dummyToolCallId,
+                toolName,
+                input: value.item.arguments,
+                providerExecuted: true,
+                dynamic: true
+              });
+              controller.enqueue({
+                type: "tool-approval-request",
+                approvalId: approvalRequestId,
+                toolCallId: dummyToolCallId
+              });
+            } else if (value.item.type === "local_shell_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.call_id,
+                toolName: toolNameMapping.toCustomToolName("local_shell"),
+                input: JSON.stringify({
+                  action: {
+                    type: "exec",
+                    command: value.item.action.command,
+                    timeoutMs: value.item.action.timeout_ms,
+                    user: value.item.action.user,
+                    workingDirectory: value.item.action.working_directory,
+                    env: value.item.action.env
+                  }
+                }),
+                providerMetadata: {
+                  [providerOptionsName]: { itemId: value.item.id }
+                }
+              });
+            } else if (value.item.type === "shell_call") {
+              ongoingToolCalls[value.output_index] = undefined;
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: value.item.call_id,
+                toolName: toolNameMapping.toCustomToolName("shell"),
+                input: JSON.stringify({
+                  action: {
+                    commands: value.item.action.commands
+                  }
+                }),
+                ...isShellProviderExecuted && {
+                  providerExecuted: true
+                },
+                providerMetadata: {
+                  [providerOptionsName]: { itemId: value.item.id }
+                }
+              });
+            } else if (value.item.type === "shell_call_output") {
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: value.item.call_id,
+                toolName: toolNameMapping.toCustomToolName("shell"),
+                result: {
+                  output: value.item.output.map((item) => ({
+                    stdout: item.stdout,
+                    stderr: item.stderr,
+                    outcome: item.outcome.type === "exit" ? {
+                      type: "exit",
+                      exitCode: item.outcome.exit_code
+                    } : { type: "timeout" }
+                  }))
+                }
+              });
+            } else if (value.item.type === "reasoning") {
+              const activeReasoningPart = activeReasoning[value.item.id];
+              const summaryPartIndices = Object.entries(activeReasoningPart.summaryParts).filter(([_, status]) => status === "active" || status === "can-conclude").map(([summaryIndex]) => summaryIndex);
+              for (const summaryIndex of summaryPartIndices) {
+                controller.enqueue({
+                  type: "reasoning-end",
+                  id: `${value.item.id}:${summaryIndex}`,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                      reasoningEncryptedContent: (_q = value.item.encrypted_content) != null ? _q : null
+                    }
+                  }
+                });
+              }
+              delete activeReasoning[value.item.id];
+            }
+          } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
+            const toolCall = ongoingToolCalls[value.output_index];
+            if (toolCall != null) {
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: toolCall.toolCallId,
+                delta: value.delta
+              });
+            }
+          } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
+            const toolCall = ongoingToolCalls[value.output_index];
+            if (toolCall != null) {
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: toolCall.toolCallId,
+                delta: value.delta
+              });
+            }
+          } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
+            const toolCall = ongoingToolCalls[value.output_index];
+            if (toolCall == null ? undefined : toolCall.applyPatch) {
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: toolCall.toolCallId,
+                delta: escapeJSONDelta(value.delta)
+              });
+              toolCall.applyPatch.hasDiff = true;
+            }
+          } else if (isResponseApplyPatchCallOperationDiffDoneChunk(value)) {
+            const toolCall = ongoingToolCalls[value.output_index];
+            if ((toolCall == null ? undefined : toolCall.applyPatch) && !toolCall.applyPatch.endEmitted) {
+              if (!toolCall.applyPatch.hasDiff) {
+                controller.enqueue({
+                  type: "tool-input-delta",
+                  id: toolCall.toolCallId,
+                  delta: escapeJSONDelta(value.diff)
+                });
+                toolCall.applyPatch.hasDiff = true;
+              }
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: toolCall.toolCallId,
+                delta: '"}}'
+              });
+              controller.enqueue({
+                type: "tool-input-end",
+                id: toolCall.toolCallId
+              });
+              toolCall.applyPatch.endEmitted = true;
+            }
+          } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
+            controller.enqueue({
+              type: "tool-result",
+              toolCallId: value.item_id,
+              toolName: toolNameMapping.toCustomToolName("image_generation"),
+              result: {
+                result: value.partial_image_b64
+              },
+              preliminary: true
+            });
+          } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
+            const toolCall = ongoingToolCalls[value.output_index];
+            if (toolCall != null) {
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: toolCall.toolCallId,
+                delta: escapeJSONDelta(value.delta)
+              });
+            }
+          } else if (isResponseCodeInterpreterCallCodeDoneChunk(value)) {
+            const toolCall = ongoingToolCalls[value.output_index];
+            if (toolCall != null) {
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: toolCall.toolCallId,
+                delta: '"}'
+              });
+              controller.enqueue({
+                type: "tool-input-end",
+                id: toolCall.toolCallId
+              });
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: toolCall.toolCallId,
+                toolName: toolNameMapping.toCustomToolName("code_interpreter"),
+                input: JSON.stringify({
+                  code: value.code,
+                  containerId: toolCall.codeInterpreter.containerId
+                }),
+                providerExecuted: true
+              });
+            }
+          } else if (isResponseCreatedChunk(value)) {
+            responseId = value.response.id;
+            controller.enqueue({
+              type: "response-metadata",
+              id: value.response.id,
+              timestamp: new Date(value.response.created_at * 1000),
+              modelId: value.response.model
+            });
+          } else if (isTextDeltaChunk(value)) {
+            controller.enqueue({
+              type: "text-delta",
+              id: value.item_id,
+              delta: value.delta
+            });
+            if (((_s = (_r = options.providerOptions) == null ? undefined : _r[providerOptionsName]) == null ? undefined : _s.logprobs) && value.logprobs) {
+              logprobs.push(value.logprobs);
+            }
+          } else if (value.type === "response.reasoning_summary_part.added") {
+            if (value.summary_index > 0) {
+              const activeReasoningPart = activeReasoning[value.item_id];
+              activeReasoningPart.summaryParts[value.summary_index] = "active";
+              for (const summaryIndex of Object.keys(activeReasoningPart.summaryParts)) {
+                if (activeReasoningPart.summaryParts[summaryIndex] === "can-conclude") {
+                  controller.enqueue({
+                    type: "reasoning-end",
+                    id: `${value.item_id}:${summaryIndex}`,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId: value.item_id
+                      }
+                    }
+                  });
+                  activeReasoningPart.summaryParts[summaryIndex] = "concluded";
+                }
+              }
+              controller.enqueue({
+                type: "reasoning-start",
+                id: `${value.item_id}:${value.summary_index}`,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item_id,
+                    reasoningEncryptedContent: (_u = (_t = activeReasoning[value.item_id]) == null ? undefined : _t.encryptedContent) != null ? _u : null
+                  }
+                }
+              });
+            }
+          } else if (value.type === "response.reasoning_summary_text.delta") {
+            controller.enqueue({
+              type: "reasoning-delta",
+              id: `${value.item_id}:${value.summary_index}`,
+              delta: value.delta,
+              providerMetadata: {
+                [providerOptionsName]: {
+                  itemId: value.item_id
+                }
+              }
+            });
+          } else if (value.type === "response.reasoning_summary_part.done") {
+            if (store) {
+              controller.enqueue({
+                type: "reasoning-end",
+                id: `${value.item_id}:${value.summary_index}`,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: value.item_id
+                  }
+                }
+              });
+              activeReasoning[value.item_id].summaryParts[value.summary_index] = "concluded";
+            } else {
+              activeReasoning[value.item_id].summaryParts[value.summary_index] = "can-conclude";
+            }
+          } else if (isResponseFinishedChunk(value)) {
+            finishReason = {
+              unified: mapOpenAIResponseFinishReason({
+                finishReason: (_v = value.response.incomplete_details) == null ? undefined : _v.reason,
+                hasFunctionCall
+              }),
+              raw: (_x = (_w = value.response.incomplete_details) == null ? undefined : _w.reason) != null ? _x : undefined
+            };
+            usage = value.response.usage;
+            if (typeof value.response.service_tier === "string") {
+              serviceTier = value.response.service_tier;
+            }
+          } else if (isResponseFailedChunk(value)) {
+            const incompleteReason = (_y = value.response.incomplete_details) == null ? undefined : _y.reason;
+            finishReason = {
+              unified: incompleteReason ? mapOpenAIResponseFinishReason({
+                finishReason: incompleteReason,
+                hasFunctionCall
+              }) : "error",
+              raw: incompleteReason != null ? incompleteReason : "error"
+            };
+            usage = (_z = value.response.usage) != null ? _z : undefined;
+          } else if (isResponseAnnotationAddedChunk(value)) {
+            ongoingAnnotations.push(value.annotation);
+            if (value.annotation.type === "url_citation") {
+              controller.enqueue({
+                type: "source",
+                sourceType: "url",
+                id: (_C = (_B = (_A = self.config).generateId) == null ? undefined : _B.call(_A)) != null ? _C : generateId(),
+                url: value.annotation.url,
+                title: value.annotation.title
+              });
+            } else if (value.annotation.type === "file_citation") {
+              controller.enqueue({
+                type: "source",
+                sourceType: "document",
+                id: (_F = (_E = (_D = self.config).generateId) == null ? undefined : _E.call(_D)) != null ? _F : generateId(),
+                mediaType: "text/plain",
+                title: value.annotation.filename,
+                filename: value.annotation.filename,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    type: value.annotation.type,
+                    fileId: value.annotation.file_id,
+                    index: value.annotation.index
+                  }
+                }
+              });
+            } else if (value.annotation.type === "container_file_citation") {
+              controller.enqueue({
+                type: "source",
+                sourceType: "document",
+                id: (_I = (_H = (_G = self.config).generateId) == null ? undefined : _H.call(_G)) != null ? _I : generateId(),
+                mediaType: "text/plain",
+                title: value.annotation.filename,
+                filename: value.annotation.filename,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    type: value.annotation.type,
+                    fileId: value.annotation.file_id,
+                    containerId: value.annotation.container_id
+                  }
+                }
+              });
+            } else if (value.annotation.type === "file_path") {
+              controller.enqueue({
+                type: "source",
+                sourceType: "document",
+                id: (_L = (_K = (_J = self.config).generateId) == null ? undefined : _K.call(_J)) != null ? _L : generateId(),
+                mediaType: "application/octet-stream",
+                title: value.annotation.file_id,
+                filename: value.annotation.file_id,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    type: value.annotation.type,
+                    fileId: value.annotation.file_id,
+                    index: value.annotation.index
+                  }
+                }
+              });
+            }
+          } else if (isErrorChunk(value)) {
+            controller.enqueue({ type: "error", error: value });
+          }
+        },
+        flush(controller) {
+          const providerMetadata = {
+            [providerOptionsName]: {
+              responseId,
+              ...logprobs.length > 0 ? { logprobs } : {},
+              ...serviceTier !== undefined ? { serviceTier } : {}
+            }
+          };
+          controller.enqueue({
+            type: "finish",
+            finishReason,
+            usage: convertOpenAIResponsesUsage(usage),
+            providerMetadata
+          });
+        }
+      })),
+      request: { body },
+      response: { headers: responseHeaders }
+    };
+  }
+};
+function isTextDeltaChunk(chunk) {
+  return chunk.type === "response.output_text.delta";
+}
+function isResponseOutputItemDoneChunk(chunk) {
+  return chunk.type === "response.output_item.done";
+}
+function isResponseFinishedChunk(chunk) {
+  return chunk.type === "response.completed" || chunk.type === "response.incomplete";
+}
+function isResponseFailedChunk(chunk) {
+  return chunk.type === "response.failed";
+}
+function isResponseCreatedChunk(chunk) {
+  return chunk.type === "response.created";
+}
+function isResponseFunctionCallArgumentsDeltaChunk(chunk) {
+  return chunk.type === "response.function_call_arguments.delta";
+}
+function isResponseCustomToolCallInputDeltaChunk(chunk) {
+  return chunk.type === "response.custom_tool_call_input.delta";
+}
+function isResponseImageGenerationCallPartialImageChunk(chunk) {
+  return chunk.type === "response.image_generation_call.partial_image";
+}
+function isResponseCodeInterpreterCallCodeDeltaChunk(chunk) {
+  return chunk.type === "response.code_interpreter_call_code.delta";
+}
+function isResponseCodeInterpreterCallCodeDoneChunk(chunk) {
+  return chunk.type === "response.code_interpreter_call_code.done";
+}
+function isResponseApplyPatchCallOperationDiffDeltaChunk(chunk) {
+  return chunk.type === "response.apply_patch_call_operation_diff.delta";
+}
+function isResponseApplyPatchCallOperationDiffDoneChunk(chunk) {
+  return chunk.type === "response.apply_patch_call_operation_diff.done";
+}
+function isResponseOutputItemAddedChunk(chunk) {
+  return chunk.type === "response.output_item.added";
+}
+function isResponseAnnotationAddedChunk(chunk) {
+  return chunk.type === "response.output_text.annotation.added";
+}
+function isErrorChunk(chunk) {
+  return chunk.type === "error";
+}
+function mapWebSearchOutput(action) {
+  var _a21;
+  if (action == null) {
+    return {};
+  }
+  switch (action.type) {
+    case "search":
+      return {
+        action: { type: "search", query: (_a21 = action.query) != null ? _a21 : undefined },
+        ...action.sources != null && { sources: action.sources }
+      };
+    case "open_page":
+      return { action: { type: "openPage", url: action.url } };
+    case "find_in_page":
+      return {
+        action: {
+          type: "findInPage",
+          url: action.url,
+          pattern: action.pattern
+        }
+      };
+  }
+}
+function escapeJSONDelta(delta) {
+  return JSON.stringify(delta).slice(1, -1);
+}
+var openaiSpeechModelOptionsSchema = lazySchema(() => zodSchema(exports_external.object({
+  instructions: exports_external.string().nullish(),
+  speed: exports_external.number().min(0.25).max(4).default(1).nullish()
+})));
+var OpenAISpeechModel = class {
+  constructor(modelId, config2) {
+    this.modelId = modelId;
+    this.config = config2;
+    this.specificationVersion = "v3";
+  }
+  get provider() {
+    return this.config.provider;
+  }
+  async getArgs({
+    text: text2,
+    voice = "alloy",
+    outputFormat = "mp3",
+    speed,
+    instructions,
+    language,
+    providerOptions
+  }) {
+    const warnings = [];
+    const openAIOptions = await parseProviderOptions({
+      provider: "openai",
+      providerOptions,
+      schema: openaiSpeechModelOptionsSchema
+    });
+    const requestBody = {
+      model: this.modelId,
+      input: text2,
+      voice,
+      response_format: "mp3",
+      speed,
+      instructions
+    };
+    if (outputFormat) {
+      if (["mp3", "opus", "aac", "flac", "wav", "pcm"].includes(outputFormat)) {
+        requestBody.response_format = outputFormat;
+      } else {
+        warnings.push({
+          type: "unsupported",
+          feature: "outputFormat",
+          details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`
+        });
+      }
+    }
+    if (openAIOptions) {
+      const speechModelOptions = {};
+      for (const key in speechModelOptions) {
+        const value = speechModelOptions[key];
+        if (value !== undefined) {
+          requestBody[key] = value;
+        }
+      }
+    }
+    if (language) {
+      warnings.push({
+        type: "unsupported",
+        feature: "language",
+        details: `OpenAI speech models do not support language selection. Language parameter "${language}" was ignored.`
+      });
+    }
+    return {
+      requestBody,
+      warnings
+    };
+  }
+  async doGenerate(options) {
+    var _a21, _b16, _c;
+    const currentDate = (_c = (_b16 = (_a21 = this.config._internal) == null ? undefined : _a21.currentDate) == null ? undefined : _b16.call(_a21)) != null ? _c : /* @__PURE__ */ new Date;
+    const { requestBody, warnings } = await this.getArgs(options);
+    const {
+      value: audio,
+      responseHeaders,
+      rawValue: rawResponse
+    } = await postJsonToApi({
+      url: this.config.url({
+        path: "/audio/speech",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: requestBody,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createBinaryResponseHandler(),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    return {
+      audio,
+      warnings,
+      request: {
+        body: JSON.stringify(requestBody)
+      },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+        body: rawResponse
+      }
+    };
+  }
+};
+var openaiTranscriptionResponseSchema = lazySchema(() => zodSchema(exports_external.object({
+  text: exports_external.string(),
+  language: exports_external.string().nullish(),
+  duration: exports_external.number().nullish(),
+  words: exports_external.array(exports_external.object({
+    word: exports_external.string(),
+    start: exports_external.number(),
+    end: exports_external.number()
+  })).nullish(),
+  segments: exports_external.array(exports_external.object({
+    id: exports_external.number(),
+    seek: exports_external.number(),
+    start: exports_external.number(),
+    end: exports_external.number(),
+    text: exports_external.string(),
+    tokens: exports_external.array(exports_external.number()),
+    temperature: exports_external.number(),
+    avg_logprob: exports_external.number(),
+    compression_ratio: exports_external.number(),
+    no_speech_prob: exports_external.number()
+  })).nullish()
+})));
+var openAITranscriptionModelOptions = lazySchema(() => zodSchema(exports_external.object({
+  include: exports_external.array(exports_external.string()).optional(),
+  language: exports_external.string().optional(),
+  prompt: exports_external.string().optional(),
+  temperature: exports_external.number().min(0).max(1).default(0).optional(),
+  timestampGranularities: exports_external.array(exports_external.enum(["word", "segment"])).default(["segment"]).optional()
+})));
+var languageMap = {
+  afrikaans: "af",
+  arabic: "ar",
+  armenian: "hy",
+  azerbaijani: "az",
+  belarusian: "be",
+  bosnian: "bs",
+  bulgarian: "bg",
+  catalan: "ca",
+  chinese: "zh",
+  croatian: "hr",
+  czech: "cs",
+  danish: "da",
+  dutch: "nl",
+  english: "en",
+  estonian: "et",
+  finnish: "fi",
+  french: "fr",
+  galician: "gl",
+  german: "de",
+  greek: "el",
+  hebrew: "he",
+  hindi: "hi",
+  hungarian: "hu",
+  icelandic: "is",
+  indonesian: "id",
+  italian: "it",
+  japanese: "ja",
+  kannada: "kn",
+  kazakh: "kk",
+  korean: "ko",
+  latvian: "lv",
+  lithuanian: "lt",
+  macedonian: "mk",
+  malay: "ms",
+  marathi: "mr",
+  maori: "mi",
+  nepali: "ne",
+  norwegian: "no",
+  persian: "fa",
+  polish: "pl",
+  portuguese: "pt",
+  romanian: "ro",
+  russian: "ru",
+  serbian: "sr",
+  slovak: "sk",
+  slovenian: "sl",
+  spanish: "es",
+  swahili: "sw",
+  swedish: "sv",
+  tagalog: "tl",
+  tamil: "ta",
+  thai: "th",
+  turkish: "tr",
+  ukrainian: "uk",
+  urdu: "ur",
+  vietnamese: "vi",
+  welsh: "cy"
+};
+var OpenAITranscriptionModel = class {
+  constructor(modelId, config2) {
+    this.modelId = modelId;
+    this.config = config2;
+    this.specificationVersion = "v3";
+  }
+  get provider() {
+    return this.config.provider;
+  }
+  async getArgs({
+    audio,
+    mediaType,
+    providerOptions
+  }) {
+    const warnings = [];
+    const openAIOptions = await parseProviderOptions({
+      provider: "openai",
+      providerOptions,
+      schema: openAITranscriptionModelOptions
+    });
+    const formData = new FormData;
+    const blob = audio instanceof Uint8Array ? new Blob([audio]) : new Blob([convertBase64ToUint8Array(audio)]);
+    formData.append("model", this.modelId);
+    const fileExtension = mediaTypeToExtension(mediaType);
+    formData.append("file", new File([blob], "audio", { type: mediaType }), `audio.${fileExtension}`);
+    if (openAIOptions) {
+      const transcriptionModelOptions = {
+        include: openAIOptions.include,
+        language: openAIOptions.language,
+        prompt: openAIOptions.prompt,
+        response_format: [
+          "gpt-4o-transcribe",
+          "gpt-4o-mini-transcribe"
+        ].includes(this.modelId) ? "json" : "verbose_json",
+        temperature: openAIOptions.temperature,
+        timestamp_granularities: openAIOptions.timestampGranularities
+      };
+      for (const [key, value] of Object.entries(transcriptionModelOptions)) {
+        if (value != null) {
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              formData.append(`${key}[]`, String(item));
+            }
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      }
+    }
+    return {
+      formData,
+      warnings
+    };
+  }
+  async doGenerate(options) {
+    var _a21, _b16, _c, _d, _e, _f, _g, _h;
+    const currentDate = (_c = (_b16 = (_a21 = this.config._internal) == null ? undefined : _a21.currentDate) == null ? undefined : _b16.call(_a21)) != null ? _c : /* @__PURE__ */ new Date;
+    const { formData, warnings } = await this.getArgs(options);
+    const {
+      value: response,
+      responseHeaders,
+      rawValue: rawResponse
+    } = await postFormDataToApi({
+      url: this.config.url({
+        path: "/audio/transcriptions",
+        modelId: this.modelId
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      formData,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(openaiTranscriptionResponseSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch
+    });
+    const language = response.language != null && response.language in languageMap ? languageMap[response.language] : undefined;
+    return {
+      text: response.text,
+      segments: (_g = (_f = (_d = response.segments) == null ? undefined : _d.map((segment) => ({
+        text: segment.text,
+        startSecond: segment.start,
+        endSecond: segment.end
+      }))) != null ? _f : (_e = response.words) == null ? undefined : _e.map((word) => ({
+        text: word.word,
+        startSecond: word.start,
+        endSecond: word.end
+      }))) != null ? _g : [],
+      language,
+      durationInSeconds: (_h = response.duration) != null ? _h : undefined,
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+        body: rawResponse
+      }
+    };
+  }
+};
+var VERSION6 = "3.0.53";
+function createOpenAI(options = {}) {
+  var _a21, _b16;
+  const baseURL = (_a21 = withoutTrailingSlash(loadOptionalSetting({
+    settingValue: options.baseURL,
+    environmentVariableName: "OPENAI_BASE_URL"
+  }))) != null ? _a21 : "https://api.openai.com/v1";
+  const providerName = (_b16 = options.name) != null ? _b16 : "openai";
+  const getHeaders = () => withUserAgentSuffix({
+    Authorization: `Bearer ${loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: "OPENAI_API_KEY",
+      description: "OpenAI"
+    })}`,
+    "OpenAI-Organization": options.organization,
+    "OpenAI-Project": options.project,
+    ...options.headers
+  }, `ai-sdk/openai/${VERSION6}`);
+  const createChatModel = (modelId) => new OpenAIChatLanguageModel(modelId, {
+    provider: `${providerName}.chat`,
+    url: ({ path }) => `${baseURL}${path}`,
+    headers: getHeaders,
+    fetch: options.fetch
+  });
+  const createCompletionModel = (modelId) => new OpenAICompletionLanguageModel(modelId, {
+    provider: `${providerName}.completion`,
+    url: ({ path }) => `${baseURL}${path}`,
+    headers: getHeaders,
+    fetch: options.fetch
+  });
+  const createEmbeddingModel = (modelId) => new OpenAIEmbeddingModel(modelId, {
+    provider: `${providerName}.embedding`,
+    url: ({ path }) => `${baseURL}${path}`,
+    headers: getHeaders,
+    fetch: options.fetch
+  });
+  const createImageModel = (modelId) => new OpenAIImageModel(modelId, {
+    provider: `${providerName}.image`,
+    url: ({ path }) => `${baseURL}${path}`,
+    headers: getHeaders,
+    fetch: options.fetch
+  });
+  const createTranscriptionModel = (modelId) => new OpenAITranscriptionModel(modelId, {
+    provider: `${providerName}.transcription`,
+    url: ({ path }) => `${baseURL}${path}`,
+    headers: getHeaders,
+    fetch: options.fetch
+  });
+  const createSpeechModel = (modelId) => new OpenAISpeechModel(modelId, {
+    provider: `${providerName}.speech`,
+    url: ({ path }) => `${baseURL}${path}`,
+    headers: getHeaders,
+    fetch: options.fetch
+  });
+  const createLanguageModel = (modelId) => {
+    if (new.target) {
+      throw new Error("The OpenAI model function cannot be called with the new keyword.");
+    }
+    return createResponsesModel(modelId);
+  };
+  const createResponsesModel = (modelId) => {
+    return new OpenAIResponsesLanguageModel(modelId, {
+      provider: `${providerName}.responses`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      fileIdPrefixes: ["file-"]
+    });
+  };
+  const provider = function(modelId) {
+    return createLanguageModel(modelId);
+  };
+  provider.specificationVersion = "v3";
+  provider.languageModel = createLanguageModel;
+  provider.chat = createChatModel;
+  provider.completion = createCompletionModel;
+  provider.responses = createResponsesModel;
+  provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
+  provider.tools = openaiTools;
+  return provider;
+}
+var openai = createOpenAI();
+
 // src/ai/provider.ts
 var DEFAULT_MODELS = {
   openai: "gpt-4o",
@@ -63440,41 +58975,4506 @@ function resolveModel(provider, apiKey, model) {
   return PROVIDER_FACTORIES[provider](modelId, apiKey);
 }
 
-// src/ai/prompt.ts
-function buildPrompt(activities, timeRange) {
-  const contributorSections = activities.map((activity) => {
-    const commitList = activity.commits.map((c3) => `  - ${c3.hash.slice(0, 7)} ${c3.message}`).join(`
-`);
-    return `### ${activity.author} (${activity.email}) — ${activity.commits.length} commit(s)
-${commitList}`;
-  }).join(`
-
-`);
-  return `You are a technical team lead writing a concise team activity pulse report.
-
-Analyze the following git activity from the last ${timeRange} and write a report grouped by contributor.
-
-For each contributor, write a brief summary of what they worked on, highlighting:
-- Key features or changes they delivered
-- Bug fixes or improvements
-- Any patterns or themes in their work
-
-End with a brief "Team Highlights" section noting any cross-cutting themes or notable achievements.
-
-Keep the tone professional but approachable. Use plain text formatting suitable for Slack messages.
-Do NOT use markdown headers — use *bold* for section headers (Slack format).
-
----
-
-${contributorSections}`;
-}
-
 // src/ai/generate.ts
 async function generatePulse(options) {
   const model = resolveModel(options.provider, options.apiKey, options.model);
   const prompt = buildPrompt(options.activities, options.timeRange);
   const { text: text2 } = await generateText({ model, prompt });
   return text2;
+}
+// node_modules/simple-git/dist/esm/index.js
+var import_file_exists = __toESM(require_dist2(), 1);
+
+// node_modules/@simple-git/args-pathspec/dist/index.mjs
+var t = /* @__PURE__ */ new WeakMap;
+function c(...n) {
+  const e = new String(n);
+  return t.set(e, n), e;
+}
+function r(n) {
+  return n instanceof String && t.has(n);
+}
+function o(n) {
+  return t.get(n) ?? [];
+}
+
+// node_modules/simple-git/dist/esm/index.js
+var import_debug = __toESM(require_src2(), 1);
+import { spawn } from "child_process";
+var import_promise_deferred = __toESM(require_dist3(), 1);
+import { normalize } from "node:path";
+
+// node_modules/@simple-git/argv-parser/dist/index.mjs
+function* U(e, t2) {
+  const n = t2 === "global";
+  for (const o2 of e)
+    o2.isGlobal === n && (yield o2);
+}
+var k = /* @__PURE__ */ new Set([
+  "--add",
+  "--edit",
+  "--remove-section",
+  "--rename-section",
+  "--replace-all",
+  "--unset",
+  "--unset-all",
+  "-e"
+]);
+var S = /* @__PURE__ */ new Set([
+  "--get",
+  "--get-all",
+  "--get-color",
+  "--get-colorbool",
+  "--get-regexp",
+  "--get-urlmatch",
+  "--list",
+  "-l"
+]);
+var P = /* @__PURE__ */ new Set([
+  "edit",
+  "remove-section",
+  "rename-section",
+  "set",
+  "unset"
+]);
+var E = /* @__PURE__ */ new Set(["get", "get-color", "get-colorbool", "list"]);
+function F(e, t2) {
+  for (const { name: o2 } of U(e, "task")) {
+    if (k.has(o2))
+      return p(true, t2);
+    if (S.has(o2))
+      return p(false, t2);
+  }
+  const n = t2.at(0)?.toLowerCase();
+  return n === undefined ? null : P.has(n) ? p(true, t2.slice(1)) : E.has(n) ? p(false, t2.slice(1)) : t2.length === 1 ? p(false, t2) : p(true, t2);
+}
+function p(e = false, t2 = []) {
+  const n = t2.at(0)?.toLowerCase();
+  return n === undefined ? null : {
+    isWrite: e,
+    isRead: !e,
+    key: n,
+    value: t2.at(1)
+  };
+}
+function A(e, t2) {
+  return t2.isWrite && t2.value !== undefined ? { key: t2.key, value: t2.value, scope: e } : { key: t2.key, scope: e };
+}
+function M(e) {
+  const t2 = e?.indexOf("=") || -1;
+  return !e || t2 < 0 ? null : {
+    key: e.slice(0, t2).trim().toLowerCase(),
+    value: e.slice(t2 + 1)
+  };
+}
+function N(e) {
+  for (const { name: t2 } of U(e, "task"))
+    switch (t2) {
+      case "--global":
+        return "global";
+      case "--system":
+        return "system";
+      case "--worktree":
+        return "worktree";
+      case "--local":
+        return "local";
+      case "--file":
+      case "-f":
+        return "file";
+    }
+  return "local";
+}
+function G({ name: e }) {
+  if (e === "-c" || e === "--config")
+    return "inline";
+  if (e === "--config-env")
+    return "env";
+}
+function* O(e) {
+  for (const t2 of e) {
+    const n = G(t2), o2 = n && M(t2.value);
+    o2 && (yield {
+      ...o2,
+      scope: n
+    });
+  }
+}
+function L(e, t2, n) {
+  const o2 = {
+    read: [],
+    write: [...O(t2)]
+  };
+  return e === "config" && $(o2, N(t2), F(t2, n)), o2;
+}
+function $(e, t2, n) {
+  if (n === null)
+    return;
+  const o2 = A(t2, n);
+  n.isWrite ? e.write.push(o2) : e.read.push(o2);
+}
+var x = {
+  short: /* @__PURE__ */ new Map([
+    ["c", true]
+  ])
+};
+var D = {
+  short: new Map([
+    ["C", true],
+    ["P", false],
+    ["h", false],
+    ["p", false],
+    ["v", false],
+    ...x.short.entries()
+  ]),
+  long: /* @__PURE__ */ new Set([
+    "attr-source",
+    "config-env",
+    "exec-path",
+    "git-dir",
+    "list-cmds",
+    "namespace",
+    "super-prefix",
+    "work-tree"
+  ])
+};
+var R = {
+  clone: {
+    short: /* @__PURE__ */ new Map([
+      ["b", true],
+      ["j", true],
+      ["l", false],
+      ["n", false],
+      ["o", true],
+      ["q", false],
+      ["s", false],
+      ["u", true]
+    ]),
+    long: /* @__PURE__ */ new Set(["branch", "config", "jobs", "origin", "upload-pack", "u", "template"])
+  },
+  commit: {
+    short: /* @__PURE__ */ new Map([
+      ["C", true],
+      ["F", true],
+      ["c", true],
+      ["m", true],
+      ["t", true]
+    ]),
+    long: /* @__PURE__ */ new Set(["file", "message", "reedit-message", "reuse-message", "template"])
+  },
+  config: {
+    short: /* @__PURE__ */ new Map([
+      ["e", false],
+      ["f", true],
+      ["l", false]
+    ]),
+    long: /* @__PURE__ */ new Set(["blob", "comment", "default", "file", "type", "value"])
+  },
+  fetch: {
+    short: /* @__PURE__ */ new Map,
+    long: /* @__PURE__ */ new Set(["upload-pack"])
+  },
+  init: {
+    short: /* @__PURE__ */ new Map,
+    long: /* @__PURE__ */ new Set(["template"])
+  },
+  pull: {
+    short: /* @__PURE__ */ new Map,
+    long: /* @__PURE__ */ new Set(["upload-pack"])
+  },
+  push: {
+    short: /* @__PURE__ */ new Map,
+    long: /* @__PURE__ */ new Set(["exec", "receive-pack"])
+  }
+};
+var T = { short: /* @__PURE__ */ new Map, long: /* @__PURE__ */ new Set };
+function I(e) {
+  const t2 = R[e ?? ""] ?? T;
+  return {
+    short: new Map([...x.short.entries(), ...t2.short.entries()]),
+    long: t2.long
+  };
+}
+function b(e, t2 = D) {
+  if (e.startsWith("--")) {
+    const n = e.indexOf("=");
+    if (n > 2)
+      return [{ name: e.slice(0, n), value: e.slice(n + 1), needsNext: false }];
+    const o2 = e.slice(2);
+    return [{ name: e, needsNext: t2.long.has(o2) }];
+  }
+  if (e.length === 2) {
+    const n = e.charAt(1), o2 = t2.short.get(n);
+    return [{ name: e, needsNext: o2 === true }];
+  }
+  return W(e, t2.short);
+}
+function W(e, t2) {
+  const n = e.slice(1).split(""), o2 = [];
+  for (let s = 0;s < n.length; s++) {
+    const r2 = n[s], l = t2.get(r2);
+    if (l === undefined)
+      return [{ name: e, needsNext: false }];
+    if (l) {
+      const a = n.slice(s + 1).join("");
+      if (a && ![...a].every((w) => t2.has(w)))
+        return o2.push({ name: `-${r2}`, value: a, needsNext: false }), o2;
+    }
+    o2.push({ name: `-${r2}`, needsNext: l });
+  }
+  return o2;
+}
+function j(e, t2 = []) {
+  let n = 0;
+  for (;n < e.length; ) {
+    const o2 = String(e[n]);
+    if (!o2.startsWith("-") || o2.length < 2)
+      break;
+    const s = b(o2);
+    let r2 = n + 1;
+    for (const l of s) {
+      const a = {
+        name: l.name,
+        value: l.value,
+        absorbedNext: false,
+        isGlobal: true
+      };
+      l.needsNext && a.value === undefined && r2 < e.length && (a.value = String(e[r2]), a.absorbedNext = true, r2++), t2.push(a);
+    }
+    n = r2;
+  }
+  return { flags: t2, taskIndex: n };
+}
+function B(e, t2, n = []) {
+  const o2 = I(t2), s = [], r2 = [];
+  let l = 0;
+  for (;l < e.length; ) {
+    const a = e[l];
+    if (r(a)) {
+      r2.push(...o(a)), l++;
+      continue;
+    }
+    const f = String(a);
+    if (f === "--") {
+      for (let g = l + 1;g < e.length; g++) {
+        const u = e[g];
+        r(u) ? r2.push(...o(u)) : r2.push(String(u));
+      }
+      break;
+    }
+    if (!f.startsWith("-") || f.length < 2) {
+      s.push(f), l++;
+      continue;
+    }
+    const w = b(f, o2);
+    let d = l + 1;
+    for (const g of w) {
+      const u = {
+        name: g.name,
+        value: g.value,
+        absorbedNext: false,
+        isGlobal: false
+      };
+      g.needsNext && u.value === undefined && d < e.length && !r(e[d]) && (u.value = String(e[d]), u.absorbedNext = true, d++), n.push(u);
+    }
+    l = d;
+  }
+  return { flags: n, positionals: s, pathspecs: r2 };
+}
+function* V({
+  write: e
+}) {
+  for (const t2 of e)
+    for (const n of q) {
+      const o2 = n(t2.key);
+      o2 && (yield o2);
+    }
+}
+function c2(e, t2, n = String(e)) {
+  const o2 = typeof e == "string" ? new RegExp(`\\s*${e.toLowerCase()}`) : e;
+  return function(r2) {
+    if (o2.test(r2))
+      return {
+        category: t2,
+        message: `Configuring ${n} is not permitted without enabling ${t2}`
+      };
+  };
+}
+function i(e, t2) {
+  const n = new RegExp(`\\s*${e.toLowerCase().replace(/\./g, "(..+)?.")}`);
+  return c2(n, t2, e);
+}
+var q = [
+  c2("alias", "allowUnsafeAlias"),
+  c2("core.askPass", "allowUnsafeAskPass"),
+  c2("core.editor", "allowUnsafeEditor"),
+  c2("core.fsmonitor", "allowUnsafeFsMonitor"),
+  c2("core.gitProxy", "allowUnsafeGitProxy"),
+  c2("core.hooksPath", "allowUnsafeHooksPath"),
+  c2("core.pager", "allowUnsafePager"),
+  c2("core.sshCommand", "allowUnsafeSshCommand"),
+  i("credential.helper", "allowUnsafeCredentialHelper"),
+  i("diff.command", "allowUnsafeDiffExternal"),
+  c2("diff.external", "allowUnsafeDiffExternal"),
+  i("diff.textconv", "allowUnsafeDiffTextConv"),
+  i("filter.clean", "allowUnsafeFilter"),
+  i("filter.smudge", "allowUnsafeFilter"),
+  i("gpg.program", "allowUnsafeGpgProgram"),
+  c2("init.templateDir", "allowUnsafeTemplateDir"),
+  i("merge.driver", "allowUnsafeMergeDriver"),
+  i("mergetool.path", "allowUnsafeMergeDriver"),
+  i("mergetool.cmd", "allowUnsafeMergeDriver"),
+  i("protocol.allow", "allowUnsafeProtocolOverride"),
+  i("remote.receivepack", "allowUnsafePack"),
+  i("remote.uploadpack", "allowUnsafePack"),
+  c2("sequence.editor", "allowUnsafeEditor")
+];
+function* K(e, t2) {
+  for (const n of t2)
+    for (const o2 of H) {
+      const s = o2(e, n.name);
+      s && (yield s);
+    }
+}
+function h(e, t2, n, o2 = String(t2)) {
+  const s = typeof t2 == "string" ? new RegExp(`\\s*${t2.toLowerCase()}`) : t2, r2 = `Use of ${e ? `${e} with option ` : ""}${o2} is not permitted without enabling ${n}`;
+  return function(a, f) {
+    if ((!e || a === e) && s.test(f))
+      return {
+        category: n,
+        message: r2
+      };
+  };
+}
+var H = [
+  h(null, /--(upload|receive)-pack/, "allowUnsafePack", "--upload-pack or --receive-pack"),
+  h("clone", /^-\w*u/, "allowUnsafePack"),
+  h("clone", "--u", "allowUnsafePack"),
+  h("push", "--exec", "allowUnsafePack"),
+  h(null, "--template", "allowUnsafeTemplateDir")
+];
+function C(e, t2, n) {
+  return [...K(e, t2), ...V(n)];
+}
+function Y(...e) {
+  const { flags: t2, taskIndex: n } = j(e), o2 = n < e.length ? String(e[n]).toLowerCase() : null, s = o2 !== null ? e.slice(n + 1) : [], { positionals: r2, pathspecs: l } = B(s, o2, t2), a = L(o2, t2, r2);
+  return {
+    task: o2,
+    flags: t2.map(J),
+    paths: l,
+    config: a,
+    vulnerabilities: z2(C(o2, t2, a))
+  };
+}
+function z2(e) {
+  return Object.defineProperty(e, "vulnerabilities", {
+    value: e
+  });
+}
+function J({ value: e, name: t2 }) {
+  return e !== undefined ? { name: t2, value: e } : { name: t2 };
+}
+var y = {
+  editor: "allowUnsafeEditor",
+  git_askpass: "allowUnsafeAskPass",
+  git_config_global: "allowUnsafeConfigPaths",
+  git_config_system: "allowUnsafeConfigPaths",
+  git_config_count: "allowUnsafeConfigEnvCount",
+  git_config: "allowUnsafeConfigPaths",
+  git_editor: "allowUnsafeEditor",
+  git_exec_path: "allowUnsafeConfigPaths",
+  git_external_diff: "allowUnsafeDiffExternal",
+  git_pager: "allowUnsafePager",
+  git_proxy_command: "allowUnsafeGitProxy",
+  git_template_dir: "allowUnsafeTemplateDir",
+  git_sequence_editor: "allowUnsafeEditor",
+  git_ssh: "allowUnsafeSshCommand",
+  git_ssh_command: "allowUnsafeSshCommand",
+  pager: "allowUnsafePager",
+  prefix: "allowUnsafeConfigPaths",
+  ssh_askpass: "allowUnsafeAskPass"
+};
+function* Q(e) {
+  const t2 = parseInt(e.git_config_count ?? "0", 10);
+  for (let n = 0;n < t2; n++) {
+    const o2 = e[`git_config_key_${n}`], s = e[`git_config_value_${n}`];
+    o2 !== undefined && (yield { key: o2.toLowerCase().trim(), value: s, scope: "env" });
+  }
+}
+function* X(e) {
+  for (const t2 of Object.keys(e))
+    if (_(t2)) {
+      const n = y[t2];
+      yield {
+        category: n,
+        message: `Use of "${t2.toUpperCase()}" is not permitted without enabling ${n}`
+      };
+    }
+}
+function _(e) {
+  return Object.hasOwn(y, e);
+}
+function Z(e) {
+  const t2 = {};
+  for (const [n, o2] of Object.entries(e)) {
+    const s = n.toLowerCase().trim();
+    (_(s) || s.startsWith("git")) && (t2[s] = String(o2));
+  }
+  return t2;
+}
+function ee(e) {
+  const t2 = Z(e), n = {
+    read: [],
+    write: [...Q(t2)]
+  }, o2 = [
+    ...X(t2),
+    ...C(null, [], n)
+  ];
+  return {
+    config: n,
+    vulnerabilities: o2
+  };
+}
+function ne(e, t2) {
+  return [...Y(...e).vulnerabilities, ...ee(t2).vulnerabilities];
+}
+
+// node_modules/simple-git/dist/esm/index.js
+var import_promise_deferred2 = __toESM(require_dist3(), 1);
+import { EventEmitter } from "node:events";
+var __defProp3 = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames2 = Object.getOwnPropertyNames;
+var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames2(fn)[0]])(fn = 0)), res;
+};
+var __commonJS2 = (cb, mod) => function __require2() {
+  return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export3 = (target, all) => {
+  for (var name21 in all)
+    __defProp3(target, name21, { get: all[name21], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames2(from))
+      if (!__hasOwnProp2.call(to, key) && key !== except)
+        __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp3({}, "__esModule", { value: true }), mod);
+var GitError;
+var init_git_error = __esm({
+  "src/lib/errors/git-error.ts"() {
+    GitError = class extends Error {
+      constructor(task, message) {
+        super(message);
+        this.task = task;
+        Object.setPrototypeOf(this, new.target.prototype);
+      }
+    };
+  }
+});
+var GitResponseError;
+var init_git_response_error = __esm({
+  "src/lib/errors/git-response-error.ts"() {
+    init_git_error();
+    GitResponseError = class extends GitError {
+      constructor(git, message) {
+        super(undefined, message || String(git));
+        this.git = git;
+      }
+    };
+  }
+});
+var TaskConfigurationError;
+var init_task_configuration_error = __esm({
+  "src/lib/errors/task-configuration-error.ts"() {
+    init_git_error();
+    TaskConfigurationError = class extends GitError {
+      constructor(message) {
+        super(undefined, message);
+      }
+    };
+  }
+});
+function asFunction(source) {
+  if (typeof source !== "function") {
+    return NOOP;
+  }
+  return source;
+}
+function isUserFunction(source) {
+  return typeof source === "function" && source !== NOOP;
+}
+function splitOn(input, char) {
+  const index = input.indexOf(char);
+  if (index <= 0) {
+    return [input, ""];
+  }
+  return [input.substr(0, index), input.substr(index + 1)];
+}
+function first(input, offset = 0) {
+  return isArrayLike(input) && input.length > offset ? input[offset] : undefined;
+}
+function last(input, offset = 0) {
+  if (isArrayLike(input) && input.length > offset) {
+    return input[input.length - 1 - offset];
+  }
+}
+function isArrayLike(input) {
+  return filterHasLength(input);
+}
+function toLinesWithContent(input = "", trimmed2 = true, separator = `
+`) {
+  return input.split(separator).reduce((output, line) => {
+    const lineContent = trimmed2 ? line.trim() : line;
+    if (lineContent) {
+      output.push(lineContent);
+    }
+    return output;
+  }, []);
+}
+function forEachLineWithContent(input, callback) {
+  return toLinesWithContent(input, true).map((line) => callback(line));
+}
+function folderExists(path) {
+  return import_file_exists.exists(path, import_file_exists.FOLDER);
+}
+function append(target, item) {
+  if (Array.isArray(target)) {
+    if (!target.includes(item)) {
+      target.push(item);
+    }
+  } else {
+    target.add(item);
+  }
+  return item;
+}
+function including(target, item) {
+  if (Array.isArray(target) && !target.includes(item)) {
+    target.push(item);
+  }
+  return target;
+}
+function remove(target, item) {
+  if (Array.isArray(target)) {
+    const index = target.indexOf(item);
+    if (index >= 0) {
+      target.splice(index, 1);
+    }
+  } else {
+    target.delete(item);
+  }
+  return item;
+}
+function asArray2(source) {
+  return Array.isArray(source) ? source : [source];
+}
+function asCamelCase(str) {
+  return str.replace(/[\s-]+(.)/g, (_all, chr) => {
+    return chr.toUpperCase();
+  });
+}
+function asStringArray(source) {
+  return asArray2(source).map((item) => {
+    return item instanceof String ? item : String(item);
+  });
+}
+function asNumber(source, onNaN = 0) {
+  if (source == null) {
+    return onNaN;
+  }
+  const num = parseInt(source, 10);
+  return Number.isNaN(num) ? onNaN : num;
+}
+function prefixedArray(input, prefix) {
+  const output = [];
+  for (let i2 = 0, max = input.length;i2 < max; i2++) {
+    output.push(prefix, input[i2]);
+  }
+  return output;
+}
+function bufferToString(input) {
+  return (Array.isArray(input) ? Buffer.concat(input) : input).toString("utf-8");
+}
+function pick2(source, properties) {
+  const out = {};
+  properties.forEach((key) => {
+    if (source[key] !== undefined) {
+      out[key] = source[key];
+    }
+  });
+  return out;
+}
+function delay2(duration3 = 0) {
+  return new Promise((done) => setTimeout(done, duration3));
+}
+function orVoid(input) {
+  if (input === false) {
+    return;
+  }
+  return input;
+}
+var NULL;
+var NOOP;
+var objectToString;
+var init_util = __esm({
+  "src/lib/utils/util.ts"() {
+    init_argument_filters();
+    NULL = "\x00";
+    NOOP = () => {};
+    objectToString = Object.prototype.toString.call.bind(Object.prototype.toString);
+  }
+});
+function filterType(input, filter2, def) {
+  if (filter2(input)) {
+    return input;
+  }
+  return arguments.length > 2 ? def : undefined;
+}
+function filterPrimitives(input, omit2) {
+  const type = r(input) ? "string" : typeof input;
+  return /number|string|boolean/.test(type) && (!omit2 || !omit2.includes(type));
+}
+function filterPlainObject(input) {
+  return !!input && objectToString(input) === "[object Object]";
+}
+function filterFunction(input) {
+  return typeof input === "function";
+}
+var filterArray;
+var filterNumber;
+var filterString;
+var filterStringOrStringArray;
+var filterHasLength;
+var init_argument_filters = __esm({
+  "src/lib/utils/argument-filters.ts"() {
+    init_util();
+    filterArray = (input) => {
+      return Array.isArray(input);
+    };
+    filterNumber = (input) => {
+      return typeof input === "number";
+    };
+    filterString = (input) => {
+      return typeof input === "string" || r(input);
+    };
+    filterStringOrStringArray = (input) => {
+      return filterString(input) || Array.isArray(input) && input.every(filterString);
+    };
+    filterHasLength = (input) => {
+      if (input == null || "number|boolean|function".includes(typeof input)) {
+        return false;
+      }
+      return typeof input.length === "number";
+    };
+  }
+});
+var ExitCodes;
+var init_exit_codes = __esm({
+  "src/lib/utils/exit-codes.ts"() {
+    ExitCodes = /* @__PURE__ */ ((ExitCodes2) => {
+      ExitCodes2[ExitCodes2["SUCCESS"] = 0] = "SUCCESS";
+      ExitCodes2[ExitCodes2["ERROR"] = 1] = "ERROR";
+      ExitCodes2[ExitCodes2["NOT_FOUND"] = -2] = "NOT_FOUND";
+      ExitCodes2[ExitCodes2["UNCLEAN"] = 128] = "UNCLEAN";
+      return ExitCodes2;
+    })(ExitCodes || {});
+  }
+});
+var GitOutputStreams;
+var init_git_output_streams = __esm({
+  "src/lib/utils/git-output-streams.ts"() {
+    GitOutputStreams = class _GitOutputStreams {
+      constructor(stdOut, stdErr) {
+        this.stdOut = stdOut;
+        this.stdErr = stdErr;
+      }
+      asStrings() {
+        return new _GitOutputStreams(this.stdOut.toString("utf8"), this.stdErr.toString("utf8"));
+      }
+    };
+  }
+});
+function useMatchesDefault() {
+  throw new Error(`LineParser:useMatches not implemented`);
+}
+var LineParser;
+var RemoteLineParser;
+var init_line_parser = __esm({
+  "src/lib/utils/line-parser.ts"() {
+    LineParser = class {
+      constructor(regExp, useMatches) {
+        this.matches = [];
+        this.useMatches = useMatchesDefault;
+        this.parse = (line, target) => {
+          this.resetMatches();
+          if (!this._regExp.every((reg, index) => this.addMatch(reg, index, line(index)))) {
+            return false;
+          }
+          return this.useMatches(target, this.prepareMatches()) !== false;
+        };
+        this._regExp = Array.isArray(regExp) ? regExp : [regExp];
+        if (useMatches) {
+          this.useMatches = useMatches;
+        }
+      }
+      resetMatches() {
+        this.matches.length = 0;
+      }
+      prepareMatches() {
+        return this.matches;
+      }
+      addMatch(reg, index, line) {
+        const matched = line && reg.exec(line);
+        if (matched) {
+          this.pushMatch(index, matched);
+        }
+        return !!matched;
+      }
+      pushMatch(_index, matched) {
+        this.matches.push(...matched.slice(1));
+      }
+    };
+    RemoteLineParser = class extends LineParser {
+      addMatch(reg, index, line) {
+        return /^remote:\s/.test(String(line)) && super.addMatch(reg, index, line);
+      }
+      pushMatch(index, matched) {
+        if (index > 0 || matched.length > 1) {
+          super.pushMatch(index, matched);
+        }
+      }
+    };
+  }
+});
+function createInstanceConfig(...options) {
+  const baseDir = process.cwd();
+  const config2 = Object.assign({ baseDir, ...defaultOptions2 }, ...options.filter((o2) => typeof o2 === "object" && o2));
+  config2.baseDir = config2.baseDir || baseDir;
+  config2.trimmed = config2.trimmed === true;
+  return config2;
+}
+var defaultOptions2;
+var init_simple_git_options = __esm({
+  "src/lib/utils/simple-git-options.ts"() {
+    defaultOptions2 = {
+      binary: "git",
+      maxConcurrentProcesses: 5,
+      config: [],
+      trimmed: false
+    };
+  }
+});
+function appendTaskOptions(options, commands = []) {
+  if (!filterPlainObject(options)) {
+    return commands;
+  }
+  return Object.keys(options).reduce((commands2, key) => {
+    const value = options[key];
+    if (r(value)) {
+      commands2.push(value);
+    } else if (filterPrimitives(value, ["boolean"])) {
+      commands2.push(key + "=" + value);
+    } else if (Array.isArray(value)) {
+      for (const v of value) {
+        if (!filterPrimitives(v, ["string", "number"])) {
+          commands2.push(key + "=" + v);
+        }
+      }
+    } else {
+      commands2.push(key);
+    }
+    return commands2;
+  }, commands);
+}
+function getTrailingOptions(args, initialPrimitive = 0, objectOnly = false) {
+  const command = [];
+  for (let i2 = 0, max = initialPrimitive < 0 ? args.length : initialPrimitive;i2 < max; i2++) {
+    if ("string|number".includes(typeof args[i2])) {
+      command.push(String(args[i2]));
+    }
+  }
+  appendTaskOptions(trailingOptionsArgument(args), command);
+  if (!objectOnly) {
+    command.push(...trailingArrayArgument(args));
+  }
+  return command;
+}
+function trailingArrayArgument(args) {
+  const hasTrailingCallback = typeof last(args) === "function";
+  return asStringArray(filterType(last(args, hasTrailingCallback ? 1 : 0), filterArray, []));
+}
+function trailingOptionsArgument(args) {
+  const hasTrailingCallback = filterFunction(last(args));
+  return filterType(last(args, hasTrailingCallback ? 1 : 0), filterPlainObject);
+}
+function trailingFunctionArgument(args, includeNoop = true) {
+  const callback = asFunction(last(args));
+  return includeNoop || isUserFunction(callback) ? callback : undefined;
+}
+var init_task_options = __esm({
+  "src/lib/utils/task-options.ts"() {
+    init_argument_filters();
+    init_util();
+  }
+});
+function callTaskParser(parser4, streams) {
+  return parser4(streams.stdOut, streams.stdErr);
+}
+function parseStringResponse(result, parsers12, texts, trim = true) {
+  asArray2(texts).forEach((text2) => {
+    for (let lines = toLinesWithContent(text2, trim), i2 = 0, max = lines.length;i2 < max; i2++) {
+      const line = (offset = 0) => {
+        if (i2 + offset >= max) {
+          return;
+        }
+        return lines[i2 + offset];
+      };
+      parsers12.some(({ parse: parse5 }) => parse5(line, result));
+    }
+  });
+  return result;
+}
+var init_task_parser = __esm({
+  "src/lib/utils/task-parser.ts"() {
+    init_util();
+  }
+});
+var utils_exports = {};
+__export3(utils_exports, {
+  ExitCodes: () => ExitCodes,
+  GitOutputStreams: () => GitOutputStreams,
+  LineParser: () => LineParser,
+  NOOP: () => NOOP,
+  NULL: () => NULL,
+  RemoteLineParser: () => RemoteLineParser,
+  append: () => append,
+  appendTaskOptions: () => appendTaskOptions,
+  asArray: () => asArray2,
+  asCamelCase: () => asCamelCase,
+  asFunction: () => asFunction,
+  asNumber: () => asNumber,
+  asStringArray: () => asStringArray,
+  bufferToString: () => bufferToString,
+  callTaskParser: () => callTaskParser,
+  createInstanceConfig: () => createInstanceConfig,
+  delay: () => delay2,
+  filterArray: () => filterArray,
+  filterFunction: () => filterFunction,
+  filterHasLength: () => filterHasLength,
+  filterNumber: () => filterNumber,
+  filterPlainObject: () => filterPlainObject,
+  filterPrimitives: () => filterPrimitives,
+  filterString: () => filterString,
+  filterStringOrStringArray: () => filterStringOrStringArray,
+  filterType: () => filterType,
+  first: () => first,
+  folderExists: () => folderExists,
+  forEachLineWithContent: () => forEachLineWithContent,
+  getTrailingOptions: () => getTrailingOptions,
+  including: () => including,
+  isUserFunction: () => isUserFunction,
+  last: () => last,
+  objectToString: () => objectToString,
+  orVoid: () => orVoid,
+  parseStringResponse: () => parseStringResponse,
+  pick: () => pick2,
+  prefixedArray: () => prefixedArray,
+  remove: () => remove,
+  splitOn: () => splitOn,
+  toLinesWithContent: () => toLinesWithContent,
+  trailingFunctionArgument: () => trailingFunctionArgument,
+  trailingOptionsArgument: () => trailingOptionsArgument
+});
+var init_utils = __esm({
+  "src/lib/utils/index.ts"() {
+    init_argument_filters();
+    init_exit_codes();
+    init_git_output_streams();
+    init_line_parser();
+    init_simple_git_options();
+    init_task_options();
+    init_task_parser();
+    init_util();
+  }
+});
+var check_is_repo_exports = {};
+__export3(check_is_repo_exports, {
+  CheckRepoActions: () => CheckRepoActions,
+  checkIsBareRepoTask: () => checkIsBareRepoTask,
+  checkIsRepoRootTask: () => checkIsRepoRootTask,
+  checkIsRepoTask: () => checkIsRepoTask
+});
+function checkIsRepoTask(action) {
+  switch (action) {
+    case "bare":
+      return checkIsBareRepoTask();
+    case "root":
+      return checkIsRepoRootTask();
+  }
+  const commands = ["rev-parse", "--is-inside-work-tree"];
+  return {
+    commands,
+    format: "utf-8",
+    onError,
+    parser
+  };
+}
+function checkIsRepoRootTask() {
+  const commands = ["rev-parse", "--git-dir"];
+  return {
+    commands,
+    format: "utf-8",
+    onError,
+    parser(path) {
+      return /^\.(git)?$/.test(path.trim());
+    }
+  };
+}
+function checkIsBareRepoTask() {
+  const commands = ["rev-parse", "--is-bare-repository"];
+  return {
+    commands,
+    format: "utf-8",
+    onError,
+    parser
+  };
+}
+function isNotRepoMessage(error49) {
+  return /(Not a git repository|Kein Git-Repository)/i.test(String(error49));
+}
+var CheckRepoActions;
+var onError;
+var parser;
+var init_check_is_repo = __esm({
+  "src/lib/tasks/check-is-repo.ts"() {
+    init_utils();
+    CheckRepoActions = /* @__PURE__ */ ((CheckRepoActions2) => {
+      CheckRepoActions2["BARE"] = "bare";
+      CheckRepoActions2["IN_TREE"] = "tree";
+      CheckRepoActions2["IS_REPO_ROOT"] = "root";
+      return CheckRepoActions2;
+    })(CheckRepoActions || {});
+    onError = ({ exitCode }, error49, done, fail) => {
+      if (exitCode === 128 && isNotRepoMessage(error49)) {
+        return done(Buffer.from("false"));
+      }
+      fail(error49);
+    };
+    parser = (text2) => {
+      return text2.trim() === "true";
+    };
+  }
+});
+function cleanSummaryParser(dryRun, text2) {
+  const summary2 = new CleanResponse(dryRun);
+  const regexp = dryRun ? dryRunRemovalRegexp : removalRegexp;
+  toLinesWithContent(text2).forEach((line) => {
+    const removed = line.replace(regexp, "");
+    summary2.paths.push(removed);
+    (isFolderRegexp.test(removed) ? summary2.folders : summary2.files).push(removed);
+  });
+  return summary2;
+}
+var CleanResponse;
+var removalRegexp;
+var dryRunRemovalRegexp;
+var isFolderRegexp;
+var init_CleanSummary = __esm({
+  "src/lib/responses/CleanSummary.ts"() {
+    init_utils();
+    CleanResponse = class {
+      constructor(dryRun) {
+        this.dryRun = dryRun;
+        this.paths = [];
+        this.files = [];
+        this.folders = [];
+      }
+    };
+    removalRegexp = /^[a-z]+\s*/i;
+    dryRunRemovalRegexp = /^[a-z]+\s+[a-z]+\s*/i;
+    isFolderRegexp = /\/$/;
+  }
+});
+var task_exports = {};
+__export3(task_exports, {
+  EMPTY_COMMANDS: () => EMPTY_COMMANDS,
+  adhocExecTask: () => adhocExecTask,
+  configurationErrorTask: () => configurationErrorTask,
+  isBufferTask: () => isBufferTask,
+  isEmptyTask: () => isEmptyTask,
+  straightThroughBufferTask: () => straightThroughBufferTask,
+  straightThroughStringTask: () => straightThroughStringTask
+});
+function adhocExecTask(parser4) {
+  return {
+    commands: EMPTY_COMMANDS,
+    format: "empty",
+    parser: parser4
+  };
+}
+function configurationErrorTask(error49) {
+  return {
+    commands: EMPTY_COMMANDS,
+    format: "empty",
+    parser() {
+      throw typeof error49 === "string" ? new TaskConfigurationError(error49) : error49;
+    }
+  };
+}
+function straightThroughStringTask(commands, trimmed2 = false) {
+  return {
+    commands,
+    format: "utf-8",
+    parser(text2) {
+      return trimmed2 ? String(text2).trim() : text2;
+    }
+  };
+}
+function straightThroughBufferTask(commands) {
+  return {
+    commands,
+    format: "buffer",
+    parser(buffer) {
+      return buffer;
+    }
+  };
+}
+function isBufferTask(task) {
+  return task.format === "buffer";
+}
+function isEmptyTask(task) {
+  return task.format === "empty" || !task.commands.length;
+}
+var EMPTY_COMMANDS;
+var init_task = __esm({
+  "src/lib/tasks/task.ts"() {
+    init_task_configuration_error();
+    EMPTY_COMMANDS = [];
+  }
+});
+var clean_exports = {};
+__export3(clean_exports, {
+  CONFIG_ERROR_INTERACTIVE_MODE: () => CONFIG_ERROR_INTERACTIVE_MODE,
+  CONFIG_ERROR_MODE_REQUIRED: () => CONFIG_ERROR_MODE_REQUIRED,
+  CONFIG_ERROR_UNKNOWN_OPTION: () => CONFIG_ERROR_UNKNOWN_OPTION,
+  CleanOptions: () => CleanOptions,
+  cleanTask: () => cleanTask,
+  cleanWithOptionsTask: () => cleanWithOptionsTask,
+  isCleanOptionsArray: () => isCleanOptionsArray
+});
+function cleanWithOptionsTask(mode, customArgs) {
+  const { cleanMode, options, valid } = getCleanOptions(mode);
+  if (!cleanMode) {
+    return configurationErrorTask(CONFIG_ERROR_MODE_REQUIRED);
+  }
+  if (!valid.options) {
+    return configurationErrorTask(CONFIG_ERROR_UNKNOWN_OPTION + JSON.stringify(mode));
+  }
+  options.push(...customArgs);
+  if (options.some(isInteractiveMode)) {
+    return configurationErrorTask(CONFIG_ERROR_INTERACTIVE_MODE);
+  }
+  return cleanTask(cleanMode, options);
+}
+function cleanTask(mode, customArgs) {
+  const commands = ["clean", `-${mode}`, ...customArgs];
+  return {
+    commands,
+    format: "utf-8",
+    parser(text2) {
+      return cleanSummaryParser(mode === "n", text2);
+    }
+  };
+}
+function isCleanOptionsArray(input) {
+  return Array.isArray(input) && input.every((test) => CleanOptionValues.has(test));
+}
+function getCleanOptions(input) {
+  let cleanMode;
+  let options = [];
+  let valid = { cleanMode: false, options: true };
+  input.replace(/[^a-z]i/g, "").split("").forEach((char) => {
+    if (isCleanMode(char)) {
+      cleanMode = char;
+      valid.cleanMode = true;
+    } else {
+      valid.options = valid.options && isKnownOption(options[options.length] = `-${char}`);
+    }
+  });
+  return {
+    cleanMode,
+    options,
+    valid
+  };
+}
+function isCleanMode(cleanMode) {
+  return cleanMode === "f" || cleanMode === "n";
+}
+function isKnownOption(option) {
+  return /^-[a-z]$/i.test(option) && CleanOptionValues.has(option.charAt(1));
+}
+function isInteractiveMode(option) {
+  if (/^-[^\-]/.test(option)) {
+    return option.indexOf("i") > 0;
+  }
+  return option === "--interactive";
+}
+var CONFIG_ERROR_INTERACTIVE_MODE;
+var CONFIG_ERROR_MODE_REQUIRED;
+var CONFIG_ERROR_UNKNOWN_OPTION;
+var CleanOptions;
+var CleanOptionValues;
+var init_clean = __esm({
+  "src/lib/tasks/clean.ts"() {
+    init_CleanSummary();
+    init_utils();
+    init_task();
+    CONFIG_ERROR_INTERACTIVE_MODE = "Git clean interactive mode is not supported";
+    CONFIG_ERROR_MODE_REQUIRED = 'Git clean mode parameter ("n" or "f") is required';
+    CONFIG_ERROR_UNKNOWN_OPTION = "Git clean unknown option found in: ";
+    CleanOptions = /* @__PURE__ */ ((CleanOptions2) => {
+      CleanOptions2["DRY_RUN"] = "n";
+      CleanOptions2["FORCE"] = "f";
+      CleanOptions2["IGNORED_INCLUDED"] = "x";
+      CleanOptions2["IGNORED_ONLY"] = "X";
+      CleanOptions2["EXCLUDING"] = "e";
+      CleanOptions2["QUIET"] = "q";
+      CleanOptions2["RECURSIVE"] = "d";
+      return CleanOptions2;
+    })(CleanOptions || {});
+    CleanOptionValues = /* @__PURE__ */ new Set([
+      "i",
+      ...asStringArray(Object.values(CleanOptions))
+    ]);
+  }
+});
+function configListParser(text2) {
+  const config2 = new ConfigList;
+  for (const item of configParser(text2)) {
+    config2.addValue(item.file, String(item.key), item.value);
+  }
+  return config2;
+}
+function configGetParser(text2, key) {
+  let value = null;
+  const values = [];
+  const scopes = /* @__PURE__ */ new Map;
+  for (const item of configParser(text2, key)) {
+    if (item.key !== key) {
+      continue;
+    }
+    values.push(value = item.value);
+    if (!scopes.has(item.file)) {
+      scopes.set(item.file, []);
+    }
+    scopes.get(item.file).push(value);
+  }
+  return {
+    key,
+    paths: Array.from(scopes.keys()),
+    scopes,
+    value,
+    values
+  };
+}
+function configFilePath(filePath) {
+  return filePath.replace(/^(file):/, "");
+}
+function* configParser(text2, requestedKey = null) {
+  const lines = text2.split("\x00");
+  for (let i2 = 0, max = lines.length - 1;i2 < max; ) {
+    const file2 = configFilePath(lines[i2++]);
+    let value = lines[i2++];
+    let key = requestedKey;
+    if (value.includes(`
+`)) {
+      const line = splitOn(value, `
+`);
+      key = line[0];
+      value = line[1];
+    }
+    yield { file: file2, key, value };
+  }
+}
+var ConfigList;
+var init_ConfigList = __esm({
+  "src/lib/responses/ConfigList.ts"() {
+    init_utils();
+    ConfigList = class {
+      constructor() {
+        this.files = [];
+        this.values = /* @__PURE__ */ Object.create(null);
+      }
+      get all() {
+        if (!this._all) {
+          this._all = this.files.reduce((all, file2) => {
+            return Object.assign(all, this.values[file2]);
+          }, {});
+        }
+        return this._all;
+      }
+      addFile(file2) {
+        if (!(file2 in this.values)) {
+          const latest = last(this.files);
+          this.values[file2] = latest ? Object.create(this.values[latest]) : {};
+          this.files.push(file2);
+        }
+        return this.values[file2];
+      }
+      addValue(file2, key, value) {
+        const values = this.addFile(file2);
+        if (!Object.hasOwn(values, key)) {
+          values[key] = value;
+        } else if (Array.isArray(values[key])) {
+          values[key].push(value);
+        } else {
+          values[key] = [values[key], value];
+        }
+        this._all = undefined;
+      }
+    };
+  }
+});
+function asConfigScope(scope, fallback) {
+  if (typeof scope === "string" && Object.hasOwn(GitConfigScope, scope)) {
+    return scope;
+  }
+  return fallback;
+}
+function addConfigTask(key, value, append2, scope) {
+  const commands = ["config", `--${scope}`];
+  if (append2) {
+    commands.push("--add");
+  }
+  commands.push(key, value);
+  return {
+    commands,
+    format: "utf-8",
+    parser(text2) {
+      return text2;
+    }
+  };
+}
+function getConfigTask(key, scope) {
+  const commands = ["config", "--null", "--show-origin", "--get-all", key];
+  if (scope) {
+    commands.splice(1, 0, `--${scope}`);
+  }
+  return {
+    commands,
+    format: "utf-8",
+    parser(text2) {
+      return configGetParser(text2, key);
+    }
+  };
+}
+function listConfigTask(scope) {
+  const commands = ["config", "--list", "--show-origin", "--null"];
+  if (scope) {
+    commands.push(`--${scope}`);
+  }
+  return {
+    commands,
+    format: "utf-8",
+    parser(text2) {
+      return configListParser(text2);
+    }
+  };
+}
+function config_default() {
+  return {
+    addConfig(key, value, ...rest) {
+      return this._runTask(addConfigTask(key, value, rest[0] === true, asConfigScope(rest[1], "local")), trailingFunctionArgument(arguments));
+    },
+    getConfig(key, scope) {
+      return this._runTask(getConfigTask(key, asConfigScope(scope, undefined)), trailingFunctionArgument(arguments));
+    },
+    listConfig(...rest) {
+      return this._runTask(listConfigTask(asConfigScope(rest[0], undefined)), trailingFunctionArgument(arguments));
+    }
+  };
+}
+var GitConfigScope;
+var init_config = __esm({
+  "src/lib/tasks/config.ts"() {
+    init_ConfigList();
+    init_utils();
+    GitConfigScope = /* @__PURE__ */ ((GitConfigScope2) => {
+      GitConfigScope2["system"] = "system";
+      GitConfigScope2["global"] = "global";
+      GitConfigScope2["local"] = "local";
+      GitConfigScope2["worktree"] = "worktree";
+      return GitConfigScope2;
+    })(GitConfigScope || {});
+  }
+});
+function isDiffNameStatus(input) {
+  return diffNameStatus.has(input);
+}
+var DiffNameStatus;
+var diffNameStatus;
+var init_diff_name_status = __esm({
+  "src/lib/tasks/diff-name-status.ts"() {
+    DiffNameStatus = /* @__PURE__ */ ((DiffNameStatus2) => {
+      DiffNameStatus2["ADDED"] = "A";
+      DiffNameStatus2["COPIED"] = "C";
+      DiffNameStatus2["DELETED"] = "D";
+      DiffNameStatus2["MODIFIED"] = "M";
+      DiffNameStatus2["RENAMED"] = "R";
+      DiffNameStatus2["CHANGED"] = "T";
+      DiffNameStatus2["UNMERGED"] = "U";
+      DiffNameStatus2["UNKNOWN"] = "X";
+      DiffNameStatus2["BROKEN"] = "B";
+      return DiffNameStatus2;
+    })(DiffNameStatus || {});
+    diffNameStatus = new Set(Object.values(DiffNameStatus));
+  }
+});
+function grepQueryBuilder(...params) {
+  return new GrepQuery().param(...params);
+}
+function parseGrep(grep) {
+  const paths = /* @__PURE__ */ new Set;
+  const results = {};
+  forEachLineWithContent(grep, (input) => {
+    const [path, line, preview] = input.split(NULL);
+    paths.add(path);
+    (results[path] = results[path] || []).push({
+      line: asNumber(line),
+      path,
+      preview
+    });
+  });
+  return {
+    paths,
+    results
+  };
+}
+function grep_default() {
+  return {
+    grep(searchTerm) {
+      const then = trailingFunctionArgument(arguments);
+      const options = getTrailingOptions(arguments);
+      for (const option of disallowedOptions) {
+        if (options.includes(option)) {
+          return this._runTask(configurationErrorTask(`git.grep: use of "${option}" is not supported.`), then);
+        }
+      }
+      if (typeof searchTerm === "string") {
+        searchTerm = grepQueryBuilder().param(searchTerm);
+      }
+      const commands = ["grep", "--null", "-n", "--full-name", ...options, ...searchTerm];
+      return this._runTask({
+        commands,
+        format: "utf-8",
+        parser(stdOut) {
+          return parseGrep(stdOut);
+        }
+      }, then);
+    }
+  };
+}
+var disallowedOptions;
+var Query;
+var _a21;
+var GrepQuery;
+var init_grep = __esm({
+  "src/lib/tasks/grep.ts"() {
+    init_utils();
+    init_task();
+    disallowedOptions = ["-h"];
+    Query = Symbol("grepQuery");
+    GrepQuery = class {
+      constructor() {
+        this[_a21] = [];
+      }
+      *[(_a21 = Query, Symbol.iterator)]() {
+        for (const query of this[Query]) {
+          yield query;
+        }
+      }
+      and(...and) {
+        and.length && this[Query].push("--and", "(", ...prefixedArray(and, "-e"), ")");
+        return this;
+      }
+      param(...param) {
+        this[Query].push(...prefixedArray(param, "-e"));
+        return this;
+      }
+    };
+  }
+});
+var reset_exports = {};
+__export3(reset_exports, {
+  ResetMode: () => ResetMode,
+  getResetMode: () => getResetMode,
+  resetTask: () => resetTask
+});
+function resetTask(mode, customArgs) {
+  const commands = ["reset"];
+  if (isValidResetMode(mode)) {
+    commands.push(`--${mode}`);
+  }
+  commands.push(...customArgs);
+  return straightThroughStringTask(commands);
+}
+function getResetMode(mode) {
+  if (isValidResetMode(mode)) {
+    return mode;
+  }
+  switch (typeof mode) {
+    case "string":
+    case "undefined":
+      return "soft";
+  }
+  return;
+}
+function isValidResetMode(mode) {
+  return typeof mode === "string" && validResetModes.includes(mode);
+}
+var ResetMode;
+var validResetModes;
+var init_reset = __esm({
+  "src/lib/tasks/reset.ts"() {
+    init_utils();
+    init_task();
+    ResetMode = /* @__PURE__ */ ((ResetMode2) => {
+      ResetMode2["MIXED"] = "mixed";
+      ResetMode2["SOFT"] = "soft";
+      ResetMode2["HARD"] = "hard";
+      ResetMode2["MERGE"] = "merge";
+      ResetMode2["KEEP"] = "keep";
+      return ResetMode2;
+    })(ResetMode || {});
+    validResetModes = asStringArray(Object.values(ResetMode));
+  }
+});
+function createLog() {
+  return import_debug.default("simple-git");
+}
+function prefixedLogger(to, prefix, forward) {
+  if (!prefix || !String(prefix).replace(/\s*/, "")) {
+    return !forward ? to : (message, ...args) => {
+      to(message, ...args);
+      forward(message, ...args);
+    };
+  }
+  return (message, ...args) => {
+    to(`%s ${message}`, prefix, ...args);
+    if (forward) {
+      forward(message, ...args);
+    }
+  };
+}
+function childLoggerName(name21, childDebugger, { namespace: parentNamespace }) {
+  if (typeof name21 === "string") {
+    return name21;
+  }
+  const childNamespace = childDebugger && childDebugger.namespace || "";
+  if (childNamespace.startsWith(parentNamespace)) {
+    return childNamespace.substr(parentNamespace.length + 1);
+  }
+  return childNamespace || parentNamespace;
+}
+function createLogger(label, verbose, initialStep, infoDebugger = createLog()) {
+  const labelPrefix = label && `[${label}]` || "";
+  const spawned = [];
+  const debugDebugger = typeof verbose === "string" ? infoDebugger.extend(verbose) : verbose;
+  const key = childLoggerName(filterType(verbose, filterString), debugDebugger, infoDebugger);
+  return step(initialStep);
+  function sibling(name21, initial) {
+    return append(spawned, createLogger(label, key.replace(/^[^:]+/, name21), initial, infoDebugger));
+  }
+  function step(phase) {
+    const stepPrefix = phase && `[${phase}]` || "";
+    const debug22 = debugDebugger && prefixedLogger(debugDebugger, stepPrefix) || NOOP;
+    const info2 = prefixedLogger(infoDebugger, `${labelPrefix} ${stepPrefix}`, debug22);
+    return Object.assign(debugDebugger ? debug22 : info2, {
+      label,
+      sibling,
+      info: info2,
+      step
+    });
+  }
+}
+var init_git_logger = __esm({
+  "src/lib/git-logger.ts"() {
+    init_utils();
+    import_debug.default.formatters.L = (value) => String(filterHasLength(value) ? value.length : "-");
+    import_debug.default.formatters.B = (value) => {
+      if (Buffer.isBuffer(value)) {
+        return value.toString("utf8");
+      }
+      return objectToString(value);
+    };
+  }
+});
+var TasksPendingQueue;
+var init_tasks_pending_queue = __esm({
+  "src/lib/runners/tasks-pending-queue.ts"() {
+    init_git_error();
+    init_git_logger();
+    TasksPendingQueue = class _TasksPendingQueue {
+      constructor(logLabel = "GitExecutor") {
+        this.logLabel = logLabel;
+        this._queue = /* @__PURE__ */ new Map;
+      }
+      withProgress(task) {
+        return this._queue.get(task);
+      }
+      createProgress(task) {
+        const name21 = _TasksPendingQueue.getName(task.commands[0]);
+        const logger = createLogger(this.logLabel, name21);
+        return {
+          task,
+          logger,
+          name: name21
+        };
+      }
+      push(task) {
+        const progress = this.createProgress(task);
+        progress.logger("Adding task to the queue, commands = %o", task.commands);
+        this._queue.set(task, progress);
+        return progress;
+      }
+      fatal(err) {
+        for (const [task, { logger }] of Array.from(this._queue.entries())) {
+          if (task === err.task) {
+            logger.info(`Failed %o`, err);
+            logger(`Fatal exception, any as-yet un-started tasks run through this executor will not be attempted`);
+          } else {
+            logger.info(`A fatal exception occurred in a previous task, the queue has been purged: %o`, err.message);
+          }
+          this.complete(task);
+        }
+        if (this._queue.size !== 0) {
+          throw new Error(`Queue size should be zero after fatal: ${this._queue.size}`);
+        }
+      }
+      complete(task) {
+        const progress = this.withProgress(task);
+        if (progress) {
+          this._queue.delete(task);
+        }
+      }
+      attempt(task) {
+        const progress = this.withProgress(task);
+        if (!progress) {
+          throw new GitError(undefined, "TasksPendingQueue: attempt called for an unknown task");
+        }
+        progress.logger("Starting task");
+        return progress;
+      }
+      static getName(name21 = "empty") {
+        return `task:${name21}:${++_TasksPendingQueue.counter}`;
+      }
+      static {
+        this.counter = 0;
+      }
+    };
+  }
+});
+function pluginContext(task, commands) {
+  return {
+    method: first(task.commands) || "",
+    commands
+  };
+}
+function onErrorReceived(target, logger) {
+  return (err) => {
+    logger(`[ERROR] child process exception %o`, err);
+    target.push(Buffer.from(String(err.stack), "ascii"));
+  };
+}
+function onDataReceived(target, name21, logger, output) {
+  return (buffer) => {
+    logger(`%s received %L bytes`, name21, buffer);
+    output(`%B`, buffer);
+    target.push(buffer);
+  };
+}
+var GitExecutorChain;
+var init_git_executor_chain = __esm({
+  "src/lib/runners/git-executor-chain.ts"() {
+    init_git_error();
+    init_task();
+    init_utils();
+    init_tasks_pending_queue();
+    GitExecutorChain = class {
+      constructor(_executor, _scheduler, _plugins) {
+        this._executor = _executor;
+        this._scheduler = _scheduler;
+        this._plugins = _plugins;
+        this._chain = Promise.resolve();
+        this._queue = new TasksPendingQueue;
+      }
+      get cwd() {
+        return this._cwd || this._executor.cwd;
+      }
+      set cwd(cwd) {
+        this._cwd = cwd;
+      }
+      get env() {
+        return this._executor.env;
+      }
+      get outputHandler() {
+        return this._executor.outputHandler;
+      }
+      chain() {
+        return this;
+      }
+      push(task) {
+        this._queue.push(task);
+        return this._chain = this._chain.then(() => this.attemptTask(task));
+      }
+      async attemptTask(task) {
+        const onScheduleComplete = await this._scheduler.next();
+        const onQueueComplete = () => this._queue.complete(task);
+        try {
+          const { logger } = this._queue.attempt(task);
+          return await (isEmptyTask(task) ? this.attemptEmptyTask(task, logger) : this.attemptRemoteTask(task, logger));
+        } catch (e) {
+          throw this.onFatalException(task, e);
+        } finally {
+          onQueueComplete();
+          onScheduleComplete();
+        }
+      }
+      onFatalException(task, e) {
+        const gitError = e instanceof GitError ? Object.assign(e, { task }) : new GitError(task, e && String(e));
+        this._chain = Promise.resolve();
+        this._queue.fatal(gitError);
+        return gitError;
+      }
+      async attemptRemoteTask(task, logger) {
+        const binary = this._plugins.exec("spawn.binary", "", pluginContext(task, task.commands));
+        const args = this._plugins.exec("spawn.args", [...task.commands], {
+          ...pluginContext(task, task.commands),
+          env: { ...this.env }
+        });
+        const raw = await this.gitResponse(task, binary, args, this.outputHandler, logger.step("SPAWN"));
+        const outputStreams = await this.handleTaskData(task, args, raw, logger.step("HANDLE"));
+        logger(`passing response to task's parser as a %s`, task.format);
+        if (isBufferTask(task)) {
+          return callTaskParser(task.parser, outputStreams);
+        }
+        return callTaskParser(task.parser, outputStreams.asStrings());
+      }
+      async attemptEmptyTask(task, logger) {
+        logger(`empty task bypassing child process to call to task's parser`);
+        return task.parser(this);
+      }
+      handleTaskData(task, args, result, logger) {
+        const { exitCode, rejection, stdOut, stdErr } = result;
+        return new Promise((done, fail) => {
+          logger(`Preparing to handle process response exitCode=%d stdOut=`, exitCode);
+          const { error: error49 } = this._plugins.exec("task.error", { error: rejection }, {
+            ...pluginContext(task, args),
+            ...result
+          });
+          if (error49 && task.onError) {
+            logger.info(`exitCode=%s handling with custom error handler`);
+            return task.onError(result, error49, (newStdOut) => {
+              logger.info(`custom error handler treated as success`);
+              logger(`custom error returned a %s`, objectToString(newStdOut));
+              done(new GitOutputStreams(Array.isArray(newStdOut) ? Buffer.concat(newStdOut) : newStdOut, Buffer.concat(stdErr)));
+            }, fail);
+          }
+          if (error49) {
+            logger.info(`handling as error: exitCode=%s stdErr=%s rejection=%o`, exitCode, stdErr.length, rejection);
+            return fail(error49);
+          }
+          logger.info(`retrieving task output complete`);
+          done(new GitOutputStreams(Buffer.concat(stdOut), Buffer.concat(stdErr)));
+        });
+      }
+      async gitResponse(task, command, args, outputHandler, logger) {
+        const outputLogger = logger.sibling("output");
+        const spawnOptions = this._plugins.exec("spawn.options", {
+          cwd: this.cwd,
+          env: this.env,
+          windowsHide: true
+        }, pluginContext(task, task.commands));
+        return new Promise((done) => {
+          const stdOut = [];
+          const stdErr = [];
+          logger.info(`%s %o`, command, args);
+          logger("%O", spawnOptions);
+          let rejection = this._beforeSpawn(task, args);
+          if (rejection) {
+            return done({
+              stdOut,
+              stdErr,
+              exitCode: 9901,
+              rejection
+            });
+          }
+          this._plugins.exec("spawn.before", undefined, {
+            ...pluginContext(task, args),
+            kill(reason) {
+              rejection = reason || rejection;
+            }
+          });
+          const spawned = spawn(command, args, spawnOptions);
+          spawned.stdout.on("data", onDataReceived(stdOut, "stdOut", logger, outputLogger.step("stdOut")));
+          spawned.stderr.on("data", onDataReceived(stdErr, "stdErr", logger, outputLogger.step("stdErr")));
+          spawned.on("error", onErrorReceived(stdErr, logger));
+          if (outputHandler) {
+            logger(`Passing child process stdOut/stdErr to custom outputHandler`);
+            outputHandler(command, spawned.stdout, spawned.stderr, [...args]);
+          }
+          this._plugins.exec("spawn.after", undefined, {
+            ...pluginContext(task, args),
+            spawned,
+            close(exitCode, reason) {
+              done({
+                stdOut,
+                stdErr,
+                exitCode,
+                rejection: rejection || reason
+              });
+            },
+            kill(reason) {
+              if (spawned.killed) {
+                return;
+              }
+              rejection = reason;
+              spawned.kill("SIGINT");
+            }
+          });
+        });
+      }
+      _beforeSpawn(task, args) {
+        let rejection;
+        this._plugins.exec("spawn.before", undefined, {
+          ...pluginContext(task, args),
+          kill(reason) {
+            rejection = reason || rejection;
+          }
+        });
+        return rejection;
+      }
+    };
+  }
+});
+var git_executor_exports = {};
+__export3(git_executor_exports, {
+  GitExecutor: () => GitExecutor
+});
+var GitExecutor;
+var init_git_executor = __esm({
+  "src/lib/runners/git-executor.ts"() {
+    init_git_executor_chain();
+    GitExecutor = class {
+      constructor(cwd, _scheduler, _plugins) {
+        this.cwd = cwd;
+        this._scheduler = _scheduler;
+        this._plugins = _plugins;
+        this._chain = new GitExecutorChain(this, this._scheduler, this._plugins);
+      }
+      chain() {
+        return new GitExecutorChain(this, this._scheduler, this._plugins);
+      }
+      push(task) {
+        return this._chain.push(task);
+      }
+    };
+  }
+});
+function taskCallback(task, response, callback = NOOP) {
+  const onSuccess = (data) => {
+    callback(null, data);
+  };
+  const onError2 = (err) => {
+    if (err?.task === task) {
+      callback(err instanceof GitResponseError ? addDeprecationNoticeToError(err) : err, undefined);
+    }
+  };
+  response.then(onSuccess, onError2);
+}
+function addDeprecationNoticeToError(err) {
+  let log = (name21) => {
+    console.warn(`simple-git deprecation notice: accessing GitResponseError.${name21} should be GitResponseError.git.${name21}, this will no longer be available in version 3`);
+    log = NOOP;
+  };
+  return Object.create(err, Object.getOwnPropertyNames(err.git).reduce(descriptorReducer, {}));
+  function descriptorReducer(all, name21) {
+    if (name21 in err) {
+      return all;
+    }
+    all[name21] = {
+      enumerable: false,
+      configurable: false,
+      get() {
+        log(name21);
+        return err.git[name21];
+      }
+    };
+    return all;
+  }
+}
+var init_task_callback = __esm({
+  "src/lib/task-callback.ts"() {
+    init_git_response_error();
+    init_utils();
+  }
+});
+function changeWorkingDirectoryTask(directory, root) {
+  return adhocExecTask((instance) => {
+    if (!folderExists(directory)) {
+      throw new Error(`Git.cwd: cannot change to non-directory "${directory}"`);
+    }
+    return (root || instance).cwd = directory;
+  });
+}
+var init_change_working_directory = __esm({
+  "src/lib/tasks/change-working-directory.ts"() {
+    init_utils();
+    init_task();
+  }
+});
+function checkoutTask(args) {
+  const commands = ["checkout", ...args];
+  if (commands[1] === "-b" && commands.includes("-B")) {
+    commands[1] = remove(commands, "-B");
+  }
+  return straightThroughStringTask(commands);
+}
+function checkout_default() {
+  return {
+    checkout() {
+      return this._runTask(checkoutTask(getTrailingOptions(arguments, 1)), trailingFunctionArgument(arguments));
+    },
+    checkoutBranch(branchName, startPoint) {
+      return this._runTask(checkoutTask(["-b", branchName, startPoint, ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments));
+    },
+    checkoutLocalBranch(branchName) {
+      return this._runTask(checkoutTask(["-b", branchName, ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments));
+    }
+  };
+}
+var init_checkout = __esm({
+  "src/lib/tasks/checkout.ts"() {
+    init_utils();
+    init_task();
+  }
+});
+function countObjectsResponse() {
+  return {
+    count: 0,
+    garbage: 0,
+    inPack: 0,
+    packs: 0,
+    prunePackable: 0,
+    size: 0,
+    sizeGarbage: 0,
+    sizePack: 0
+  };
+}
+function count_objects_default() {
+  return {
+    countObjects() {
+      return this._runTask({
+        commands: ["count-objects", "--verbose"],
+        format: "utf-8",
+        parser(stdOut) {
+          return parseStringResponse(countObjectsResponse(), [parser2], stdOut);
+        }
+      });
+    }
+  };
+}
+var parser2;
+var init_count_objects = __esm({
+  "src/lib/tasks/count-objects.ts"() {
+    init_utils();
+    parser2 = new LineParser(/([a-z-]+): (\d+)$/, (result, [key, value]) => {
+      const property = asCamelCase(key);
+      if (Object.hasOwn(result, property)) {
+        result[property] = asNumber(value);
+      }
+    });
+  }
+});
+function parseCommitResult(stdOut) {
+  const result = {
+    author: null,
+    branch: "",
+    commit: "",
+    root: false,
+    summary: {
+      changes: 0,
+      insertions: 0,
+      deletions: 0
+    }
+  };
+  return parseStringResponse(result, parsers, stdOut);
+}
+var parsers;
+var init_parse_commit = __esm({
+  "src/lib/parsers/parse-commit.ts"() {
+    init_utils();
+    parsers = [
+      new LineParser(/^\[([^\s]+)( \([^)]+\))? ([^\]]+)/, (result, [branch, root, commit]) => {
+        result.branch = branch;
+        result.commit = commit;
+        result.root = !!root;
+      }),
+      new LineParser(/\s*Author:\s(.+)/i, (result, [author]) => {
+        const parts = author.split("<");
+        const email3 = parts.pop();
+        if (!email3 || !email3.includes("@")) {
+          return;
+        }
+        result.author = {
+          email: email3.substr(0, email3.length - 1),
+          name: parts.join("<").trim()
+        };
+      }),
+      new LineParser(/(\d+)[^,]*(?:,\s*(\d+)[^,]*)(?:,\s*(\d+))/g, (result, [changes, insertions, deletions]) => {
+        result.summary.changes = parseInt(changes, 10) || 0;
+        result.summary.insertions = parseInt(insertions, 10) || 0;
+        result.summary.deletions = parseInt(deletions, 10) || 0;
+      }),
+      new LineParser(/^(\d+)[^,]*(?:,\s*(\d+)[^(]+\(([+-]))?/, (result, [changes, lines, direction]) => {
+        result.summary.changes = parseInt(changes, 10) || 0;
+        const count = parseInt(lines, 10) || 0;
+        if (direction === "-") {
+          result.summary.deletions = count;
+        } else if (direction === "+") {
+          result.summary.insertions = count;
+        }
+      })
+    ];
+  }
+});
+function commitTask(message, files, customArgs) {
+  const commands = [
+    "-c",
+    "core.abbrev=40",
+    "commit",
+    ...prefixedArray(message, "-m"),
+    ...files,
+    ...customArgs
+  ];
+  return {
+    commands,
+    format: "utf-8",
+    parser: parseCommitResult
+  };
+}
+function commit_default() {
+  return {
+    commit(message, ...rest) {
+      const next = trailingFunctionArgument(arguments);
+      const task = rejectDeprecatedSignatures(message) || commitTask(asArray2(message), asArray2(filterType(rest[0], filterStringOrStringArray, [])), [
+        ...asStringArray(filterType(rest[1], filterArray, [])),
+        ...getTrailingOptions(arguments, 0, true)
+      ]);
+      return this._runTask(task, next);
+    }
+  };
+  function rejectDeprecatedSignatures(message) {
+    return !filterStringOrStringArray(message) && configurationErrorTask(`git.commit: requires the commit message to be supplied as a string/string[]`);
+  }
+}
+var init_commit = __esm({
+  "src/lib/tasks/commit.ts"() {
+    init_parse_commit();
+    init_utils();
+    init_task();
+  }
+});
+function first_commit_default() {
+  return {
+    firstCommit() {
+      return this._runTask(straightThroughStringTask(["rev-list", "--max-parents=0", "HEAD"], true), trailingFunctionArgument(arguments));
+    }
+  };
+}
+var init_first_commit = __esm({
+  "src/lib/tasks/first-commit.ts"() {
+    init_utils();
+    init_task();
+  }
+});
+function hashObjectTask(filePath, write) {
+  const commands = ["hash-object", filePath];
+  if (write) {
+    commands.push("-w");
+  }
+  return straightThroughStringTask(commands, true);
+}
+var init_hash_object = __esm({
+  "src/lib/tasks/hash-object.ts"() {
+    init_task();
+  }
+});
+function parseInit(bare, path, text2) {
+  const response = String(text2).trim();
+  let result;
+  if (result = initResponseRegex.exec(response)) {
+    return new InitSummary(bare, path, false, result[1]);
+  }
+  if (result = reInitResponseRegex.exec(response)) {
+    return new InitSummary(bare, path, true, result[1]);
+  }
+  let gitDir = "";
+  const tokens = response.split(" ");
+  while (tokens.length) {
+    const token = tokens.shift();
+    if (token === "in") {
+      gitDir = tokens.join(" ");
+      break;
+    }
+  }
+  return new InitSummary(bare, path, /^re/i.test(response), gitDir);
+}
+var InitSummary;
+var initResponseRegex;
+var reInitResponseRegex;
+var init_InitSummary = __esm({
+  "src/lib/responses/InitSummary.ts"() {
+    InitSummary = class {
+      constructor(bare, path, existing, gitDir) {
+        this.bare = bare;
+        this.path = path;
+        this.existing = existing;
+        this.gitDir = gitDir;
+      }
+    };
+    initResponseRegex = /^Init.+ repository in (.+)$/;
+    reInitResponseRegex = /^Rein.+ in (.+)$/;
+  }
+});
+function hasBareCommand(command) {
+  return command.includes(bareCommand);
+}
+function initTask(bare = false, path, customArgs) {
+  const commands = ["init", ...customArgs];
+  if (bare && !hasBareCommand(commands)) {
+    commands.splice(1, 0, bareCommand);
+  }
+  return {
+    commands,
+    format: "utf-8",
+    parser(text2) {
+      return parseInit(commands.includes("--bare"), path, text2);
+    }
+  };
+}
+var bareCommand;
+var init_init = __esm({
+  "src/lib/tasks/init.ts"() {
+    init_InitSummary();
+    bareCommand = "--bare";
+  }
+});
+function logFormatFromCommand(customArgs) {
+  for (let i2 = 0;i2 < customArgs.length; i2++) {
+    const format = logFormatRegex.exec(customArgs[i2]);
+    if (format) {
+      return `--${format[1]}`;
+    }
+  }
+  return "";
+}
+function isLogFormat(customArg) {
+  return logFormatRegex.test(customArg);
+}
+var logFormatRegex;
+var init_log_format = __esm({
+  "src/lib/args/log-format.ts"() {
+    logFormatRegex = /^--(stat|numstat|name-only|name-status)(=|$)/;
+  }
+});
+var DiffSummary;
+var init_DiffSummary = __esm({
+  "src/lib/responses/DiffSummary.ts"() {
+    DiffSummary = class {
+      constructor() {
+        this.changed = 0;
+        this.deletions = 0;
+        this.insertions = 0;
+        this.files = [];
+      }
+    };
+  }
+});
+function getDiffParser(format = "") {
+  const parser4 = diffSummaryParsers[format];
+  return (stdOut) => parseStringResponse(new DiffSummary, parser4, stdOut, false);
+}
+var statParser;
+var numStatParser;
+var nameOnlyParser;
+var nameStatusParser;
+var diffSummaryParsers;
+var init_parse_diff_summary = __esm({
+  "src/lib/parsers/parse-diff-summary.ts"() {
+    init_log_format();
+    init_DiffSummary();
+    init_diff_name_status();
+    init_utils();
+    statParser = [
+      new LineParser(/^(.+)\s+\|\s+(\d+)(\s+[+\-]+)?$/, (result, [file2, changes, alterations = ""]) => {
+        result.files.push({
+          file: file2.trim(),
+          changes: asNumber(changes),
+          insertions: alterations.replace(/[^+]/g, "").length,
+          deletions: alterations.replace(/[^-]/g, "").length,
+          binary: false
+        });
+      }),
+      new LineParser(/^(.+) \|\s+Bin ([0-9.]+) -> ([0-9.]+) ([a-z]+)/, (result, [file2, before, after]) => {
+        result.files.push({
+          file: file2.trim(),
+          before: asNumber(before),
+          after: asNumber(after),
+          binary: true
+        });
+      }),
+      new LineParser(/(\d+) files? changed\s*((?:, \d+ [^,]+){0,2})/, (result, [changed, summary2]) => {
+        const inserted = /(\d+) i/.exec(summary2);
+        const deleted = /(\d+) d/.exec(summary2);
+        result.changed = asNumber(changed);
+        result.insertions = asNumber(inserted?.[1]);
+        result.deletions = asNumber(deleted?.[1]);
+      })
+    ];
+    numStatParser = [
+      new LineParser(/(\d+)\t(\d+)\t(.+)$/, (result, [changesInsert, changesDelete, file2]) => {
+        const insertions = asNumber(changesInsert);
+        const deletions = asNumber(changesDelete);
+        result.changed++;
+        result.insertions += insertions;
+        result.deletions += deletions;
+        result.files.push({
+          file: file2,
+          changes: insertions + deletions,
+          insertions,
+          deletions,
+          binary: false
+        });
+      }),
+      new LineParser(/-\t-\t(.+)$/, (result, [file2]) => {
+        result.changed++;
+        result.files.push({
+          file: file2,
+          after: 0,
+          before: 0,
+          binary: true
+        });
+      })
+    ];
+    nameOnlyParser = [
+      new LineParser(/(.+)$/, (result, [file2]) => {
+        result.changed++;
+        result.files.push({
+          file: file2,
+          changes: 0,
+          insertions: 0,
+          deletions: 0,
+          binary: false
+        });
+      })
+    ];
+    nameStatusParser = [
+      new LineParser(/([ACDMRTUXB])([0-9]{0,3})\t(.[^\t]*)(\t(.[^\t]*))?$/, (result, [status, similarity, from, _to, to]) => {
+        result.changed++;
+        result.files.push({
+          file: to ?? from,
+          changes: 0,
+          insertions: 0,
+          deletions: 0,
+          binary: false,
+          status: orVoid(isDiffNameStatus(status) && status),
+          from: orVoid(!!to && from !== to && from),
+          similarity: asNumber(similarity)
+        });
+      })
+    ];
+    diffSummaryParsers = {
+      [""]: statParser,
+      ["--stat"]: statParser,
+      ["--numstat"]: numStatParser,
+      ["--name-status"]: nameStatusParser,
+      ["--name-only"]: nameOnlyParser
+    };
+  }
+});
+function lineBuilder(tokens, fields) {
+  return fields.reduce((line, field, index) => {
+    line[field] = tokens[index] || "";
+    return line;
+  }, /* @__PURE__ */ Object.create({ diff: null }));
+}
+function createListLogSummaryParser(splitter = SPLITTER, fields = defaultFieldNames, logFormat = "") {
+  const parseDiffResult = getDiffParser(logFormat);
+  return function(stdOut) {
+    const all = toLinesWithContent(stdOut.trim(), false, START_BOUNDARY).map(function(item) {
+      const lineDetail = item.split(COMMIT_BOUNDARY);
+      const listLogLine = lineBuilder(lineDetail[0].split(splitter), fields);
+      if (lineDetail.length > 1 && !!lineDetail[1].trim()) {
+        listLogLine.diff = parseDiffResult(lineDetail[1]);
+      }
+      return listLogLine;
+    });
+    return {
+      all,
+      latest: all.length && all[0] || null,
+      total: all.length
+    };
+  };
+}
+var START_BOUNDARY;
+var COMMIT_BOUNDARY;
+var SPLITTER;
+var defaultFieldNames;
+var init_parse_list_log_summary = __esm({
+  "src/lib/parsers/parse-list-log-summary.ts"() {
+    init_utils();
+    init_parse_diff_summary();
+    init_log_format();
+    START_BOUNDARY = "òòòòòò ";
+    COMMIT_BOUNDARY = " òò";
+    SPLITTER = " ò ";
+    defaultFieldNames = ["hash", "date", "message", "refs", "author_name", "author_email"];
+  }
+});
+var diff_exports = {};
+__export3(diff_exports, {
+  diffSummaryTask: () => diffSummaryTask,
+  validateLogFormatConfig: () => validateLogFormatConfig
+});
+function diffSummaryTask(customArgs) {
+  let logFormat = logFormatFromCommand(customArgs);
+  const commands = ["diff"];
+  if (logFormat === "") {
+    logFormat = "--stat";
+    commands.push("--stat=4096");
+  }
+  commands.push(...customArgs);
+  return validateLogFormatConfig(commands) || {
+    commands,
+    format: "utf-8",
+    parser: getDiffParser(logFormat)
+  };
+}
+function validateLogFormatConfig(customArgs) {
+  const flags = customArgs.filter(isLogFormat);
+  if (flags.length > 1) {
+    return configurationErrorTask(`Summary flags are mutually exclusive - pick one of ${flags.join(",")}`);
+  }
+  if (flags.length && customArgs.includes("-z")) {
+    return configurationErrorTask(`Summary flag ${flags} parsing is not compatible with null termination option '-z'`);
+  }
+}
+var init_diff = __esm({
+  "src/lib/tasks/diff.ts"() {
+    init_log_format();
+    init_parse_diff_summary();
+    init_task();
+  }
+});
+function prettyFormat(format, splitter) {
+  const fields = [];
+  const formatStr = [];
+  Object.keys(format).forEach((field) => {
+    fields.push(field);
+    formatStr.push(String(format[field]));
+  });
+  return [fields, formatStr.join(splitter)];
+}
+function userOptions(input) {
+  return Object.keys(input).reduce((out, key) => {
+    if (!(key in excludeOptions)) {
+      out[key] = input[key];
+    }
+    return out;
+  }, {});
+}
+function parseLogOptions(opt = {}, customArgs = []) {
+  const splitter = filterType(opt.splitter, filterString, SPLITTER);
+  const format = filterPlainObject(opt.format) ? opt.format : {
+    hash: "%H",
+    date: opt.strictDate === false ? "%ai" : "%aI",
+    message: "%s",
+    refs: "%D",
+    body: opt.multiLine ? "%B" : "%b",
+    author_name: opt.mailMap !== false ? "%aN" : "%an",
+    author_email: opt.mailMap !== false ? "%aE" : "%ae"
+  };
+  const [fields, formatStr] = prettyFormat(format, splitter);
+  const suffix = [];
+  const command = [
+    `--pretty=format:${START_BOUNDARY}${formatStr}${COMMIT_BOUNDARY}`,
+    ...customArgs
+  ];
+  const maxCount = opt.n || opt["max-count"] || opt.maxCount;
+  if (maxCount) {
+    command.push(`--max-count=${maxCount}`);
+  }
+  if (opt.from || opt.to) {
+    const rangeOperator = opt.symmetric !== false ? "..." : "..";
+    suffix.push(`${opt.from || ""}${rangeOperator}${opt.to || ""}`);
+  }
+  if (filterString(opt.file)) {
+    command.push("--follow", c(opt.file));
+  }
+  appendTaskOptions(userOptions(opt), command);
+  return {
+    fields,
+    splitter,
+    commands: [...command, ...suffix]
+  };
+}
+function logTask(splitter, fields, customArgs) {
+  const parser4 = createListLogSummaryParser(splitter, fields, logFormatFromCommand(customArgs));
+  return {
+    commands: ["log", ...customArgs],
+    format: "utf-8",
+    parser: parser4
+  };
+}
+function log_default() {
+  return {
+    log(...rest) {
+      const next = trailingFunctionArgument(arguments);
+      const options = parseLogOptions(trailingOptionsArgument(arguments), asStringArray(filterType(arguments[0], filterArray, [])));
+      const task = rejectDeprecatedSignatures(...rest) || validateLogFormatConfig(options.commands) || createLogTask(options);
+      return this._runTask(task, next);
+    }
+  };
+  function createLogTask(options) {
+    return logTask(options.splitter, options.fields, options.commands);
+  }
+  function rejectDeprecatedSignatures(from, to) {
+    return filterString(from) && filterString(to) && configurationErrorTask(`git.log(string, string) should be replaced with git.log({ from: string, to: string })`);
+  }
+}
+var excludeOptions;
+var init_log = __esm({
+  "src/lib/tasks/log.ts"() {
+    init_log_format();
+    init_parse_list_log_summary();
+    init_utils();
+    init_task();
+    init_diff();
+    excludeOptions = /* @__PURE__ */ ((excludeOptions2) => {
+      excludeOptions2[excludeOptions2["--pretty"] = 0] = "--pretty";
+      excludeOptions2[excludeOptions2["max-count"] = 1] = "max-count";
+      excludeOptions2[excludeOptions2["maxCount"] = 2] = "maxCount";
+      excludeOptions2[excludeOptions2["n"] = 3] = "n";
+      excludeOptions2[excludeOptions2["file"] = 4] = "file";
+      excludeOptions2[excludeOptions2["format"] = 5] = "format";
+      excludeOptions2[excludeOptions2["from"] = 6] = "from";
+      excludeOptions2[excludeOptions2["to"] = 7] = "to";
+      excludeOptions2[excludeOptions2["splitter"] = 8] = "splitter";
+      excludeOptions2[excludeOptions2["symmetric"] = 9] = "symmetric";
+      excludeOptions2[excludeOptions2["mailMap"] = 10] = "mailMap";
+      excludeOptions2[excludeOptions2["multiLine"] = 11] = "multiLine";
+      excludeOptions2[excludeOptions2["strictDate"] = 12] = "strictDate";
+      return excludeOptions2;
+    })(excludeOptions || {});
+  }
+});
+var MergeSummaryConflict;
+var MergeSummaryDetail;
+var init_MergeSummary = __esm({
+  "src/lib/responses/MergeSummary.ts"() {
+    MergeSummaryConflict = class {
+      constructor(reason, file2 = null, meta3) {
+        this.reason = reason;
+        this.file = file2;
+        this.meta = meta3;
+      }
+      toString() {
+        return `${this.file}:${this.reason}`;
+      }
+    };
+    MergeSummaryDetail = class {
+      constructor() {
+        this.conflicts = [];
+        this.merges = [];
+        this.result = "success";
+      }
+      get failed() {
+        return this.conflicts.length > 0;
+      }
+      get reason() {
+        return this.result;
+      }
+      toString() {
+        if (this.conflicts.length) {
+          return `CONFLICTS: ${this.conflicts.join(", ")}`;
+        }
+        return "OK";
+      }
+    };
+  }
+});
+var PullSummary;
+var PullFailedSummary;
+var init_PullSummary = __esm({
+  "src/lib/responses/PullSummary.ts"() {
+    PullSummary = class {
+      constructor() {
+        this.remoteMessages = {
+          all: []
+        };
+        this.created = [];
+        this.deleted = [];
+        this.files = [];
+        this.deletions = {};
+        this.insertions = {};
+        this.summary = {
+          changes: 0,
+          deletions: 0,
+          insertions: 0
+        };
+      }
+    };
+    PullFailedSummary = class {
+      constructor() {
+        this.remote = "";
+        this.hash = {
+          local: "",
+          remote: ""
+        };
+        this.branch = {
+          local: "",
+          remote: ""
+        };
+        this.message = "";
+      }
+      toString() {
+        return this.message;
+      }
+    };
+  }
+});
+function objectEnumerationResult(remoteMessages) {
+  return remoteMessages.objects = remoteMessages.objects || {
+    compressing: 0,
+    counting: 0,
+    enumerating: 0,
+    packReused: 0,
+    reused: { count: 0, delta: 0 },
+    total: { count: 0, delta: 0 }
+  };
+}
+function asObjectCount(source) {
+  const count = /^\s*(\d+)/.exec(source);
+  const delta = /delta (\d+)/i.exec(source);
+  return {
+    count: asNumber(count && count[1] || "0"),
+    delta: asNumber(delta && delta[1] || "0")
+  };
+}
+var remoteMessagesObjectParsers;
+var init_parse_remote_objects = __esm({
+  "src/lib/parsers/parse-remote-objects.ts"() {
+    init_utils();
+    remoteMessagesObjectParsers = [
+      new RemoteLineParser(/^remote:\s*(enumerating|counting|compressing) objects: (\d+),/i, (result, [action, count]) => {
+        const key = action.toLowerCase();
+        const enumeration = objectEnumerationResult(result.remoteMessages);
+        Object.assign(enumeration, { [key]: asNumber(count) });
+      }),
+      new RemoteLineParser(/^remote:\s*(enumerating|counting|compressing) objects: \d+% \(\d+\/(\d+)\),/i, (result, [action, count]) => {
+        const key = action.toLowerCase();
+        const enumeration = objectEnumerationResult(result.remoteMessages);
+        Object.assign(enumeration, { [key]: asNumber(count) });
+      }),
+      new RemoteLineParser(/total ([^,]+), reused ([^,]+), pack-reused (\d+)/i, (result, [total, reused, packReused]) => {
+        const objects = objectEnumerationResult(result.remoteMessages);
+        objects.total = asObjectCount(total);
+        objects.reused = asObjectCount(reused);
+        objects.packReused = asNumber(packReused);
+      })
+    ];
+  }
+});
+function parseRemoteMessages(_stdOut, stdErr) {
+  return parseStringResponse({ remoteMessages: new RemoteMessageSummary }, parsers2, stdErr);
+}
+var parsers2;
+var RemoteMessageSummary;
+var init_parse_remote_messages = __esm({
+  "src/lib/parsers/parse-remote-messages.ts"() {
+    init_utils();
+    init_parse_remote_objects();
+    parsers2 = [
+      new RemoteLineParser(/^remote:\s*(.+)$/, (result, [text2]) => {
+        result.remoteMessages.all.push(text2.trim());
+        return false;
+      }),
+      ...remoteMessagesObjectParsers,
+      new RemoteLineParser([/create a (?:pull|merge) request/i, /\s(https?:\/\/\S+)$/], (result, [pullRequestUrl]) => {
+        result.remoteMessages.pullRequestUrl = pullRequestUrl;
+      }),
+      new RemoteLineParser([/found (\d+) vulnerabilities.+\(([^)]+)\)/i, /\s(https?:\/\/\S+)$/], (result, [count, summary2, url2]) => {
+        result.remoteMessages.vulnerabilities = {
+          count: asNumber(count),
+          summary: summary2,
+          url: url2
+        };
+      })
+    ];
+    RemoteMessageSummary = class {
+      constructor() {
+        this.all = [];
+      }
+    };
+  }
+});
+function parsePullErrorResult(stdOut, stdErr) {
+  const pullError = parseStringResponse(new PullFailedSummary, errorParsers, [stdOut, stdErr]);
+  return pullError.message && pullError;
+}
+var FILE_UPDATE_REGEX;
+var SUMMARY_REGEX;
+var ACTION_REGEX;
+var parsers3;
+var errorParsers;
+var parsePullDetail;
+var parsePullResult;
+var init_parse_pull = __esm({
+  "src/lib/parsers/parse-pull.ts"() {
+    init_PullSummary();
+    init_utils();
+    init_parse_remote_messages();
+    FILE_UPDATE_REGEX = /^\s*(.+?)\s+\|\s+\d+\s*(\+*)(-*)/;
+    SUMMARY_REGEX = /(\d+)\D+((\d+)\D+\(\+\))?(\D+(\d+)\D+\(-\))?/;
+    ACTION_REGEX = /^(create|delete) mode \d+ (.+)/;
+    parsers3 = [
+      new LineParser(FILE_UPDATE_REGEX, (result, [file2, insertions, deletions]) => {
+        result.files.push(file2);
+        if (insertions) {
+          result.insertions[file2] = insertions.length;
+        }
+        if (deletions) {
+          result.deletions[file2] = deletions.length;
+        }
+      }),
+      new LineParser(SUMMARY_REGEX, (result, [changes, , insertions, , deletions]) => {
+        if (insertions !== undefined || deletions !== undefined) {
+          result.summary.changes = +changes || 0;
+          result.summary.insertions = +insertions || 0;
+          result.summary.deletions = +deletions || 0;
+          return true;
+        }
+        return false;
+      }),
+      new LineParser(ACTION_REGEX, (result, [action, file2]) => {
+        append(result.files, file2);
+        append(action === "create" ? result.created : result.deleted, file2);
+      })
+    ];
+    errorParsers = [
+      new LineParser(/^from\s(.+)$/i, (result, [remote]) => void (result.remote = remote)),
+      new LineParser(/^fatal:\s(.+)$/, (result, [message]) => void (result.message = message)),
+      new LineParser(/([a-z0-9]+)\.\.([a-z0-9]+)\s+(\S+)\s+->\s+(\S+)$/, (result, [hashLocal, hashRemote, branchLocal, branchRemote]) => {
+        result.branch.local = branchLocal;
+        result.hash.local = hashLocal;
+        result.branch.remote = branchRemote;
+        result.hash.remote = hashRemote;
+      })
+    ];
+    parsePullDetail = (stdOut, stdErr) => {
+      return parseStringResponse(new PullSummary, parsers3, [stdOut, stdErr]);
+    };
+    parsePullResult = (stdOut, stdErr) => {
+      return Object.assign(new PullSummary, parsePullDetail(stdOut, stdErr), parseRemoteMessages(stdOut, stdErr));
+    };
+  }
+});
+var parsers4;
+var parseMergeResult;
+var parseMergeDetail;
+var init_parse_merge = __esm({
+  "src/lib/parsers/parse-merge.ts"() {
+    init_MergeSummary();
+    init_utils();
+    init_parse_pull();
+    parsers4 = [
+      new LineParser(/^Auto-merging\s+(.+)$/, (summary2, [autoMerge]) => {
+        summary2.merges.push(autoMerge);
+      }),
+      new LineParser(/^CONFLICT\s+\((.+)\): Merge conflict in (.+)$/, (summary2, [reason, file2]) => {
+        summary2.conflicts.push(new MergeSummaryConflict(reason, file2));
+      }),
+      new LineParser(/^CONFLICT\s+\((.+\/delete)\): (.+) deleted in (.+) and/, (summary2, [reason, file2, deleteRef]) => {
+        summary2.conflicts.push(new MergeSummaryConflict(reason, file2, { deleteRef }));
+      }),
+      new LineParser(/^CONFLICT\s+\((.+)\):/, (summary2, [reason]) => {
+        summary2.conflicts.push(new MergeSummaryConflict(reason, null));
+      }),
+      new LineParser(/^Automatic merge failed;\s+(.+)$/, (summary2, [result]) => {
+        summary2.result = result;
+      })
+    ];
+    parseMergeResult = (stdOut, stdErr) => {
+      return Object.assign(parseMergeDetail(stdOut, stdErr), parsePullResult(stdOut, stdErr));
+    };
+    parseMergeDetail = (stdOut) => {
+      return parseStringResponse(new MergeSummaryDetail, parsers4, stdOut);
+    };
+  }
+});
+function mergeTask(customArgs) {
+  if (!customArgs.length) {
+    return configurationErrorTask("Git.merge requires at least one option");
+  }
+  return {
+    commands: ["merge", ...customArgs],
+    format: "utf-8",
+    parser(stdOut, stdErr) {
+      const merge2 = parseMergeResult(stdOut, stdErr);
+      if (merge2.failed) {
+        throw new GitResponseError(merge2);
+      }
+      return merge2;
+    }
+  };
+}
+var init_merge = __esm({
+  "src/lib/tasks/merge.ts"() {
+    init_git_response_error();
+    init_parse_merge();
+    init_task();
+  }
+});
+function pushResultPushedItem(local, remote, status) {
+  const deleted = status.includes("deleted");
+  const tag = status.includes("tag") || /^refs\/tags/.test(local);
+  const alreadyUpdated = !status.includes("new");
+  return {
+    deleted,
+    tag,
+    branch: !tag,
+    new: !alreadyUpdated,
+    alreadyUpdated,
+    local,
+    remote
+  };
+}
+var parsers5;
+var parsePushResult;
+var parsePushDetail;
+var init_parse_push = __esm({
+  "src/lib/parsers/parse-push.ts"() {
+    init_utils();
+    init_parse_remote_messages();
+    parsers5 = [
+      new LineParser(/^Pushing to (.+)$/, (result, [repo]) => {
+        result.repo = repo;
+      }),
+      new LineParser(/^updating local tracking ref '(.+)'/, (result, [local]) => {
+        result.ref = {
+          ...result.ref || {},
+          local
+        };
+      }),
+      new LineParser(/^[=*-]\s+([^:]+):(\S+)\s+\[(.+)]$/, (result, [local, remote, type]) => {
+        result.pushed.push(pushResultPushedItem(local, remote, type));
+      }),
+      new LineParser(/^Branch '([^']+)' set up to track remote branch '([^']+)' from '([^']+)'/, (result, [local, remote, remoteName]) => {
+        result.branch = {
+          ...result.branch || {},
+          local,
+          remote,
+          remoteName
+        };
+      }),
+      new LineParser(/^([^:]+):(\S+)\s+([a-z0-9]+)\.\.([a-z0-9]+)$/, (result, [local, remote, from, to]) => {
+        result.update = {
+          head: {
+            local,
+            remote
+          },
+          hash: {
+            from,
+            to
+          }
+        };
+      })
+    ];
+    parsePushResult = (stdOut, stdErr) => {
+      const pushDetail = parsePushDetail(stdOut, stdErr);
+      const responseDetail = parseRemoteMessages(stdOut, stdErr);
+      return {
+        ...pushDetail,
+        ...responseDetail
+      };
+    };
+    parsePushDetail = (stdOut, stdErr) => {
+      return parseStringResponse({ pushed: [] }, parsers5, [stdOut, stdErr]);
+    };
+  }
+});
+var push_exports = {};
+__export3(push_exports, {
+  pushTagsTask: () => pushTagsTask,
+  pushTask: () => pushTask
+});
+function pushTagsTask(ref = {}, customArgs) {
+  append(customArgs, "--tags");
+  return pushTask(ref, customArgs);
+}
+function pushTask(ref = {}, customArgs) {
+  const commands = ["push", ...customArgs];
+  if (ref.branch) {
+    commands.splice(1, 0, ref.branch);
+  }
+  if (ref.remote) {
+    commands.splice(1, 0, ref.remote);
+  }
+  remove(commands, "-v");
+  append(commands, "--verbose");
+  append(commands, "--porcelain");
+  return {
+    commands,
+    format: "utf-8",
+    parser: parsePushResult
+  };
+}
+var init_push = __esm({
+  "src/lib/tasks/push.ts"() {
+    init_parse_push();
+    init_utils();
+  }
+});
+function show_default() {
+  return {
+    showBuffer() {
+      const commands = ["show", ...getTrailingOptions(arguments, 1)];
+      if (!commands.includes("--binary")) {
+        commands.splice(1, 0, "--binary");
+      }
+      return this._runTask(straightThroughBufferTask(commands), trailingFunctionArgument(arguments));
+    },
+    show() {
+      const commands = ["show", ...getTrailingOptions(arguments, 1)];
+      return this._runTask(straightThroughStringTask(commands), trailingFunctionArgument(arguments));
+    }
+  };
+}
+var init_show = __esm({
+  "src/lib/tasks/show.ts"() {
+    init_utils();
+    init_task();
+  }
+});
+var fromPathRegex;
+var FileStatusSummary;
+var init_FileStatusSummary = __esm({
+  "src/lib/responses/FileStatusSummary.ts"() {
+    fromPathRegex = /^(.+)\0(.+)$/;
+    FileStatusSummary = class {
+      constructor(path, index, working_dir) {
+        this.path = path;
+        this.index = index;
+        this.working_dir = working_dir;
+        if (index === "R" || working_dir === "R") {
+          const detail = fromPathRegex.exec(path) || [null, path, path];
+          this.from = detail[2] || "";
+          this.path = detail[1] || "";
+        }
+      }
+    };
+  }
+});
+function renamedFile(line) {
+  const [to, from] = line.split(NULL);
+  return {
+    from: from || to,
+    to
+  };
+}
+function parser3(indexX, indexY, handler) {
+  return [`${indexX}${indexY}`, handler];
+}
+function conflicts(indexX, ...indexY) {
+  return indexY.map((y2) => parser3(indexX, y2, (result, file2) => result.conflicted.push(file2)));
+}
+function splitLine(result, lineStr) {
+  const trimmed2 = lineStr.trim();
+  switch (" ") {
+    case trimmed2.charAt(2):
+      return data(trimmed2.charAt(0), trimmed2.charAt(1), trimmed2.slice(3));
+    case trimmed2.charAt(1):
+      return data(" ", trimmed2.charAt(0), trimmed2.slice(2));
+    default:
+      return;
+  }
+  function data(index, workingDir, path) {
+    const raw = `${index}${workingDir}`;
+    const handler = parsers6.get(raw);
+    if (handler) {
+      handler(result, path);
+    }
+    if (raw !== "##" && raw !== "!!") {
+      result.files.push(new FileStatusSummary(path, index, workingDir));
+    }
+  }
+}
+var StatusSummary;
+var parsers6;
+var parseStatusSummary;
+var init_StatusSummary = __esm({
+  "src/lib/responses/StatusSummary.ts"() {
+    init_utils();
+    init_FileStatusSummary();
+    StatusSummary = class {
+      constructor() {
+        this.not_added = [];
+        this.conflicted = [];
+        this.created = [];
+        this.deleted = [];
+        this.ignored = undefined;
+        this.modified = [];
+        this.renamed = [];
+        this.files = [];
+        this.staged = [];
+        this.ahead = 0;
+        this.behind = 0;
+        this.current = null;
+        this.tracking = null;
+        this.detached = false;
+        this.isClean = () => {
+          return !this.files.length;
+        };
+      }
+    };
+    parsers6 = new Map([
+      parser3(" ", "A", (result, file2) => result.created.push(file2)),
+      parser3(" ", "D", (result, file2) => result.deleted.push(file2)),
+      parser3(" ", "M", (result, file2) => result.modified.push(file2)),
+      parser3("A", " ", (result, file2) => {
+        result.created.push(file2);
+        result.staged.push(file2);
+      }),
+      parser3("A", "M", (result, file2) => {
+        result.created.push(file2);
+        result.staged.push(file2);
+        result.modified.push(file2);
+      }),
+      parser3("D", " ", (result, file2) => {
+        result.deleted.push(file2);
+        result.staged.push(file2);
+      }),
+      parser3("M", " ", (result, file2) => {
+        result.modified.push(file2);
+        result.staged.push(file2);
+      }),
+      parser3("M", "M", (result, file2) => {
+        result.modified.push(file2);
+        result.staged.push(file2);
+      }),
+      parser3("R", " ", (result, file2) => {
+        result.renamed.push(renamedFile(file2));
+      }),
+      parser3("R", "M", (result, file2) => {
+        const renamed = renamedFile(file2);
+        result.renamed.push(renamed);
+        result.modified.push(renamed.to);
+      }),
+      parser3("!", "!", (_result, _file2) => {
+        (_result.ignored = _result.ignored || []).push(_file2);
+      }),
+      parser3("?", "?", (result, file2) => result.not_added.push(file2)),
+      ...conflicts("A", "A", "U"),
+      ...conflicts("D", "D", "U"),
+      ...conflicts("U", "A", "D", "U"),
+      [
+        "##",
+        (result, line) => {
+          const aheadReg = /ahead (\d+)/;
+          const behindReg = /behind (\d+)/;
+          const currentReg = /^(.+?(?=(?:\.{3}|\s|$)))/;
+          const trackingReg = /\.{3}(\S*)/;
+          const onEmptyBranchReg = /\son\s(\S+?)(?=\.{3}|$)/;
+          let regexResult = aheadReg.exec(line);
+          result.ahead = regexResult && +regexResult[1] || 0;
+          regexResult = behindReg.exec(line);
+          result.behind = regexResult && +regexResult[1] || 0;
+          regexResult = currentReg.exec(line);
+          result.current = filterType(regexResult?.[1], filterString, null);
+          regexResult = trackingReg.exec(line);
+          result.tracking = filterType(regexResult?.[1], filterString, null);
+          regexResult = onEmptyBranchReg.exec(line);
+          if (regexResult) {
+            result.current = filterType(regexResult?.[1], filterString, result.current);
+          }
+          result.detached = /\(no branch\)/.test(line);
+        }
+      ]
+    ]);
+    parseStatusSummary = function(text2) {
+      const lines = text2.split(NULL);
+      const status = new StatusSummary;
+      for (let i2 = 0, l = lines.length;i2 < l; ) {
+        let line = lines[i2++].trim();
+        if (!line) {
+          continue;
+        }
+        if (line.charAt(0) === "R") {
+          line += NULL + (lines[i2++] || "");
+        }
+        splitLine(status, line);
+      }
+      return status;
+    };
+  }
+});
+function statusTask(customArgs) {
+  const commands = [
+    "status",
+    "--porcelain",
+    "-b",
+    "-u",
+    "--null",
+    ...customArgs.filter((arg) => !ignoredOptions.includes(arg))
+  ];
+  return {
+    format: "utf-8",
+    commands,
+    parser(text2) {
+      return parseStatusSummary(text2);
+    }
+  };
+}
+var ignoredOptions;
+var init_status = __esm({
+  "src/lib/tasks/status.ts"() {
+    init_StatusSummary();
+    ignoredOptions = ["--null", "-z"];
+  }
+});
+function versionResponse(major = 0, minor = 0, patch = 0, agent = "", installed = true) {
+  return Object.defineProperty({
+    major,
+    minor,
+    patch,
+    agent,
+    installed
+  }, "toString", {
+    value() {
+      return `${this.major}.${this.minor}.${this.patch}`;
+    },
+    configurable: false,
+    enumerable: false
+  });
+}
+function notInstalledResponse() {
+  return versionResponse(0, 0, 0, "", false);
+}
+function version_default() {
+  return {
+    version() {
+      return this._runTask({
+        commands: ["--version"],
+        format: "utf-8",
+        parser: versionParser,
+        onError(result, error49, done, fail) {
+          if (result.exitCode === -2) {
+            return done(Buffer.from(NOT_INSTALLED));
+          }
+          fail(error49);
+        }
+      });
+    }
+  };
+}
+function versionParser(stdOut) {
+  if (stdOut === NOT_INSTALLED) {
+    return notInstalledResponse();
+  }
+  return parseStringResponse(versionResponse(0, 0, 0, stdOut), parsers7, stdOut);
+}
+var NOT_INSTALLED;
+var parsers7;
+var init_version = __esm({
+  "src/lib/tasks/version.ts"() {
+    init_utils();
+    NOT_INSTALLED = "installed=false";
+    parsers7 = [
+      new LineParser(/version (\d+)\.(\d+)\.(\d+)(?:\s*\((.+)\))?/, (result, [major, minor, patch, agent = ""]) => {
+        Object.assign(result, versionResponse(asNumber(major), asNumber(minor), asNumber(patch), agent));
+      }),
+      new LineParser(/version (\d+)\.(\d+)\.(\D+)(.+)?$/, (result, [major, minor, patch, agent = ""]) => {
+        Object.assign(result, versionResponse(asNumber(major), asNumber(minor), patch, agent));
+      })
+    ];
+  }
+});
+function createCloneTask(api3, task, repoPath, ...args) {
+  if (!filterString(repoPath)) {
+    return configurationErrorTask(`git.${api3}() requires a string 'repoPath'`);
+  }
+  return task(repoPath, filterType(args[0], filterString), getTrailingOptions(arguments));
+}
+function clone_default() {
+  return {
+    clone(repo, ...rest) {
+      return this._runTask(createCloneTask("clone", cloneTask, filterType(repo, filterString), ...rest), trailingFunctionArgument(arguments));
+    },
+    mirror(repo, ...rest) {
+      return this._runTask(createCloneTask("mirror", cloneMirrorTask, filterType(repo, filterString), ...rest), trailingFunctionArgument(arguments));
+    }
+  };
+}
+var cloneTask;
+var cloneMirrorTask;
+var init_clone = __esm({
+  "src/lib/tasks/clone.ts"() {
+    init_task();
+    init_utils();
+    cloneTask = (repo, directory, customArgs) => {
+      const commands = ["clone", ...customArgs];
+      filterString(repo) && commands.push(c(repo));
+      filterString(directory) && commands.push(c(directory));
+      return straightThroughStringTask(commands);
+    };
+    cloneMirrorTask = (repo, directory, customArgs) => {
+      append(customArgs, "--mirror");
+      return cloneTask(repo, directory, customArgs);
+    };
+  }
+});
+var simple_git_api_exports = {};
+__export3(simple_git_api_exports, {
+  SimpleGitApi: () => SimpleGitApi
+});
+var SimpleGitApi;
+var init_simple_git_api = __esm({
+  "src/lib/simple-git-api.ts"() {
+    init_task_callback();
+    init_change_working_directory();
+    init_checkout();
+    init_count_objects();
+    init_commit();
+    init_config();
+    init_first_commit();
+    init_grep();
+    init_hash_object();
+    init_init();
+    init_log();
+    init_merge();
+    init_push();
+    init_show();
+    init_status();
+    init_task();
+    init_version();
+    init_utils();
+    init_clone();
+    SimpleGitApi = class {
+      constructor(_executor) {
+        this._executor = _executor;
+      }
+      _runTask(task, then) {
+        const chain = this._executor.chain();
+        const promise2 = chain.push(task);
+        if (then) {
+          taskCallback(task, promise2, then);
+        }
+        return Object.create(this, {
+          then: { value: promise2.then.bind(promise2) },
+          catch: { value: promise2.catch.bind(promise2) },
+          _executor: { value: chain }
+        });
+      }
+      add(files) {
+        return this._runTask(straightThroughStringTask(["add", ...asArray2(files)]), trailingFunctionArgument(arguments));
+      }
+      cwd(directory) {
+        const next = trailingFunctionArgument(arguments);
+        if (typeof directory === "string") {
+          return this._runTask(changeWorkingDirectoryTask(directory, this._executor), next);
+        }
+        if (typeof directory?.path === "string") {
+          return this._runTask(changeWorkingDirectoryTask(directory.path, directory.root && this._executor || undefined), next);
+        }
+        return this._runTask(configurationErrorTask("Git.cwd: workingDirectory must be supplied as a string"), next);
+      }
+      hashObject(path, write) {
+        return this._runTask(hashObjectTask(path, write === true), trailingFunctionArgument(arguments));
+      }
+      init(bare) {
+        return this._runTask(initTask(bare === true, this._executor.cwd, getTrailingOptions(arguments)), trailingFunctionArgument(arguments));
+      }
+      merge() {
+        return this._runTask(mergeTask(getTrailingOptions(arguments)), trailingFunctionArgument(arguments));
+      }
+      mergeFromTo(remote, branch) {
+        if (!(filterString(remote) && filterString(branch))) {
+          return this._runTask(configurationErrorTask(`Git.mergeFromTo requires that the 'remote' and 'branch' arguments are supplied as strings`));
+        }
+        return this._runTask(mergeTask([remote, branch, ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments, false));
+      }
+      outputHandler(handler) {
+        this._executor.outputHandler = handler;
+        return this;
+      }
+      push() {
+        const task = pushTask({
+          remote: filterType(arguments[0], filterString),
+          branch: filterType(arguments[1], filterString)
+        }, getTrailingOptions(arguments));
+        return this._runTask(task, trailingFunctionArgument(arguments));
+      }
+      stash() {
+        return this._runTask(straightThroughStringTask(["stash", ...getTrailingOptions(arguments)]), trailingFunctionArgument(arguments));
+      }
+      status() {
+        return this._runTask(statusTask(getTrailingOptions(arguments)), trailingFunctionArgument(arguments));
+      }
+    };
+    Object.assign(SimpleGitApi.prototype, checkout_default(), clone_default(), commit_default(), config_default(), count_objects_default(), first_commit_default(), grep_default(), log_default(), show_default(), version_default());
+  }
+});
+var scheduler_exports = {};
+__export3(scheduler_exports, {
+  Scheduler: () => Scheduler
+});
+var createScheduledTask;
+var Scheduler;
+var init_scheduler = __esm({
+  "src/lib/runners/scheduler.ts"() {
+    init_utils();
+    init_git_logger();
+    createScheduledTask = /* @__PURE__ */ (() => {
+      let id = 0;
+      return () => {
+        id++;
+        const { promise: promise2, done } = import_promise_deferred.createDeferred();
+        return {
+          promise: promise2,
+          done,
+          id
+        };
+      };
+    })();
+    Scheduler = class {
+      constructor(concurrency = 2) {
+        this.concurrency = concurrency;
+        this.logger = createLogger("", "scheduler");
+        this.pending = [];
+        this.running = [];
+        this.logger(`Constructed, concurrency=%s`, concurrency);
+      }
+      schedule() {
+        if (!this.pending.length || this.running.length >= this.concurrency) {
+          this.logger(`Schedule attempt ignored, pending=%s running=%s concurrency=%s`, this.pending.length, this.running.length, this.concurrency);
+          return;
+        }
+        const task = append(this.running, this.pending.shift());
+        this.logger(`Attempting id=%s`, task.id);
+        task.done(() => {
+          this.logger(`Completing id=`, task.id);
+          remove(this.running, task);
+          this.schedule();
+        });
+      }
+      next() {
+        const { promise: promise2, id } = append(this.pending, createScheduledTask());
+        this.logger(`Scheduling id=%s`, id);
+        this.schedule();
+        return promise2;
+      }
+    };
+  }
+});
+var apply_patch_exports = {};
+__export3(apply_patch_exports, {
+  applyPatchTask: () => applyPatchTask
+});
+function applyPatchTask(patches, customArgs) {
+  return straightThroughStringTask(["apply", ...customArgs, ...patches]);
+}
+var init_apply_patch = __esm({
+  "src/lib/tasks/apply-patch.ts"() {
+    init_task();
+  }
+});
+function branchDeletionSuccess(branch, hash2) {
+  return {
+    branch,
+    hash: hash2,
+    success: true
+  };
+}
+function branchDeletionFailure(branch) {
+  return {
+    branch,
+    hash: null,
+    success: false
+  };
+}
+var BranchDeletionBatch;
+var init_BranchDeleteSummary = __esm({
+  "src/lib/responses/BranchDeleteSummary.ts"() {
+    BranchDeletionBatch = class {
+      constructor() {
+        this.all = [];
+        this.branches = {};
+        this.errors = [];
+      }
+      get success() {
+        return !this.errors.length;
+      }
+    };
+  }
+});
+function hasBranchDeletionError(data, processExitCode) {
+  return processExitCode === 1 && deleteErrorRegex.test(data);
+}
+var deleteSuccessRegex;
+var deleteErrorRegex;
+var parsers8;
+var parseBranchDeletions;
+var init_parse_branch_delete = __esm({
+  "src/lib/parsers/parse-branch-delete.ts"() {
+    init_BranchDeleteSummary();
+    init_utils();
+    deleteSuccessRegex = /(\S+)\s+\(\S+\s([^)]+)\)/;
+    deleteErrorRegex = /^error[^']+'([^']+)'/m;
+    parsers8 = [
+      new LineParser(deleteSuccessRegex, (result, [branch, hash2]) => {
+        const deletion = branchDeletionSuccess(branch, hash2);
+        result.all.push(deletion);
+        result.branches[branch] = deletion;
+      }),
+      new LineParser(deleteErrorRegex, (result, [branch]) => {
+        const deletion = branchDeletionFailure(branch);
+        result.errors.push(deletion);
+        result.all.push(deletion);
+        result.branches[branch] = deletion;
+      })
+    ];
+    parseBranchDeletions = (stdOut, stdErr) => {
+      return parseStringResponse(new BranchDeletionBatch, parsers8, [stdOut, stdErr]);
+    };
+  }
+});
+var BranchSummaryResult;
+var init_BranchSummary = __esm({
+  "src/lib/responses/BranchSummary.ts"() {
+    BranchSummaryResult = class {
+      constructor() {
+        this.all = [];
+        this.branches = {};
+        this.current = "";
+        this.detached = false;
+      }
+      push(status, detached, name21, commit, label) {
+        if (status === "*") {
+          this.detached = detached;
+          this.current = name21;
+        }
+        this.all.push(name21);
+        this.branches[name21] = {
+          current: status === "*",
+          linkedWorkTree: status === "+",
+          name: name21,
+          commit,
+          label
+        };
+      }
+    };
+  }
+});
+function branchStatus(input) {
+  return input ? input.charAt(0) : "";
+}
+function parseBranchSummary(stdOut, currentOnly = false) {
+  return parseStringResponse(new BranchSummaryResult, currentOnly ? [currentBranchParser] : parsers9, stdOut);
+}
+var parsers9;
+var currentBranchParser;
+var init_parse_branch = __esm({
+  "src/lib/parsers/parse-branch.ts"() {
+    init_BranchSummary();
+    init_utils();
+    parsers9 = [
+      new LineParser(/^([*+]\s)?\((?:HEAD )?detached (?:from|at) (\S+)\)\s+([a-z0-9]+)\s(.*)$/, (result, [current, name21, commit, label]) => {
+        result.push(branchStatus(current), true, name21, commit, label);
+      }),
+      new LineParser(/^([*+]\s)?(\S+)\s+([a-z0-9]+)\s?(.*)$/s, (result, [current, name21, commit, label]) => {
+        result.push(branchStatus(current), false, name21, commit, label);
+      })
+    ];
+    currentBranchParser = new LineParser(/^(\S+)$/s, (result, [name21]) => {
+      result.push("*", false, name21, "", "");
+    });
+  }
+});
+var branch_exports = {};
+__export3(branch_exports, {
+  branchLocalTask: () => branchLocalTask,
+  branchTask: () => branchTask,
+  containsDeleteBranchCommand: () => containsDeleteBranchCommand,
+  deleteBranchTask: () => deleteBranchTask,
+  deleteBranchesTask: () => deleteBranchesTask
+});
+function containsDeleteBranchCommand(commands) {
+  const deleteCommands = ["-d", "-D", "--delete"];
+  return commands.some((command) => deleteCommands.includes(command));
+}
+function branchTask(customArgs) {
+  const isDelete = containsDeleteBranchCommand(customArgs);
+  const isCurrentOnly = customArgs.includes("--show-current");
+  const commands = ["branch", ...customArgs];
+  if (commands.length === 1) {
+    commands.push("-a");
+  }
+  if (!commands.includes("-v")) {
+    commands.splice(1, 0, "-v");
+  }
+  return {
+    format: "utf-8",
+    commands,
+    parser(stdOut, stdErr) {
+      if (isDelete) {
+        return parseBranchDeletions(stdOut, stdErr).all[0];
+      }
+      return parseBranchSummary(stdOut, isCurrentOnly);
+    }
+  };
+}
+function branchLocalTask() {
+  return {
+    format: "utf-8",
+    commands: ["branch", "-v"],
+    parser(stdOut) {
+      return parseBranchSummary(stdOut);
+    }
+  };
+}
+function deleteBranchesTask(branches, forceDelete = false) {
+  return {
+    format: "utf-8",
+    commands: ["branch", "-v", forceDelete ? "-D" : "-d", ...branches],
+    parser(stdOut, stdErr) {
+      return parseBranchDeletions(stdOut, stdErr);
+    },
+    onError({ exitCode, stdOut }, error49, done, fail) {
+      if (!hasBranchDeletionError(String(error49), exitCode)) {
+        return fail(error49);
+      }
+      done(stdOut);
+    }
+  };
+}
+function deleteBranchTask(branch, forceDelete = false) {
+  const task = {
+    format: "utf-8",
+    commands: ["branch", "-v", forceDelete ? "-D" : "-d", branch],
+    parser(stdOut, stdErr) {
+      return parseBranchDeletions(stdOut, stdErr).branches[branch];
+    },
+    onError({ exitCode, stdErr, stdOut }, error49, _2, fail) {
+      if (!hasBranchDeletionError(String(error49), exitCode)) {
+        return fail(error49);
+      }
+      throw new GitResponseError(task.parser(bufferToString(stdOut), bufferToString(stdErr)), String(error49));
+    }
+  };
+  return task;
+}
+var init_branch = __esm({
+  "src/lib/tasks/branch.ts"() {
+    init_git_response_error();
+    init_parse_branch_delete();
+    init_parse_branch();
+    init_utils();
+  }
+});
+function toPath(input) {
+  const path = input.trim().replace(/^["']|["']$/g, "");
+  return path && normalize(path);
+}
+var parseCheckIgnore;
+var init_CheckIgnore = __esm({
+  "src/lib/responses/CheckIgnore.ts"() {
+    parseCheckIgnore = (text2) => {
+      return text2.split(/\n/g).map(toPath).filter(Boolean);
+    };
+  }
+});
+var check_ignore_exports = {};
+__export3(check_ignore_exports, {
+  checkIgnoreTask: () => checkIgnoreTask
+});
+function checkIgnoreTask(paths) {
+  return {
+    commands: ["check-ignore", ...paths],
+    format: "utf-8",
+    parser: parseCheckIgnore
+  };
+}
+var init_check_ignore = __esm({
+  "src/lib/tasks/check-ignore.ts"() {
+    init_CheckIgnore();
+  }
+});
+function parseFetchResult(stdOut, stdErr) {
+  const result = {
+    raw: stdOut,
+    remote: null,
+    branches: [],
+    tags: [],
+    updated: [],
+    deleted: []
+  };
+  return parseStringResponse(result, parsers10, [stdOut, stdErr]);
+}
+var parsers10;
+var init_parse_fetch = __esm({
+  "src/lib/parsers/parse-fetch.ts"() {
+    init_utils();
+    parsers10 = [
+      new LineParser(/From (.+)$/, (result, [remote]) => {
+        result.remote = remote;
+      }),
+      new LineParser(/\* \[new branch]\s+(\S+)\s*-> (.+)$/, (result, [name21, tracking]) => {
+        result.branches.push({
+          name: name21,
+          tracking
+        });
+      }),
+      new LineParser(/\* \[new tag]\s+(\S+)\s*-> (.+)$/, (result, [name21, tracking]) => {
+        result.tags.push({
+          name: name21,
+          tracking
+        });
+      }),
+      new LineParser(/- \[deleted]\s+\S+\s*-> (.+)$/, (result, [tracking]) => {
+        result.deleted.push({
+          tracking
+        });
+      }),
+      new LineParser(/\s*([^.]+)\.\.(\S+)\s+(\S+)\s*-> (.+)$/, (result, [from, to, name21, tracking]) => {
+        result.updated.push({
+          name: name21,
+          tracking,
+          to,
+          from
+        });
+      })
+    ];
+  }
+});
+var fetch_exports = {};
+__export3(fetch_exports, {
+  fetchTask: () => fetchTask
+});
+function disallowedCommand(command) {
+  return /^--upload-pack(=|$)/.test(command);
+}
+function fetchTask(remote, branch, customArgs) {
+  const commands = ["fetch", ...customArgs];
+  if (remote && branch) {
+    commands.push(remote, branch);
+  }
+  const banned = commands.find(disallowedCommand);
+  if (banned) {
+    return configurationErrorTask(`git.fetch: potential exploit argument blocked.`);
+  }
+  return {
+    commands,
+    format: "utf-8",
+    parser: parseFetchResult
+  };
+}
+var init_fetch = __esm({
+  "src/lib/tasks/fetch.ts"() {
+    init_parse_fetch();
+    init_task();
+  }
+});
+function parseMoveResult(stdOut) {
+  return parseStringResponse({ moves: [] }, parsers11, stdOut);
+}
+var parsers11;
+var init_parse_move = __esm({
+  "src/lib/parsers/parse-move.ts"() {
+    init_utils();
+    parsers11 = [
+      new LineParser(/^Renaming (.+) to (.+)$/, (result, [from, to]) => {
+        result.moves.push({ from, to });
+      })
+    ];
+  }
+});
+var move_exports = {};
+__export3(move_exports, {
+  moveTask: () => moveTask
+});
+function moveTask(from, to) {
+  return {
+    commands: ["mv", "-v", ...asArray2(from), to],
+    format: "utf-8",
+    parser: parseMoveResult
+  };
+}
+var init_move = __esm({
+  "src/lib/tasks/move.ts"() {
+    init_parse_move();
+    init_utils();
+  }
+});
+var pull_exports = {};
+__export3(pull_exports, {
+  pullTask: () => pullTask
+});
+function pullTask(remote, branch, customArgs) {
+  const commands = ["pull", ...customArgs];
+  if (remote && branch) {
+    commands.splice(1, 0, remote, branch);
+  }
+  return {
+    commands,
+    format: "utf-8",
+    parser(stdOut, stdErr) {
+      return parsePullResult(stdOut, stdErr);
+    },
+    onError(result, _error, _done, fail) {
+      const pullError = parsePullErrorResult(bufferToString(result.stdOut), bufferToString(result.stdErr));
+      if (pullError) {
+        return fail(new GitResponseError(pullError));
+      }
+      fail(_error);
+    }
+  };
+}
+var init_pull = __esm({
+  "src/lib/tasks/pull.ts"() {
+    init_git_response_error();
+    init_parse_pull();
+    init_utils();
+  }
+});
+function parseGetRemotes(text2) {
+  const remotes = {};
+  forEach(text2, ([name21]) => remotes[name21] = { name: name21 });
+  return Object.values(remotes);
+}
+function parseGetRemotesVerbose(text2) {
+  const remotes = {};
+  forEach(text2, ([name21, url2, purpose]) => {
+    if (!Object.hasOwn(remotes, name21)) {
+      remotes[name21] = {
+        name: name21,
+        refs: { fetch: "", push: "" }
+      };
+    }
+    if (purpose && url2) {
+      remotes[name21].refs[purpose.replace(/[^a-z]/g, "")] = url2;
+    }
+  });
+  return Object.values(remotes);
+}
+function forEach(text2, handler) {
+  forEachLineWithContent(text2, (line) => handler(line.split(/\s+/)));
+}
+var init_GetRemoteSummary = __esm({
+  "src/lib/responses/GetRemoteSummary.ts"() {
+    init_utils();
+  }
+});
+var remote_exports = {};
+__export3(remote_exports, {
+  addRemoteTask: () => addRemoteTask,
+  getRemotesTask: () => getRemotesTask,
+  listRemotesTask: () => listRemotesTask,
+  remoteTask: () => remoteTask,
+  removeRemoteTask: () => removeRemoteTask
+});
+function addRemoteTask(remoteName, remoteRepo, customArgs) {
+  return straightThroughStringTask(["remote", "add", ...customArgs, remoteName, remoteRepo]);
+}
+function getRemotesTask(verbose) {
+  const commands = ["remote"];
+  if (verbose) {
+    commands.push("-v");
+  }
+  return {
+    commands,
+    format: "utf-8",
+    parser: verbose ? parseGetRemotesVerbose : parseGetRemotes
+  };
+}
+function listRemotesTask(customArgs) {
+  const commands = [...customArgs];
+  if (commands[0] !== "ls-remote") {
+    commands.unshift("ls-remote");
+  }
+  return straightThroughStringTask(commands);
+}
+function remoteTask(customArgs) {
+  const commands = [...customArgs];
+  if (commands[0] !== "remote") {
+    commands.unshift("remote");
+  }
+  return straightThroughStringTask(commands);
+}
+function removeRemoteTask(remoteName) {
+  return straightThroughStringTask(["remote", "remove", remoteName]);
+}
+var init_remote = __esm({
+  "src/lib/tasks/remote.ts"() {
+    init_GetRemoteSummary();
+    init_task();
+  }
+});
+var stash_list_exports = {};
+__export3(stash_list_exports, {
+  stashListTask: () => stashListTask
+});
+function stashListTask(opt = {}, customArgs) {
+  const options = parseLogOptions(opt);
+  const commands = ["stash", "list", ...options.commands, ...customArgs];
+  const parser4 = createListLogSummaryParser(options.splitter, options.fields, logFormatFromCommand(commands));
+  return validateLogFormatConfig(commands) || {
+    commands,
+    format: "utf-8",
+    parser: parser4
+  };
+}
+var init_stash_list = __esm({
+  "src/lib/tasks/stash-list.ts"() {
+    init_log_format();
+    init_parse_list_log_summary();
+    init_diff();
+    init_log();
+  }
+});
+var sub_module_exports = {};
+__export3(sub_module_exports, {
+  addSubModuleTask: () => addSubModuleTask,
+  initSubModuleTask: () => initSubModuleTask,
+  subModuleTask: () => subModuleTask,
+  updateSubModuleTask: () => updateSubModuleTask
+});
+function addSubModuleTask(repo, path) {
+  return subModuleTask(["add", repo, path]);
+}
+function initSubModuleTask(customArgs) {
+  return subModuleTask(["init", ...customArgs]);
+}
+function subModuleTask(customArgs) {
+  const commands = [...customArgs];
+  if (commands[0] !== "submodule") {
+    commands.unshift("submodule");
+  }
+  return straightThroughStringTask(commands);
+}
+function updateSubModuleTask(customArgs) {
+  return subModuleTask(["update", ...customArgs]);
+}
+var init_sub_module = __esm({
+  "src/lib/tasks/sub-module.ts"() {
+    init_task();
+  }
+});
+function singleSorted(a, b2) {
+  const aIsNum = Number.isNaN(a);
+  const bIsNum = Number.isNaN(b2);
+  if (aIsNum !== bIsNum) {
+    return aIsNum ? 1 : -1;
+  }
+  return aIsNum ? sorted(a, b2) : 0;
+}
+function sorted(a, b2) {
+  return a === b2 ? 0 : a > b2 ? 1 : -1;
+}
+function trimmed(input) {
+  return input.trim();
+}
+function toNumber(input) {
+  if (typeof input === "string") {
+    return parseInt(input.replace(/^\D+/g, ""), 10) || 0;
+  }
+  return 0;
+}
+var TagList;
+var parseTagList;
+var init_TagList = __esm({
+  "src/lib/responses/TagList.ts"() {
+    TagList = class {
+      constructor(all, latest) {
+        this.all = all;
+        this.latest = latest;
+      }
+    };
+    parseTagList = function(data, customSort = false) {
+      const tags = data.split(`
+`).map(trimmed).filter(Boolean);
+      if (!customSort) {
+        tags.sort(function(tagA, tagB) {
+          const partsA = tagA.split(".");
+          const partsB = tagB.split(".");
+          if (partsA.length === 1 || partsB.length === 1) {
+            return singleSorted(toNumber(partsA[0]), toNumber(partsB[0]));
+          }
+          for (let i2 = 0, l = Math.max(partsA.length, partsB.length);i2 < l; i2++) {
+            const diff = sorted(toNumber(partsA[i2]), toNumber(partsB[i2]));
+            if (diff) {
+              return diff;
+            }
+          }
+          return 0;
+        });
+      }
+      const latest = customSort ? tags[0] : [...tags].reverse().find((tag) => tag.indexOf(".") >= 0);
+      return new TagList(tags, latest);
+    };
+  }
+});
+var tag_exports = {};
+__export3(tag_exports, {
+  addAnnotatedTagTask: () => addAnnotatedTagTask,
+  addTagTask: () => addTagTask,
+  tagListTask: () => tagListTask
+});
+function tagListTask(customArgs = []) {
+  const hasCustomSort = customArgs.some((option) => /^--sort=/.test(option));
+  return {
+    format: "utf-8",
+    commands: ["tag", "-l", ...customArgs],
+    parser(text2) {
+      return parseTagList(text2, hasCustomSort);
+    }
+  };
+}
+function addTagTask(name21) {
+  return {
+    format: "utf-8",
+    commands: ["tag", name21],
+    parser() {
+      return { name: name21 };
+    }
+  };
+}
+function addAnnotatedTagTask(name21, tagMessage) {
+  return {
+    format: "utf-8",
+    commands: ["tag", "-a", "-m", tagMessage, name21],
+    parser() {
+      return { name: name21 };
+    }
+  };
+}
+var init_tag = __esm({
+  "src/lib/tasks/tag.ts"() {
+    init_TagList();
+  }
+});
+var require_git = __commonJS2({
+  "src/git.js"(exports, module) {
+    var { GitExecutor: GitExecutor2 } = (init_git_executor(), __toCommonJS(git_executor_exports));
+    var { SimpleGitApi: SimpleGitApi2 } = (init_simple_git_api(), __toCommonJS(simple_git_api_exports));
+    var { Scheduler: Scheduler2 } = (init_scheduler(), __toCommonJS(scheduler_exports));
+    var { adhocExecTask: adhocExecTask2, configurationErrorTask: configurationErrorTask2 } = (init_task(), __toCommonJS(task_exports));
+    var {
+      asArray: asArray22,
+      filterArray: filterArray2,
+      filterPrimitives: filterPrimitives2,
+      filterString: filterString2,
+      filterStringOrStringArray: filterStringOrStringArray2,
+      filterType: filterType2,
+      getTrailingOptions: getTrailingOptions2,
+      trailingFunctionArgument: trailingFunctionArgument2,
+      trailingOptionsArgument: trailingOptionsArgument2
+    } = (init_utils(), __toCommonJS(utils_exports));
+    var { applyPatchTask: applyPatchTask2 } = (init_apply_patch(), __toCommonJS(apply_patch_exports));
+    var {
+      branchTask: branchTask2,
+      branchLocalTask: branchLocalTask2,
+      deleteBranchesTask: deleteBranchesTask2,
+      deleteBranchTask: deleteBranchTask2
+    } = (init_branch(), __toCommonJS(branch_exports));
+    var { checkIgnoreTask: checkIgnoreTask2 } = (init_check_ignore(), __toCommonJS(check_ignore_exports));
+    var { checkIsRepoTask: checkIsRepoTask2 } = (init_check_is_repo(), __toCommonJS(check_is_repo_exports));
+    var { cleanWithOptionsTask: cleanWithOptionsTask2, isCleanOptionsArray: isCleanOptionsArray2 } = (init_clean(), __toCommonJS(clean_exports));
+    var { diffSummaryTask: diffSummaryTask2 } = (init_diff(), __toCommonJS(diff_exports));
+    var { fetchTask: fetchTask2 } = (init_fetch(), __toCommonJS(fetch_exports));
+    var { moveTask: moveTask2 } = (init_move(), __toCommonJS(move_exports));
+    var { pullTask: pullTask2 } = (init_pull(), __toCommonJS(pull_exports));
+    var { pushTagsTask: pushTagsTask2 } = (init_push(), __toCommonJS(push_exports));
+    var {
+      addRemoteTask: addRemoteTask2,
+      getRemotesTask: getRemotesTask2,
+      listRemotesTask: listRemotesTask2,
+      remoteTask: remoteTask2,
+      removeRemoteTask: removeRemoteTask2
+    } = (init_remote(), __toCommonJS(remote_exports));
+    var { getResetMode: getResetMode2, resetTask: resetTask2 } = (init_reset(), __toCommonJS(reset_exports));
+    var { stashListTask: stashListTask2 } = (init_stash_list(), __toCommonJS(stash_list_exports));
+    var {
+      addSubModuleTask: addSubModuleTask2,
+      initSubModuleTask: initSubModuleTask2,
+      subModuleTask: subModuleTask2,
+      updateSubModuleTask: updateSubModuleTask2
+    } = (init_sub_module(), __toCommonJS(sub_module_exports));
+    var { addAnnotatedTagTask: addAnnotatedTagTask2, addTagTask: addTagTask2, tagListTask: tagListTask2 } = (init_tag(), __toCommonJS(tag_exports));
+    var { straightThroughBufferTask: straightThroughBufferTask2, straightThroughStringTask: straightThroughStringTask2 } = (init_task(), __toCommonJS(task_exports));
+    function Git2(options, plugins) {
+      this._plugins = plugins;
+      this._executor = new GitExecutor2(options.baseDir, new Scheduler2(options.maxConcurrentProcesses), plugins);
+      this._trimmed = options.trimmed;
+    }
+    (Git2.prototype = Object.create(SimpleGitApi2.prototype)).constructor = Git2;
+    Git2.prototype.customBinary = function(command) {
+      this._plugins.reconfigure("binary", command);
+      return this;
+    };
+    Git2.prototype.env = function(name21, value) {
+      if (arguments.length === 1 && typeof name21 === "object") {
+        this._executor.env = name21;
+      } else {
+        (this._executor.env = this._executor.env || {})[name21] = value;
+      }
+      return this;
+    };
+    Git2.prototype.stashList = function(options) {
+      return this._runTask(stashListTask2(trailingOptionsArgument2(arguments) || {}, filterArray2(options) && options || []), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.mv = function(from, to) {
+      return this._runTask(moveTask2(from, to), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.checkoutLatestTag = function(then) {
+      var git = this;
+      return this.pull(function() {
+        git.tags(function(err, tags) {
+          git.checkout(tags.latest, then);
+        });
+      });
+    };
+    Git2.prototype.pull = function(remote, branch, options, then) {
+      return this._runTask(pullTask2(filterType2(remote, filterString2), filterType2(branch, filterString2), getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.fetch = function(remote, branch) {
+      return this._runTask(fetchTask2(filterType2(remote, filterString2), filterType2(branch, filterString2), getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.silent = function(silence) {
+      return this._runTask(adhocExecTask2(() => console.warn("simple-git deprecation notice: git.silent: logging should be configured using the `debug` library / `DEBUG` environment variable, this method will be removed.")));
+    };
+    Git2.prototype.tags = function(options, then) {
+      return this._runTask(tagListTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.rebase = function() {
+      return this._runTask(straightThroughStringTask2(["rebase", ...getTrailingOptions2(arguments)]), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.reset = function(mode) {
+      return this._runTask(resetTask2(getResetMode2(mode), getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.revert = function(commit) {
+      const next = trailingFunctionArgument2(arguments);
+      if (typeof commit !== "string") {
+        return this._runTask(configurationErrorTask2("Commit must be a string"), next);
+      }
+      return this._runTask(straightThroughStringTask2(["revert", ...getTrailingOptions2(arguments, 0, true), commit]), next);
+    };
+    Git2.prototype.addTag = function(name21) {
+      const task = typeof name21 === "string" ? addTagTask2(name21) : configurationErrorTask2("Git.addTag requires a tag name");
+      return this._runTask(task, trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.addAnnotatedTag = function(tagName, tagMessage) {
+      return this._runTask(addAnnotatedTagTask2(tagName, tagMessage), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.deleteLocalBranch = function(branchName, forceDelete, then) {
+      return this._runTask(deleteBranchTask2(branchName, typeof forceDelete === "boolean" ? forceDelete : false), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.deleteLocalBranches = function(branchNames, forceDelete, then) {
+      return this._runTask(deleteBranchesTask2(branchNames, typeof forceDelete === "boolean" ? forceDelete : false), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.branch = function(options, then) {
+      return this._runTask(branchTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.branchLocal = function(then) {
+      return this._runTask(branchLocalTask2(), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.raw = function(commands) {
+      const createRestCommands = !Array.isArray(commands);
+      const command = [].slice.call(createRestCommands ? arguments : commands, 0);
+      for (let i2 = 0;i2 < command.length && createRestCommands; i2++) {
+        if (!filterPrimitives2(command[i2])) {
+          command.splice(i2, command.length - i2);
+          break;
+        }
+      }
+      command.push(...getTrailingOptions2(arguments, 0, true));
+      var next = trailingFunctionArgument2(arguments);
+      if (!command.length) {
+        return this._runTask(configurationErrorTask2("Raw: must supply one or more command to execute"), next);
+      }
+      return this._runTask(straightThroughStringTask2(command, this._trimmed), next);
+    };
+    Git2.prototype.submoduleAdd = function(repo, path, then) {
+      return this._runTask(addSubModuleTask2(repo, path), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.submoduleUpdate = function(args, then) {
+      return this._runTask(updateSubModuleTask2(getTrailingOptions2(arguments, true)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.submoduleInit = function(args, then) {
+      return this._runTask(initSubModuleTask2(getTrailingOptions2(arguments, true)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.subModule = function(options, then) {
+      return this._runTask(subModuleTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.listRemote = function() {
+      return this._runTask(listRemotesTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.addRemote = function(remoteName, remoteRepo, then) {
+      return this._runTask(addRemoteTask2(remoteName, remoteRepo, getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.removeRemote = function(remoteName, then) {
+      return this._runTask(removeRemoteTask2(remoteName), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.getRemotes = function(verbose, then) {
+      return this._runTask(getRemotesTask2(verbose === true), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.remote = function(options, then) {
+      return this._runTask(remoteTask2(getTrailingOptions2(arguments)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.tag = function(options, then) {
+      const command = getTrailingOptions2(arguments);
+      if (command[0] !== "tag") {
+        command.unshift("tag");
+      }
+      return this._runTask(straightThroughStringTask2(command), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.updateServerInfo = function(then) {
+      return this._runTask(straightThroughStringTask2(["update-server-info"]), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.pushTags = function(remote, then) {
+      const task = pushTagsTask2({ remote: filterType2(remote, filterString2) }, getTrailingOptions2(arguments));
+      return this._runTask(task, trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.rm = function(files) {
+      return this._runTask(straightThroughStringTask2(["rm", "-f", ...asArray22(files)]), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.rmKeepLocal = function(files) {
+      return this._runTask(straightThroughStringTask2(["rm", "--cached", ...asArray22(files)]), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.catFile = function(options, then) {
+      return this._catFile("utf-8", arguments);
+    };
+    Git2.prototype.binaryCatFile = function() {
+      return this._catFile("buffer", arguments);
+    };
+    Git2.prototype._catFile = function(format, args) {
+      var handler = trailingFunctionArgument2(args);
+      var command = ["cat-file"];
+      var options = args[0];
+      if (typeof options === "string") {
+        return this._runTask(configurationErrorTask2("Git.catFile: options must be supplied as an array of strings"), handler);
+      }
+      if (Array.isArray(options)) {
+        command.push.apply(command, options);
+      }
+      const task = format === "buffer" ? straightThroughBufferTask2(command) : straightThroughStringTask2(command);
+      return this._runTask(task, handler);
+    };
+    Git2.prototype.diff = function(options, then) {
+      const task = filterString2(options) ? configurationErrorTask2("git.diff: supplying options as a single string is no longer supported, switch to an array of strings") : straightThroughStringTask2(["diff", ...getTrailingOptions2(arguments)]);
+      return this._runTask(task, trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.diffSummary = function() {
+      return this._runTask(diffSummaryTask2(getTrailingOptions2(arguments, 1)), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.applyPatch = function(patches) {
+      const task = !filterStringOrStringArray2(patches) ? configurationErrorTask2(`git.applyPatch requires one or more string patches as the first argument`) : applyPatchTask2(asArray22(patches), getTrailingOptions2([].slice.call(arguments, 1)));
+      return this._runTask(task, trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.revparse = function() {
+      const commands = ["rev-parse", ...getTrailingOptions2(arguments, true)];
+      return this._runTask(straightThroughStringTask2(commands, true), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.clean = function(mode, options, then) {
+      const usingCleanOptionsArray = isCleanOptionsArray2(mode);
+      const cleanMode = usingCleanOptionsArray && mode.join("") || filterType2(mode, filterString2) || "";
+      const customArgs = getTrailingOptions2([].slice.call(arguments, usingCleanOptionsArray ? 1 : 0));
+      return this._runTask(cleanWithOptionsTask2(cleanMode, customArgs), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.exec = function(then) {
+      const task = {
+        commands: [],
+        format: "utf-8",
+        parser() {
+          if (typeof then === "function") {
+            then();
+          }
+        }
+      };
+      return this._runTask(task);
+    };
+    Git2.prototype.clearQueue = function() {
+      return this._runTask(adhocExecTask2(() => console.warn("simple-git deprecation notice: clearQueue() is deprecated and will be removed, switch to using the abortPlugin instead.")));
+    };
+    Git2.prototype.checkIgnore = function(pathnames, then) {
+      return this._runTask(checkIgnoreTask2(asArray22(filterType2(pathnames, filterStringOrStringArray2, []))), trailingFunctionArgument2(arguments));
+    };
+    Git2.prototype.checkIsRepo = function(checkType, then) {
+      return this._runTask(checkIsRepoTask2(filterType2(checkType, filterString2)), trailingFunctionArgument2(arguments));
+    };
+    module.exports = Git2;
+  }
+});
+init_git_error();
+var GitConstructError = class extends GitError {
+  constructor(config2, message) {
+    super(undefined, message);
+    this.config = config2;
+  }
+};
+init_git_error();
+init_git_error();
+var GitPluginError = class extends GitError {
+  constructor(task, plugin, message) {
+    super(task, message);
+    this.task = task;
+    this.plugin = plugin;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+};
+init_git_response_error();
+init_task_configuration_error();
+init_check_is_repo();
+init_clean();
+init_config();
+init_diff_name_status();
+init_grep();
+init_reset();
+function abortPlugin(signal) {
+  if (!signal) {
+    return;
+  }
+  const onSpawnAfter = {
+    type: "spawn.after",
+    action(_data, context2) {
+      function kill() {
+        context2.kill(new GitPluginError(undefined, "abort", "Abort signal received"));
+      }
+      signal.addEventListener("abort", kill);
+      context2.spawned.on("close", () => signal.removeEventListener("abort", kill));
+    }
+  };
+  const onSpawnBefore = {
+    type: "spawn.before",
+    action(_data, context2) {
+      if (signal.aborted) {
+        context2.kill(new GitPluginError(undefined, "abort", "Abort already signaled"));
+      }
+    }
+  };
+  return [onSpawnBefore, onSpawnAfter];
+}
+function blockUnsafeOperationsPlugin(options = {}) {
+  return {
+    type: "spawn.args",
+    action(args, { env }) {
+      for (const vulnerability of ne(args, env)) {
+        if (options[vulnerability.category] !== true) {
+          throw new GitPluginError(undefined, "unsafe", vulnerability.message);
+        }
+      }
+      return args;
+    }
+  };
+}
+init_utils();
+function commandConfigPrefixingPlugin(configuration) {
+  const prefix = prefixedArray(configuration, "-c");
+  return {
+    type: "spawn.args",
+    action(data) {
+      return [...prefix, ...data];
+    }
+  };
+}
+init_utils();
+var never2 = import_promise_deferred2.deferred().promise;
+function completionDetectionPlugin({
+  onClose = true,
+  onExit = 50
+} = {}) {
+  function createEvents() {
+    let exitCode = -1;
+    const events2 = {
+      close: import_promise_deferred2.deferred(),
+      closeTimeout: import_promise_deferred2.deferred(),
+      exit: import_promise_deferred2.deferred(),
+      exitTimeout: import_promise_deferred2.deferred()
+    };
+    const result = Promise.race([
+      onClose === false ? never2 : events2.closeTimeout.promise,
+      onExit === false ? never2 : events2.exitTimeout.promise
+    ]);
+    configureTimeout(onClose, events2.close, events2.closeTimeout);
+    configureTimeout(onExit, events2.exit, events2.exitTimeout);
+    return {
+      close(code) {
+        exitCode = code;
+        events2.close.done();
+      },
+      exit(code) {
+        exitCode = code;
+        events2.exit.done();
+      },
+      get exitCode() {
+        return exitCode;
+      },
+      result
+    };
+  }
+  function configureTimeout(flag, event, timeout) {
+    if (flag === false) {
+      return;
+    }
+    (flag === true ? event.promise : event.promise.then(() => delay2(flag))).then(timeout.done);
+  }
+  return {
+    type: "spawn.after",
+    async action(_data, { spawned, close }) {
+      const events2 = createEvents();
+      let deferClose = true;
+      let quickClose = () => void (deferClose = false);
+      spawned.stdout?.on("data", quickClose);
+      spawned.stderr?.on("data", quickClose);
+      spawned.on("error", quickClose);
+      spawned.on("close", (code) => events2.close(code));
+      spawned.on("exit", (code) => events2.exit(code));
+      try {
+        await events2.result;
+        if (deferClose) {
+          await delay2(50);
+        }
+        close(events2.exitCode);
+      } catch (err) {
+        close(events2.exitCode, err);
+      }
+    }
+  };
+}
+init_utils();
+var WRONG_NUMBER_ERR = `Invalid value supplied for custom binary, requires a single string or an array containing either one or two strings`;
+var WRONG_CHARS_ERR = `Invalid value supplied for custom binary, restricted characters must be removed or supply the unsafe.allowUnsafeCustomBinary option`;
+function isBadArgument(arg) {
+  return !arg || !/^([a-z]:)?([a-z0-9/.\\_~-]+)$/i.test(arg);
+}
+function toBinaryConfig(input, allowUnsafe) {
+  if (input.length < 1 || input.length > 2) {
+    throw new GitPluginError(undefined, "binary", WRONG_NUMBER_ERR);
+  }
+  const isBad = input.some(isBadArgument);
+  if (isBad) {
+    if (allowUnsafe) {
+      console.warn(WRONG_CHARS_ERR);
+    } else {
+      throw new GitPluginError(undefined, "binary", WRONG_CHARS_ERR);
+    }
+  }
+  const [binary, prefix] = input;
+  return {
+    binary,
+    prefix
+  };
+}
+function customBinaryPlugin(plugins, input = ["git"], allowUnsafe = false) {
+  let config2 = toBinaryConfig(asArray2(input), allowUnsafe);
+  plugins.on("binary", (input2) => {
+    config2 = toBinaryConfig(asArray2(input2), allowUnsafe);
+  });
+  plugins.append("spawn.binary", () => {
+    return config2.binary;
+  });
+  plugins.append("spawn.args", (data) => {
+    return config2.prefix ? [config2.prefix, ...data] : data;
+  });
+}
+init_git_error();
+function isTaskError(result) {
+  return !!(result.exitCode && result.stdErr.length);
+}
+function getErrorMessage3(result) {
+  return Buffer.concat([...result.stdOut, ...result.stdErr]);
+}
+function errorDetectionHandler(overwrite = false, isError = isTaskError, errorMessage = getErrorMessage3) {
+  return (error49, result) => {
+    if (!overwrite && error49 || !isError(result)) {
+      return error49;
+    }
+    return errorMessage(result);
+  };
+}
+function errorDetectionPlugin(config2) {
+  return {
+    type: "task.error",
+    action(data, context2) {
+      const error49 = config2(data.error, {
+        stdErr: context2.stdErr,
+        stdOut: context2.stdOut,
+        exitCode: context2.exitCode
+      });
+      if (Buffer.isBuffer(error49)) {
+        return { error: new GitError(undefined, error49.toString("utf-8")) };
+      }
+      return {
+        error: error49
+      };
+    }
+  };
+}
+init_utils();
+var PluginStore = class {
+  constructor() {
+    this.plugins = /* @__PURE__ */ new Set;
+    this.events = new EventEmitter;
+  }
+  on(type, listener) {
+    this.events.on(type, listener);
+  }
+  reconfigure(type, data) {
+    this.events.emit(type, data);
+  }
+  append(type, action) {
+    const plugin = append(this.plugins, { type, action });
+    return () => this.plugins.delete(plugin);
+  }
+  add(plugin) {
+    const plugins = [];
+    asArray2(plugin).forEach((plugin2) => plugin2 && this.plugins.add(append(plugins, plugin2)));
+    return () => {
+      plugins.forEach((plugin2) => this.plugins.delete(plugin2));
+    };
+  }
+  exec(type, data, context2) {
+    let output = data;
+    const contextual = Object.freeze(Object.create(context2));
+    for (const plugin of this.plugins) {
+      if (plugin.type === type) {
+        output = plugin.action(output, contextual);
+      }
+    }
+    return output;
+  }
+};
+init_utils();
+function progressMonitorPlugin(progress) {
+  const progressCommand = "--progress";
+  const progressMethods = ["checkout", "clone", "fetch", "pull", "push"];
+  const onProgress = {
+    type: "spawn.after",
+    action(_data, context2) {
+      if (!context2.commands.includes(progressCommand)) {
+        return;
+      }
+      context2.spawned.stderr?.on("data", (chunk) => {
+        const message = /^([\s\S]+?):\s*(\d+)% \((\d+)\/(\d+)\)/.exec(chunk.toString("utf8"));
+        if (!message) {
+          return;
+        }
+        progress({
+          method: context2.method,
+          stage: progressEventStage(message[1]),
+          progress: asNumber(message[2]),
+          processed: asNumber(message[3]),
+          total: asNumber(message[4])
+        });
+      });
+    }
+  };
+  const onArgs = {
+    type: "spawn.args",
+    action(args, context2) {
+      if (!progressMethods.includes(context2.method)) {
+        return args;
+      }
+      return including(args, progressCommand);
+    }
+  };
+  return [onArgs, onProgress];
+}
+function progressEventStage(input) {
+  return String(input.toLowerCase().split(" ", 1)) || "unknown";
+}
+init_utils();
+function spawnOptionsPlugin(spawnOptions) {
+  const options = pick2(spawnOptions, ["uid", "gid"]);
+  return {
+    type: "spawn.options",
+    action(data) {
+      return { ...options, ...data };
+    }
+  };
+}
+function timeoutPlugin({
+  block,
+  stdErr = true,
+  stdOut = true
+}) {
+  if (block > 0) {
+    return {
+      type: "spawn.after",
+      action(_data, context2) {
+        let timeout;
+        function wait() {
+          timeout && clearTimeout(timeout);
+          timeout = setTimeout(kill, block);
+        }
+        function stop() {
+          context2.spawned.stdout?.off("data", wait);
+          context2.spawned.stderr?.off("data", wait);
+          context2.spawned.off("exit", stop);
+          context2.spawned.off("close", stop);
+          timeout && clearTimeout(timeout);
+        }
+        function kill() {
+          stop();
+          context2.kill(new GitPluginError(undefined, "timeout", `block timeout reached`));
+        }
+        stdOut && context2.spawned.stdout?.on("data", wait);
+        stdErr && context2.spawned.stderr?.on("data", wait);
+        context2.spawned.on("exit", stop);
+        context2.spawned.on("close", stop);
+        wait();
+      }
+    };
+  }
+}
+function suffixPathsPlugin() {
+  return {
+    type: "spawn.args",
+    action(data) {
+      const prefix = [];
+      let suffix;
+      function append2(args) {
+        (suffix = suffix || []).push(...args);
+      }
+      for (let i2 = 0;i2 < data.length; i2++) {
+        const param = data[i2];
+        if (r(param)) {
+          append2(o(param));
+          continue;
+        }
+        if (param === "--") {
+          append2(data.slice(i2 + 1).flatMap((item) => r(item) && o(item) || item));
+          break;
+        }
+        prefix.push(param);
+      }
+      return !suffix ? prefix : [...prefix, "--", ...suffix.map(String)];
+    }
+  };
+}
+init_utils();
+var Git = require_git();
+function gitInstanceFactory(baseDir, options) {
+  const plugins = new PluginStore;
+  const config2 = createInstanceConfig(baseDir && (typeof baseDir === "string" ? { baseDir } : baseDir) || {}, options);
+  if (!folderExists(config2.baseDir)) {
+    throw new GitConstructError(config2, `Cannot use simple-git on a directory that does not exist`);
+  }
+  if (Array.isArray(config2.config)) {
+    plugins.add(commandConfigPrefixingPlugin(config2.config));
+  }
+  plugins.add(blockUnsafeOperationsPlugin(config2.unsafe));
+  plugins.add(completionDetectionPlugin(config2.completion));
+  config2.abort && plugins.add(abortPlugin(config2.abort));
+  config2.progress && plugins.add(progressMonitorPlugin(config2.progress));
+  config2.timeout && plugins.add(timeoutPlugin(config2.timeout));
+  config2.spawnOptions && plugins.add(spawnOptionsPlugin(config2.spawnOptions));
+  plugins.add(suffixPathsPlugin());
+  plugins.add(errorDetectionPlugin(errorDetectionHandler(true)));
+  config2.errors && plugins.add(errorDetectionPlugin(config2.errors));
+  customBinaryPlugin(plugins, config2.binary, config2.unsafe?.allowUnsafeCustomBinary);
+  return new Git(config2, plugins);
+}
+init_git_response_error();
+var esm_default = gitInstanceFactory;
+
+// src/git/time-range.ts
+function parseTimeRange(range) {
+  const match = range.match(/^(\d+)(h|d|w|m)$/);
+  if (!match) {
+    throw new Error(`Invalid time range "${range}". Expected format: <number><unit> where unit is h (hours), d (days), w (weeks), or m (months). Examples: 24h, 7d, 2w, 1m`);
+  }
+  const amount = parseInt(match[1], 10);
+  if (amount === 0) {
+    throw new Error(`Invalid time range "${range}". Amount must be greater than 0.`);
+  }
+  const unit = match[2];
+  const now2 = new Date;
+  switch (unit) {
+    case "h":
+      now2.setHours(now2.getHours() - amount);
+      break;
+    case "d":
+      now2.setDate(now2.getDate() - amount);
+      break;
+    case "w":
+      now2.setDate(now2.getDate() - amount * 7);
+      break;
+    case "m":
+      now2.setDate(now2.getDate() - amount * 30);
+      break;
+  }
+  return now2;
+}
+
+// src/git/log.ts
+var git = null;
+function getGit() {
+  if (!git) {
+    const repoPath = process.env.GITHUB_WORKSPACE ?? process.cwd();
+    git = esm_default(repoPath);
+  }
+  return git;
+}
+async function getCommitsSince(timeRange) {
+  const since = parseTimeRange(timeRange);
+  const log = await getGit().log({
+    "--since": since.toISOString(),
+    "--all": null
+  });
+  return log.all.map((entry) => ({
+    hash: entry.hash,
+    author: entry.author_name,
+    email: entry.author_email,
+    date: new Date(entry.date),
+    message: entry.message
+  }));
+}
+function groupByContributor(commits) {
+  const grouped = new Map;
+  for (const commit of commits) {
+    const key = commit.email;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.commits.push(commit);
+      if (commit.date > existing.latestDate) {
+        existing.latestDate = commit.date;
+        existing.author = commit.author;
+      }
+    } else {
+      grouped.set(key, {
+        author: commit.author,
+        email: commit.email,
+        commits: [commit],
+        latestDate: commit.date
+      });
+    }
+  }
+  return Array.from(grouped.values()).map(({ author, email: email3, commits: commits2 }) => ({ author, email: email3, commits: commits2 })).sort((a, b2) => b2.commits.length - a.commits.length);
 }
 // src/providers/slack.ts
 var MAX_SECTION_LENGTH = 2900;
@@ -63489,7 +63489,7 @@ class SlackProvider {
     this.webhookUrl = webhookUrl;
   }
   async send(message) {
-    const text2 = message.length > MAX_SECTION_LENGTH ? message.slice(0, MAX_SECTION_LENGTH) + `
+    const text2 = message.length > MAX_SECTION_LENGTH ? `${message.slice(0, MAX_SECTION_LENGTH)}
 _[truncated]_` : message;
     const response = await fetch(this.webhookUrl, {
       method: "POST",
@@ -63529,6 +63529,7 @@ _[truncated]_` : message;
     }
   }
 }
+
 // src/providers/factory.ts
 var PROVIDER_FACTORIES2 = {
   slack: (config2) => {
