@@ -30,8 +30,9 @@ bun run build
 1. Fork the repo and create a branch from `main`
 2. Make your changes
 3. Run `bun test` and `bun run lint` — both must pass
-4. Run `bun run build` and commit the updated `dist/index.js`
-5. Open a pull request against `main`
+4. Open a pull request against `main`
+
+> **Note:** You do not need to build or commit `dist/`. The CI builds it automatically at release time.
 
 ## Project Structure
 

@@ -7,5 +7,5 @@
 - [ ] Tests added/updated
 - [ ] `bun test` passes
 - [ ] `bun run lint` passes
-- [ ] `bun run build` run and `dist/index.js` committed
+- [ ] `bun run build` succeeds (no need to commit dist/)
 - [ ] Updated README if adding new inputs/features
