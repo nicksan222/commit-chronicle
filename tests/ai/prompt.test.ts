@@ -80,4 +80,47 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt([], "24h");
     expect(prompt).toContain("last 24h");
   });
+
+  it("handles special characters in commit messages", () => {
+    const special: ContributorActivity[] = [
+      {
+        author: "Carlos",
+        email: "carlos@example.com",
+        commits: [
+          {
+            hash: "xyz1234567890",
+            author: "Carlos",
+            email: "carlos@example.com",
+            date: new Date(),
+            message: "fix: handle `null` in <UserProfile> & escape *bold*",
+          },
+        ],
+      },
+    ];
+    const prompt = buildPrompt(special, "1d");
+    expect(prompt).toContain("`null`");
+    expect(prompt).toContain("<UserProfile>");
+    expect(prompt).toContain("*bold*");
+  });
+
+  it("handles unicode author names", () => {
+    const unicode: ContributorActivity[] = [
+      {
+        author: "\u5c71\u7530\u592a\u90ce",
+        email: "taro@example.jp",
+        commits: [
+          {
+            hash: "uni1234567890",
+            author: "\u5c71\u7530\u592a\u90ce",
+            email: "taro@example.jp",
+            date: new Date(),
+            message: "feat: \u65e5\u672c\u8a9e\u30b5\u30dd\u30fc\u30c8",
+          },
+        ],
+      },
+    ];
+    const prompt = buildPrompt(unicode, "7d");
+    expect(prompt).toContain("\u5c71\u7530\u592a\u90ce");
+    expect(prompt).toContain("taro@example.jp");
+  });
 });
