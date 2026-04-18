@@ -24770,6 +24770,9 @@ function parseTimeRange(range) {
     throw new Error(`Invalid time range "${range}". Expected format: <number><unit> where unit is h (hours), d (days), w (weeks), or m (months). Examples: 24h, 7d, 2w, 1m`);
   }
   const amount = parseInt(match[1], 10);
+  if (amount === 0) {
+    throw new Error(`Invalid time range "${range}". Amount must be greater than 0.`);
+  }
   const unit = match[2];
   const now = new Date;
   switch (unit) {
@@ -24790,11 +24793,17 @@ function parseTimeRange(range) {
 }
 
 // src/git/log.ts
-var repoPath = process.env.GITHUB_WORKSPACE ?? process.cwd();
-var git = esm_default(repoPath);
+var git = null;
+function getGit() {
+  if (!git) {
+    const repoPath = process.env.GITHUB_WORKSPACE ?? process.cwd();
+    git = esm_default(repoPath);
+  }
+  return git;
+}
 async function getCommitsSince(timeRange) {
   const since = parseTimeRange(timeRange);
-  const log = await git.log({
+  const log = await getGit().log({
     "--since": since.toISOString(),
     "--all": null
   });
@@ -24813,18 +24822,20 @@ function groupByContributor(commits) {
     const existing = grouped.get(key);
     if (existing) {
       existing.commits.push(commit);
-      if (commit.date > existing.commits[0].date) {
+      if (commit.date > existing.latestDate) {
+        existing.latestDate = commit.date;
         existing.author = commit.author;
       }
     } else {
       grouped.set(key, {
         author: commit.author,
         email: commit.email,
-        commits: [commit]
+        commits: [commit],
+        latestDate: commit.date
       });
     }
   }
-  return Array.from(grouped.values()).sort((a, b2) => b2.commits.length - a.commits.length);
+  return Array.from(grouped.values()).map(({ author, email, commits: commits2 }) => ({ author, email, commits: commits2 })).sort((a, b2) => b2.commits.length - a.commits.length);
 }
 // node_modules/@ai-sdk/provider/dist/index.mjs
 var marker = "vercel.ai.error";
