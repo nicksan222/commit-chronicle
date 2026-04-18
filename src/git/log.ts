@@ -1,14 +1,21 @@
-import simpleGit from "simple-git";
+import simpleGit, { type SimpleGit } from "simple-git";
 import type { Commit, ContributorActivity } from "./types";
 import { parseTimeRange } from "./time-range";
 
-const repoPath = process.env.GITHUB_WORKSPACE ?? process.cwd();
-const git = simpleGit(repoPath);
+let git: SimpleGit | null = null;
+
+function getGit(): SimpleGit {
+  if (!git) {
+    const repoPath = process.env.GITHUB_WORKSPACE ?? process.cwd();
+    git = simpleGit(repoPath);
+  }
+  return git;
+}
 
 export async function getCommitsSince(timeRange: string): Promise<Commit[]> {
   const since = parseTimeRange(timeRange);
 
-  const log = await git.log({
+  const log = await getGit().log({
     "--since": since.toISOString(),
     "--all": null,
   });
@@ -23,7 +30,10 @@ export async function getCommitsSince(timeRange: string): Promise<Commit[]> {
 }
 
 export function groupByContributor(commits: Commit[]): ContributorActivity[] {
-  const grouped = new Map<string, ContributorActivity>();
+  const grouped = new Map<
+    string,
+    ContributorActivity & { latestDate: Date }
+  >();
 
   for (const commit of commits) {
     const key = commit.email;
@@ -31,8 +41,8 @@ export function groupByContributor(commits: Commit[]): ContributorActivity[] {
 
     if (existing) {
       existing.commits.push(commit);
-      // Use the most recent author name for this email
-      if (commit.date > existing.commits[0]!.date) {
+      if (commit.date > existing.latestDate) {
+        existing.latestDate = commit.date;
         existing.author = commit.author;
       }
     } else {
@@ -40,11 +50,12 @@ export function groupByContributor(commits: Commit[]): ContributorActivity[] {
         author: commit.author,
         email: commit.email,
         commits: [commit],
+        latestDate: commit.date,
       });
     }
   }
 
-  return Array.from(grouped.values()).sort(
-    (a, b) => b.commits.length - a.commits.length
-  );
+  return Array.from(grouped.values())
+    .map(({ author, email, commits }) => ({ author, email, commits }))
+    .sort((a, b) => b.commits.length - a.commits.length);
 }
