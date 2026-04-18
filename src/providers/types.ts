@@ -1,4 +1,4 @@
 export interface ChatProvider {
-  readonly name: string;
-  send(message: string): Promise<void>;
+	readonly name: string;
+	send(message: string): Promise<void>;
 }

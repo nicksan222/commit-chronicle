@@ -1,8 +1,8 @@
-export { generatePulse } from "./generate";
 export type { GenerateOptions } from "./generate";
-export {
-  isSupportedProvider,
-  resolveModel,
-  getDefaultModel,
-} from "./provider";
+export { generatePulse } from "./generate";
 export type { SupportedProvider } from "./provider";
+export {
+	getDefaultModel,
+	isSupportedProvider,
+	resolveModel,
+} from "./provider";
