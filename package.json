@@ -5,9 +5,12 @@
   "private": true,
   "scripts": {
     "build": "bun build src/main.ts --target=node --outfile=dist/index.js",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "bunx biome check src/ tests/",
+    "lint:fix": "bunx biome check --write src/ tests/"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.12",
     "@types/bun": "latest"
   },
   "peerDependencies": {
